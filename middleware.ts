@@ -3,6 +3,27 @@ import { Address } from "viem";
 import { paymentMiddleware } from "x402-next";
 
 const payTo = process.env.RESOURCE_WALLET_ADDRESS as Address;
+// Match the reference output schema shape
+const outputSchema = {
+  input: {
+    type: "http" as const,
+    method: "GET" as const,
+    queryParams: {
+      location: {
+        type: "string",
+        required: true,
+        description: "City name",
+      },
+    },
+  },
+  output: {
+    type: "object" as const,
+    properties: {
+      weather: { type: "string" },
+      temperature: { type: "number" },
+    },
+  },
+};
 
 export const middleware = paymentMiddleware(
   payTo,
@@ -25,10 +46,7 @@ export const middleware = paymentMiddleware(
       config: {
         discoverable: true, // make endpoint discoverable
         description: "Access to protected content",
-        outputSchema: {
-          type: "text/html",
-          description: "Exclusive music content",
-        },
+        outputSchema,
       },
     },
   },
