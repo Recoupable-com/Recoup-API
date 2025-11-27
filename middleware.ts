@@ -19,7 +19,7 @@ export const middleware = paymentMiddleware(
         },
       },
     },
-    "/api/image/generate": {
+    "GET /api/image/generate": {
       price: "$0.001",
       network: "base",
       config: {
