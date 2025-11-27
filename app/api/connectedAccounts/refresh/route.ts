@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import refreshConnectedAccount from "@/lib/composio/googleSheets/refreshConnectedAccount";
-import { createApiResponse } from "@/lib/networking/createApiResponse";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 
 /**
@@ -27,14 +26,21 @@ export async function POST(request: NextRequest) {
     const { accountId, redirectUrl } = body;
 
     if (!accountId) {
-      return createApiResponse({ error: "accountId is required" }, 400);
+      return NextResponse.json(
+        { error: "accountId is required" },
+        {
+          status: 400,
+        },
+      );
     }
 
     const response = await refreshConnectedAccount(accountId, redirectUrl);
 
-    return createApiResponse(
+    return NextResponse.json(
       { message: "Connected account refreshed successfully", ...response },
-      200,
+      {
+        status: 200,
+      },
     );
   } catch (error) {
     console.error("Error refreshing connected account:", error);
@@ -42,6 +48,11 @@ export async function POST(request: NextRequest) {
     const errorMessage = error instanceof Error ? error.message : "Internal server error";
     const statusCode = errorMessage.includes("not found") ? 404 : 500;
 
-    return createApiResponse({ error: errorMessage }, statusCode);
+    return NextResponse.json(
+      { error: errorMessage },
+      {
+        status: statusCode,
+      },
+    );
   }
 }
