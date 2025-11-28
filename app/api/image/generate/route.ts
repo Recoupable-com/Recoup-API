@@ -54,10 +54,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { prompt, account_id: accountId } = validationResult.data;
+    const { prompt, account_id } = validationResult.data;
 
     const baseUrl = request.nextUrl.origin;
-    const data = await x402GenerateImage(prompt, baseUrl, accountId);
+    const data = await x402GenerateImage(prompt, baseUrl, account_id);
 
     return NextResponse.json(data, {
       status: 200,
