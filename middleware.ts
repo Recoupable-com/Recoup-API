@@ -1,6 +1,7 @@
 import { facilitator } from "@coinbase/x402";
 import { Address } from "viem";
 import { paymentMiddleware } from "x402-next";
+import { IMAGE_GENERATE_PRICE } from "./lib/const";
 
 const payTo = process.env.RESOURCE_WALLET_ADDRESS as Address;
 
@@ -46,7 +47,7 @@ export const middleware = paymentMiddleware(
   payTo,
   {
     "GET /api/x402/image/generate": {
-      price: "$0.01111",
+      price: `$${IMAGE_GENERATE_PRICE}`,
       network: "base",
       config: {
         discoverable: true, // make endpoint discoverable
