@@ -1,5 +1,5 @@
 import { isArweaveURL } from "./arweave";
-import { isNormalizeableIPFSUrl } from "./ipfs";
+import { isNormalizeableIPFSUrl } from "./isNormalizeableIPFSUrl";
 import { arweaveGatewayUrl } from "./arweaveGatewayUrl";
 import { ipfsGatewayUrl } from "./ipfsGatewayUrl";
 

@@ -1,4 +1,4 @@
-import { normalizeIPFSUrl } from "./ipfs";
+import { normalizeIPFSUrl } from "./normalizeIPFSUrl";
 
 const IPFS_GATEWAY = "https://magic.decentralized-content.com";
 
