@@ -18,12 +18,13 @@ export async function sendUserOpAndWait(calls: readonly Call[]): Promise<string>
   try {
     const smartAccount = await getSmartAccount();
 
+    // @ts-expect-error excessively deep type instantiation
     const sendResult = await cdp.evm.sendUserOperation({
       smartAccount,
       network: "base",
       paymasterUrl: PAYMASTER_URL,
       calls,
-    } as const);
+    });
 
     await cdp.evm.waitForUserOperation({
       smartAccountAddress: smartAccount.address,
