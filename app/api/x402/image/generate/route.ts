@@ -62,15 +62,9 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error("Error generating image:", error);
-
-    const errorMessage = error instanceof Error ? error.message : "Internal server error";
-
-    return NextResponse.json(
-      { error: errorMessage },
-      {
-        status: 500,
-        headers: getCorsHeaders(),
-      },
-    );
+    return NextResponse.json(error, {
+      status: 500,
+      headers: getCorsHeaders(),
+    });
   }
 }
