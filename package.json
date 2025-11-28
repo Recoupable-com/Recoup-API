@@ -18,6 +18,8 @@
     "@composio/core": "^0.2.6",
     "@composio/vercel": "^0.2.18",
     "ai": "6.0.0-beta.122",
+    "arweave": "^1.15.7",
+    "multiformats": "^13.4.1",
     "next": "^16.0.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
