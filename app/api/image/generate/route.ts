@@ -5,7 +5,7 @@ import { z } from "zod";
 
 const queryParamsSchema = z.object({
   prompt: z.string().min(1, "The provided prompt is invalid or empty"),
-  artist_account_id: z.string().min(1, "The provided artist_account_id is invalid or not found"),
+  account_id: z.string().min(1, "The provided account_id is invalid or not found"),
 });
 
 /**
@@ -22,7 +22,7 @@ export async function OPTIONS() {
 
 /**
  * GET handler for image generation endpoint.
- * Accepts prompt and artist_account_id, and fetches from the x402-protected endpoint.
+ * Accepts prompt and account_id, and fetches from the x402-protected endpoint.
  *
  * @param request - The request object containing query parameters.
  * @returns {Promise<NextResponse>} JSON response matching the Recoup API format.
@@ -54,10 +54,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { prompt } = validationResult.data;
+    const { prompt, account_id } = validationResult.data;
 
     const baseUrl = request.nextUrl.origin;
-    const data = await x402GenerateImage(prompt, baseUrl);
+    const data = await x402GenerateImage(prompt, baseUrl, account_id);
 
     return NextResponse.json(data, {
       status: 200,
