@@ -7,16 +7,10 @@
  * @throws Error if the price string is invalid or cannot be parsed.
  */
 export function getCreditsForPrice(price: string): number {
-  // Remove $ sign and whitespace, then parse
-  const cleanedPrice = price.replace(/[$,\s]/g, "");
-  const priceNumber = parseFloat(cleanedPrice);
-
+  const priceNumber = parseFloat(price);
   if (isNaN(priceNumber) || priceNumber < 0) {
     throw new Error(`Invalid price string: ${price}`);
   }
-
-  // 1 credit = $0.01, so divide by 0.01 and round up
   const credits = Math.ceil(priceNumber / 0.01);
-
   return credits;
 }

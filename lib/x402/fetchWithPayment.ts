@@ -15,7 +15,7 @@ import { IMAGE_GENERATE_PRICE } from "@/lib/const";
  */
 export async function fetchWithPayment(url: string, accountId: string): Promise<Response> {
   const account = await getAccount(accountId);
-  const creditsToDeduct = getCreditsForPrice(`$${IMAGE_GENERATE_PRICE}`);
+  const creditsToDeduct = getCreditsForPrice(IMAGE_GENERATE_PRICE);
   await deductCredits({ accountId, creditsToDeduct });
   await loadAccount(account.address);
   const fetchWithPaymentWrapper = wrapFetchWithPayment(fetch, toAccount(account));
