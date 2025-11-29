@@ -11,10 +11,8 @@ import { IMAGE_GENERATE_PRICE } from "@/lib/const";
  */
 export async function loadAccount(recipientAddress: Address): Promise<string> {
   try {
-    // 3. Get transfer calls
     const calls = getTransferCalls(recipientAddress, IMAGE_GENERATE_PRICE);
 
-    // 4. Send user operation and wait for it to be mined
     const transactionHash = await sendUserOpAndWait(calls);
 
     return transactionHash;
