@@ -8,7 +8,7 @@
  */
 export function getCreditsForPrice(price: string): number {
   const priceNumber = parseFloat(price);
-  if (isNaN(priceNumber) || priceNumber < 0) {
+  if (isNaN(priceNumber) || priceNumber <= 0) {
     throw new Error(`Invalid price string: ${price}`);
   }
   const credits = Math.ceil(priceNumber / 0.01);
