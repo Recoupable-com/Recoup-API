@@ -3,6 +3,7 @@ import generateImage from "@/lib/ai/generateImage";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { uploadImageAndCreateMoment } from "@/lib/arweave/uploadImageAndCreateMoment";
 import { getBuyerAccount } from "@/lib/x402/getBuyerAccount";
+import type { FilePart } from "ai";
 
 /**
  * OPTIONS handler for CORS preflight requests.
@@ -26,6 +27,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const prompt = searchParams.get("prompt");
+    const filesParam = searchParams.get("files");
     const account = getBuyerAccount(request);
 
     if (!prompt) {
@@ -38,7 +40,32 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { image, usage } = await generateImage(prompt);
+    // Parse files from query parameter if provided
+    let files: FilePart[] | undefined;
+    if (filesParam) {
+      try {
+        const parsedFiles = JSON.parse(filesParam) as Array<{
+          data: string | Uint8Array | Buffer | ArrayBuffer | URL;
+          mediaType: string;
+        }>;
+        // Convert to FilePart format (add type: 'file')
+        files = parsedFiles.map(file => ({
+          type: "file" as const,
+          data: file.data,
+          mediaType: file.mediaType,
+        }));
+      } catch {
+        return NextResponse.json(
+          { error: "Invalid files parameter. Must be valid JSON array." },
+          {
+            status: 400,
+            headers: getCorsHeaders(),
+          },
+        );
+      }
+    }
+
+    const { image, usage } = await generateImage(prompt, files);
 
     if (!image) {
       return NextResponse.json(

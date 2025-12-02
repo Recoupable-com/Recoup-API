@@ -1,17 +1,27 @@
-import { GeneratedFile, LanguageModelUsage, ModelMessage } from "ai";
+import { GeneratedFile, LanguageModelUsage, ModelMessage, TextPart, type FilePart } from "ai";
 import { createImageGenerationAgent } from "@/lib/agents/ImageGenerationAgent";
 
 const generateImage = async (
   prompt: string,
+  files?: FilePart[],
 ): Promise<{ image: GeneratedFile; usage: LanguageModelUsage } | null> => {
   try {
     const agent = createImageGenerationAgent();
-    const messages = [
+
+    // Build content array with prompt first, then optionally append files
+    const content: Array<TextPart | FilePart> = [{ type: "text", text: prompt }];
+
+    if (files && files.length > 0) {
+      content.push(...files);
+    }
+
+    const messages: ModelMessage[] = [
       {
         role: "user",
-        content: prompt,
+        content,
       } as ModelMessage,
     ];
+
     const response = await agent.generate({
       messages,
     });
