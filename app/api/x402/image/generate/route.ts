@@ -3,7 +3,7 @@ import generateImage from "@/lib/ai/generateImage";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { uploadImageAndCreateMoment } from "@/lib/arweave/uploadImageAndCreateMoment";
 import { getBuyerAccount } from "@/lib/x402/getBuyerAccount";
-import type { FilePart } from "ai";
+import { parseFilesFromQuery } from "@/lib/files/parseFilesFromQuery";
 
 /**
  * OPTIONS handler for CORS preflight requests.
@@ -41,47 +41,21 @@ export async function GET(request: NextRequest) {
     }
 
     // Parse files from query parameter if provided
-    // Format: files=url1:type1|url2:type2
-    // Example: files=https://example.com/image.png:image/png|https://example.com/file.jpg:image/jpeg
-    // Note: Split on last ":" since URLs contain colons (e.g., https://)
-    let files: FilePart[] | undefined;
-    if (filesParam) {
-      try {
-        const fileEntries = filesParam.split("|");
-        files = fileEntries
-          .map(entry => {
-            // Split on last ":" to handle URLs with colons (e.g., https://)
-            const lastColonIndex = entry.lastIndexOf(":");
-            if (lastColonIndex === -1) {
-              throw new Error(`Invalid file entry: "${entry}". Format must be "url:mediaType"`);
-            }
-            const data = entry.substring(0, lastColonIndex).trim();
-            const mediaType = entry.substring(lastColonIndex + 1).trim();
-            if (!data || !mediaType) {
-              throw new Error(`Invalid file entry: "${entry}". Format must be "url:mediaType"`);
-            }
-            return {
-              type: "file" as const,
-              data: decodeURIComponent(data),
-              mediaType: mediaType,
-            };
-          })
-          .filter(file => file.data && file.mediaType);
-      } catch (error) {
-        return NextResponse.json(
-          {
-            error: "Invalid files parameter.",
-            details:
-              error instanceof Error ? error.message : "Format must be: url1:type1|url2:type2",
-          },
-          {
-            status: 400,
-            headers: getCorsHeaders(),
-          },
-        );
-      }
+    let files;
+    try {
+      files = parseFilesFromQuery(filesParam);
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error: "Invalid files parameter.",
+          details: error instanceof Error ? error.message : "Format must be: url1:type1|url2:type2",
+        },
+        {
+          status: 400,
+          headers: getCorsHeaders(),
+        },
+      );
     }
-    console.log("files", files);
 
     const { image, usage } = await generateImage(prompt, files);
 
