@@ -55,9 +55,10 @@ export async function GET(request: NextRequest) {
     }
 
     const { prompt, account_id } = validationResult.data;
+    const files = searchParams.get("files");
 
     const baseUrl = request.nextUrl.origin;
-    const data = await x402GenerateImage(prompt, baseUrl, account_id);
+    const data = await x402GenerateImage(prompt, baseUrl, account_id, files);
 
     return NextResponse.json(data, {
       status: 200,
