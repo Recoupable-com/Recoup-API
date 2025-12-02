@@ -1,12 +1,19 @@
-import { GeneratedFile, generateText, LanguageModelUsage } from "ai";
+import { GeneratedFile, LanguageModelUsage, ModelMessage } from "ai";
+import { createImageGenerationAgent } from "@/lib/agents/ImageGenerationAgent";
 
 const generateImage = async (
   prompt: string,
 ): Promise<{ image: GeneratedFile; usage: LanguageModelUsage } | null> => {
   try {
-    const response = await generateText({
-      model: "google/gemini-3-pro-image",
-      prompt,
+    const agent = createImageGenerationAgent();
+    const messages = [
+      {
+        role: "user",
+        content: prompt,
+      } as ModelMessage,
+    ];
+    const response = await agent.generate({
+      messages,
     });
 
     return { image: response.files[0], usage: response.usage };
