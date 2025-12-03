@@ -27,9 +27,7 @@ export const getArtistSegments = async ({
   limit,
 }: ArtistSegmentsQuery): Promise<GetArtistSegmentsResponse> => {
   try {
-    // Validate limit is between 1 and 100
-    const validatedLimit = Math.min(Math.max(1, limit), 100);
-    const offset = (page - 1) * validatedLimit;
+    const offset = (page - 1) * limit;
 
     // Get total count first
     const total_count = await selectArtistSegmentsCount(artist_account_id);
@@ -41,14 +39,14 @@ export const getArtistSegments = async ({
         pagination: {
           total_count: 0,
           page,
-          limit: validatedLimit,
+          limit,
           total_pages: 0,
         },
       };
     }
 
     // Get paginated segments with joins
-    const data = await selectArtistSegments(artist_account_id, offset, validatedLimit);
+    const data = await selectArtistSegments(artist_account_id, offset, limit);
 
     if (!data) {
       return {
@@ -57,7 +55,7 @@ export const getArtistSegments = async ({
         pagination: {
           total_count: 0,
           page,
-          limit: validatedLimit,
+          limit,
           total_pages: 0,
         },
       };
@@ -72,7 +70,7 @@ export const getArtistSegments = async ({
       artist_name: segment.accounts?.name || "Unknown Artist",
     }));
 
-    const total_pages = Math.ceil(total_count / validatedLimit);
+    const total_pages = Math.ceil(total_count / limit);
 
     return {
       status: "success",
@@ -80,7 +78,7 @@ export const getArtistSegments = async ({
       pagination: {
         total_count,
         page,
-        limit: validatedLimit,
+        limit,
         total_pages,
       },
     };

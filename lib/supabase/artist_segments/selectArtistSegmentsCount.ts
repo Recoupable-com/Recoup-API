@@ -19,4 +19,3 @@ export async function selectArtistSegmentsCount(artist_account_id: string): Prom
 
   return count ?? 0;
 }
-
