@@ -4,11 +4,7 @@ import { insertCatalogSongs } from "@/lib/supabase/catalog_songs/insertCatalogSo
 import { selectCatalogSongsWithArtists } from "@/lib/supabase/catalog_songs/selectCatalogSongsWithArtists";
 import { processSongsInput } from "@/lib/songs/processSongsInput";
 import { SongInput } from "@/lib/songs/formatSongsInput";
-import { CatalogSongInput } from "@/lib/songs/types";
-
-type CreateCatalogSongsRequest = {
-  songs: CatalogSongInput[];
-};
+import { validateCatalogSongsRequest } from "@/lib/songs/validateCatalogSongsRequest";
 
 /**
  * Handler for creating catalog-song relationships.
@@ -24,40 +20,16 @@ type CreateCatalogSongsRequest = {
  */
 export async function createCatalogSongsHandler(request: NextRequest): Promise<NextResponse> {
   try {
-    const body = (await request.json()) as CreateCatalogSongsRequest;
+    const body = await request.json();
 
     // Validate request body
-    if (!body.songs || !Array.isArray(body.songs) || body.songs.length === 0) {
-      return NextResponse.json(
-        {
-          status: "error",
-          error: "songs array is required and must not be empty",
-        },
-        {
-          status: 400,
-          headers: getCorsHeaders(),
-        },
-      );
-    }
-
-    // Validate all songs have required fields
-    const invalidSongs = body.songs.filter(song => !song.catalog_id || !song.isrc);
-
-    if (invalidSongs.length > 0) {
-      return NextResponse.json(
-        {
-          status: "error",
-          error: "catalog_id and isrc are required for each song",
-        },
-        {
-          status: 400,
-          headers: getCorsHeaders(),
-        },
-      );
+    const validatedBody = validateCatalogSongsRequest(body);
+    if (validatedBody instanceof NextResponse) {
+      return validatedBody;
     }
 
     // Get unique ISRCs and create song records with CSV data preserved
-    const dataByIsrc = body.songs.reduce((map, song) => {
+    const dataByIsrc = validatedBody.songs.reduce((map, song) => {
       if (song.isrc) {
         map.set(song.isrc, {
           name: song.name || "",
@@ -79,14 +51,14 @@ export async function createCatalogSongsHandler(request: NextRequest): Promise<N
 
     // Insert catalog_songs relationships
     await insertCatalogSongs(
-      body.songs.map(song => ({
+      validatedBody.songs.map(song => ({
         catalog: song.catalog_id,
         song: song.isrc,
       })),
     );
 
     // Get unique catalog IDs for fetching the created relationships
-    const uniqueCatalogIds = [...new Set(body.songs.map(song => song.catalog_id))];
+    const uniqueCatalogIds = [...new Set(validatedBody.songs.map(song => song.catalog_id))];
 
     // Fetch the created catalog songs with artist information
     const result = await selectCatalogSongsWithArtists({

@@ -2,11 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { selectCatalogSongsWithArtists } from "@/lib/supabase/catalog_songs/selectCatalogSongsWithArtists";
 import { deleteCatalogSongs } from "@/lib/supabase/catalog_songs/deleteCatalogSongs";
-import { CatalogSongInput } from "@/lib/songs/types";
-
-type DeleteCatalogSongsRequest = {
-  songs: CatalogSongInput[];
-};
+import { validateCatalogSongsRequest } from "@/lib/songs/validateCatalogSongsRequest";
 
 /**
  * Handler for deleting catalog-song relationships.
@@ -22,40 +18,16 @@ type DeleteCatalogSongsRequest = {
  */
 export async function deleteCatalogSongsHandler(request: NextRequest): Promise<NextResponse> {
   try {
-    const body = (await request.json()) as DeleteCatalogSongsRequest;
+    const body = await request.json();
 
     // Validate request body
-    if (!body.songs || !Array.isArray(body.songs) || body.songs.length === 0) {
-      return NextResponse.json(
-        {
-          status: "error",
-          error: "songs array is required and must not be empty",
-        },
-        {
-          status: 400,
-          headers: getCorsHeaders(),
-        },
-      );
-    }
-
-    // Validate all songs have required fields
-    const invalidSongs = body.songs.filter(song => !song.catalog_id || !song.isrc);
-
-    if (invalidSongs.length > 0) {
-      return NextResponse.json(
-        {
-          status: "error",
-          error: "catalog_id and isrc are required for each song",
-        },
-        {
-          status: 400,
-          headers: getCorsHeaders(),
-        },
-      );
+    const validatedBody = validateCatalogSongsRequest(body);
+    if (validatedBody instanceof NextResponse) {
+      return validatedBody;
     }
 
     // Delete catalog_songs relationships
-    const affectedCatalogIds = await deleteCatalogSongs(body.songs);
+    const affectedCatalogIds = await deleteCatalogSongs(validatedBody.songs);
 
     // Get unique catalog IDs for fetching the remaining relationships
     const uniqueCatalogIds = [...new Set(affectedCatalogIds)];
