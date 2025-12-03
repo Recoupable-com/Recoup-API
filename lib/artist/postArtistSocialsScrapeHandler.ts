@@ -23,7 +23,7 @@ export async function postArtistSocialsScrapeHandler(request: NextRequest): Prom
     }
 
     const socials = await selectAccountSocials(validatedBody.artist_account_id, 0, 100);
-    console.log("socials", socials);
+
     if (!socials.length) {
       return NextResponse.json([], {
         status: 200,
