@@ -4,7 +4,7 @@ import type { AccountSocialWithSocial } from "@/lib/supabase/account_socials/sel
 type AccountSocialRow = Tables<"account_socials">;
 type SocialRow = Tables<"socials">;
 
-export type ArtistSocialResponse = Pick<AccountSocialRow, "id" | "social_id"> &
+export type AccountSocialResponse = Pick<AccountSocialRow, "id" | "social_id"> &
   Pick<SocialRow, "username" | "profile_url" | "avatar" | "bio" | "region" | "updated_at"> & {
     follower_count: SocialRow["followerCount"];
     following_count: SocialRow["followingCount"];
@@ -17,7 +17,7 @@ export type ArtistSocialResponse = Pick<AccountSocialRow, "id" | "social_id"> &
  * @returns Array of transformed social responses
  * @throws Error if social data is missing for any account_social
  */
-export function flattenAccountSocials(accountSocials: unknown[] | null): ArtistSocialResponse[] {
+export function flattenAccountSocials(accountSocials: unknown[] | null): AccountSocialResponse[] {
   return (accountSocials || []).map(item => {
     const accountSocial = item as AccountSocialWithSocial;
     // Supabase types this as an array, but runtime data is a single object
