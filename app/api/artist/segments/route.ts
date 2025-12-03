@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
-import { getArtistSocialsHandler } from "@/lib/artist/getArtistSocialsHandler";
+import { getArtistSegmentsHandler } from "@/lib/artist/getArtistSegmentsHandler";
 
 /**
  * OPTIONS handler for CORS preflight requests.
@@ -15,18 +15,18 @@ export async function OPTIONS() {
 }
 
 /**
- * GET /api/artist/socials
+ * GET /api/artist/segments
  *
- * Retrieves all social media profiles associated with an artist account.
+ * Retrieves all segments associated with an artist account.
  *
  * Query parameters:
  * - artist_account_id (required): The unique identifier of the artist account
  * - page (optional): Page number for pagination (default: 1)
- * - limit (optional): Number of socials per page (default: 20, max: 100)
+ * - limit (optional): Number of segments per page (default: 20, max: 100)
  *
  * @param request - The request object containing query parameters.
- * @returns A NextResponse with social media profiles and pagination metadata.
+ * @returns A NextResponse with segments and pagination metadata.
  */
 export async function GET(request: NextRequest) {
-  return getArtistSocialsHandler(request);
+  return getArtistSegmentsHandler(request);
 }
