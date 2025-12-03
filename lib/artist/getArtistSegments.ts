@@ -42,13 +42,13 @@ export const getArtistSegments = async ({
 
     if (!data) {
       return {
-        status: "success",
+        status: "error",
         segments: [],
         pagination: {
-          total_count: 0,
+          total_count,
           page,
           limit,
-          total_pages: 0,
+          total_pages: Math.ceil(total_count / limit),
         },
       };
     }
