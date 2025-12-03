@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
-import { getArtistSocials } from "@/lib/supabase/account_socials/getArtistSocials";
+import { getArtistSocials } from "@/lib/artist/getArtistSocials";
 import { validateArtistSocialsQuery } from "@/lib/artist/validateArtistSocialsQuery";
 
 /**
