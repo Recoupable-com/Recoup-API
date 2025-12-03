@@ -10,7 +10,7 @@ type SocialRow = Tables<"socials">;
  * so at runtime `social` is a single object, not an array.
  */
 export type AccountSocialWithSocial = AccountSocialRow & {
-  social: SocialRow | SocialRow[] | null;
+  social: SocialRow | null;
 };
 
 /**
@@ -24,8 +24,8 @@ export type AccountSocialWithSocial = AccountSocialRow & {
  */
 export async function selectAccountSocials(
   artist_account_id: string,
-  offset: number,
-  limit: number,
+  offset: number = 0,
+  limit: number = 100,
 ): Promise<AccountSocialWithSocial[] | null> {
   const { data, error } = await supabase
     .from("account_socials")
