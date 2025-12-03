@@ -31,6 +31,7 @@ export function validateCatalogSongsRequest(body: unknown): NextResponse | Catal
     return NextResponse.json(
       {
         status: "error",
+        missing_fields: firstError.path,
         error: firstError.message,
       },
       {
