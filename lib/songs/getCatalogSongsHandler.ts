@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { selectCatalogSongsWithArtists } from "@/lib/supabase/catalog_songs/selectCatalogSongsWithArtists";
+import { validateCatalogSongsQuery } from "@/lib/songs/validateCatalogSongsQuery";
 
 /**
  * Handler for retrieving catalog songs with pagination.
@@ -17,66 +18,22 @@ import { selectCatalogSongsWithArtists } from "@/lib/supabase/catalog_songs/sele
 export async function getCatalogSongsHandler(request: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url);
-    const catalog_id = searchParams.get("catalog_id");
-    const artistName = searchParams.get("artistName");
-    const page = searchParams.get("page");
-    const limit = searchParams.get("limit");
 
-    // Validate required catalog_id parameter
-    if (!catalog_id || typeof catalog_id !== "string") {
-      return NextResponse.json(
-        {
-          status: "error",
-          error: "catalog_id parameter is required",
-        },
-        {
-          status: 400,
-          headers: getCorsHeaders(),
-        },
-      );
-    }
-
-    // Parse and validate pagination parameters
-    const pageNum = page ? parseInt(page, 10) : 1;
-    const limitNum = limit ? parseInt(limit, 10) : 20;
-    const artistNameParam = artistName && typeof artistName === "string" ? artistName : undefined;
-
-    if (isNaN(pageNum) || pageNum < 1) {
-      return NextResponse.json(
-        {
-          status: "error",
-          error: "page must be a positive integer",
-        },
-        {
-          status: 400,
-          headers: getCorsHeaders(),
-        },
-      );
-    }
-
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
-      return NextResponse.json(
-        {
-          status: "error",
-          error: "limit must be a positive integer between 1 and 100",
-        },
-        {
-          status: 400,
-          headers: getCorsHeaders(),
-        },
-      );
+    const validatedQuery = validateCatalogSongsQuery(searchParams);
+    if (validatedQuery instanceof NextResponse) {
+      return validatedQuery;
     }
 
     // Fetch catalog songs with pagination
     const result = await selectCatalogSongsWithArtists({
-      catalogId: catalog_id,
-      artistName: artistNameParam,
-      page: pageNum,
-      limit: limitNum,
+      catalogId: validatedQuery.catalog_id,
+      artistName: validatedQuery.artistName,
+      page: validatedQuery.page,
+      limit: validatedQuery.limit,
     });
 
     // Calculate pagination metadata
-    const totalPages = Math.ceil(result.total_count / limitNum);
+    const totalPages = Math.ceil(result.total_count / validatedQuery.limit);
 
     return NextResponse.json(
       {
@@ -84,8 +41,8 @@ export async function getCatalogSongsHandler(request: NextRequest): Promise<Next
         songs: result.songs,
         pagination: {
           total_count: result.total_count,
-          page: pageNum,
-          limit: limitNum,
+          page: validatedQuery.page,
+          limit: validatedQuery.limit,
           total_pages: totalPages,
         },
       },
