@@ -23,7 +23,7 @@ export function mapArtistSegments(segments: SegmentQueryResult[]): MappedArtistS
       id: segment.id,
       artist_account_id: segment.artist_account_id,
       segment_id: segment.segment_id,
-      updated_at: segment.updated_at || new Date().toISOString(),
+      updated_at: segment.updated_at || "",
       segment_name: segments?.name || "Unknown Segment",
       artist_name: accounts?.name || "Unknown Artist",
     };
