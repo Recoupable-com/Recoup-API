@@ -1,4 +1,4 @@
-import { PaymentMcpServer } from "x402-mcp";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 /**
@@ -7,13 +7,12 @@ import { z } from "zod";
  *
  * @param server - The MCP server instance to register the tool on.
  */
-export function registerHelloRemoteTool(server: PaymentMcpServer): void {
+export function registerHelloRemoteTool(server: McpServer): void {
   server.registerTool(
     "hello-remote",
     {
       description: "Receive a greeting",
       inputSchema: {
-        // @ts-expect-error - Zod version mismatch with x402-mcp types
         name: z.string() as z.ZodType<string>,
       },
     },

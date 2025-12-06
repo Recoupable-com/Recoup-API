@@ -1,20 +1,18 @@
-import { createPaidMcpHandler } from "x402-mcp";
-import { facilitator } from "@coinbase/x402";
-import { SMART_ACCOUNT_ADDRESS } from "@/lib/const";
 import { registerGetRandomNumberTool } from "@/lib/mcp/registerGetRandomNumberTool";
 import { registerAddTool } from "@/lib/mcp/registerAddTool";
 import { registerHelloRemoteTool } from "@/lib/mcp/registerHelloRemoteTool";
+import { createMcpHandler } from "mcp-handler";
 
-let handler: ReturnType<typeof createPaidMcpHandler> | null = null;
+let handler: ReturnType<typeof createMcpHandler> | null = null;
 
 /**
  * Gets the MCP handler for the API.
  *
  * @returns The MCP handler.
  */
-async function getHandler(): Promise<ReturnType<typeof createPaidMcpHandler>> {
+async function getHandler(): Promise<ReturnType<typeof createMcpHandler>> {
   if (!handler) {
-    handler = createPaidMcpHandler(
+    handler = createMcpHandler(
       server => {
         registerGetRandomNumberTool(server);
         registerAddTool(server);
@@ -25,11 +23,6 @@ async function getHandler(): Promise<ReturnType<typeof createPaidMcpHandler>> {
           name: "recoup-mcp",
           version: "0.0.1",
         },
-      },
-      {
-        recipient: SMART_ACCOUNT_ADDRESS,
-        facilitator,
-        network: "base",
       },
     );
   }

@@ -1,4 +1,4 @@
-import { PaymentMcpServer } from "x402-mcp";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 /**
@@ -7,14 +7,12 @@ import { z } from "zod";
  *
  * @param server - The MCP server instance to register the tool on.
  */
-export function registerAddTool(server: PaymentMcpServer): void {
+export function registerAddTool(server: McpServer): void {
   server.registerTool(
     "add",
     {
       inputSchema: {
-        // @ts-expect-error - Zod version mismatch with x402-mcp types
         a: z.number().int() as z.ZodType<number>,
-        // @ts-expect-error - Zod version mismatch with x402-mcp types
         b: z.number().int() as z.ZodType<number>,
       },
     },
