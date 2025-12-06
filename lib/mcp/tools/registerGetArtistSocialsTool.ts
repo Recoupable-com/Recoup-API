@@ -17,7 +17,7 @@ export function registerGetArtistSocialsTool(server: McpServer): void {
     "get_artist_socials",
     {
       description:
-        "Retrieve all socials associated with an artist. This endpoint should be called before using the Social Posts endpoint to obtain the necessary social IDs.",
+        "Retrieve all socials (handle, avatar, profile url, bio, follower count, following count) associated with an artist.",
       inputSchema: artistSocialsQuerySchema,
     },
     async (args: ArtistSocialsQuery) => {
