@@ -3,6 +3,7 @@ import { getArtistSocials } from "@/lib/artist/getArtistSocials";
 import {
   ArtistSocialsQuery,
   artistSocialsQuerySchema,
+  artistSocialsResponseSchema,
 } from "@/lib/artist/validateArtistSocialsQuery";
 
 /**
@@ -18,10 +19,14 @@ export function registerGetArtistSocialsTool(server: McpServer): void {
       description:
         "Retrieve all socials (handle, avatar, profile url, bio, follower count, following count) associated with an artist.",
       inputSchema: artistSocialsQuerySchema,
+      outputSchema: artistSocialsResponseSchema,
     },
     async (args: ArtistSocialsQuery) => {
       const result = await getArtistSocials(args);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return {
+        content: [],
+        structuredContent: { ...result },
+      };
     },
   );
 }

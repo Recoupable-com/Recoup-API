@@ -1,22 +1,10 @@
 import { selectAccountSocialsCount } from "@/lib/supabase/account_socials/selectAccountSocialsCount";
 import { selectAccountSocials } from "@/lib/supabase/account_socials/selectAccountSocials";
-import {
-  flattenAccountSocials,
-  type AccountSocialResponse,
-} from "@/lib/account/flattenAccountSocials";
-import type { ArtistSocialsQuery } from "@/lib/artist/validateArtistSocialsQuery";
-
-export interface GetArtistSocialsResponse {
-  status: "success" | "error";
-  message?: string;
-  socials: AccountSocialResponse[];
-  pagination: {
-    total_count: number;
-    page: number;
-    limit: number;
-    total_pages: number;
-  };
-}
+import { flattenAccountSocials } from "@/lib/account/flattenAccountSocials";
+import type {
+  ArtistSocialsQuery,
+  GetArtistSocialsResponse,
+} from "@/lib/artist/validateArtistSocialsQuery";
 
 /**
  * Retrieves all social profiles associated with an artist account

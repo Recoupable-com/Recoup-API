@@ -20,6 +20,33 @@ export const artistSocialsQuerySchema = z.object({
 
 export type ArtistSocialsQuery = z.infer<typeof artistSocialsQuerySchema>;
 
+export const artistSocialsResponseSchema = z.object({
+  status: z.enum(["success", "error"]),
+  message: z.string().optional(),
+  socials: z.array(
+    z.object({
+      id: z.string(),
+      social_id: z.string(),
+      username: z.string().nullable(),
+      profile_url: z.string().nullable(),
+      avatar: z.string().nullable(),
+      bio: z.string().nullable(),
+      follower_count: z.number().nullable(),
+      following_count: z.number().nullable(),
+      region: z.string().nullable(),
+      updated_at: z.string().nullable(),
+    }),
+  ),
+  pagination: z.object({
+    total_count: z.number(),
+    page: z.number(),
+    limit: z.number(),
+    total_pages: z.number(),
+  }),
+});
+
+export type GetArtistSocialsResponse = z.infer<typeof artistSocialsResponseSchema>;
+
 /**
  * Validates artist socials query parameters.
  *
