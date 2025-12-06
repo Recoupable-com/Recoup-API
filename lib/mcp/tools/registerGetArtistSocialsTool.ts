@@ -1,4 +1,4 @@
-import { PaymentMcpServer } from "x402-mcp";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getArtistSocials } from "@/lib/artist/getArtistSocials";
 import { ArtistSocialsQuery } from "@/lib/artist/validateArtistSocialsQuery";
@@ -9,18 +9,15 @@ import { ArtistSocialsQuery } from "@/lib/artist/validateArtistSocialsQuery";
  *
  * @param server - The MCP server instance to register the tool on.
  */
-export function registerGetArtistSocialsTool(server: PaymentMcpServer): void {
+export function registerGetArtistSocialsTool(server: McpServer): void {
   server.registerTool(
     "get_artist_socials",
     {
       description:
         "Retrieve all socials associated with an artist. This endpoint should be called before using the Social Posts endpoint to obtain the necessary social IDs.",
       inputSchema: {
-        // @ts-expect-error - Zod version mismatch with x402-mcp types
         artist_account_id: z.string().min(1, "Artist account ID is required") as z.ZodType<string>,
-        // @ts-expect-error - Zod version mismatch with x402-mcp types
         page: z.number().int().positive().optional().default(1) as z.ZodType<number | undefined>,
-        // @ts-expect-error - Zod version mismatch with x402-mcp types
         limit: z.number().int().min(1).max(100).optional().default(20) as z.ZodType<
           number | undefined
         >,
