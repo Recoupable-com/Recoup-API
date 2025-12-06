@@ -1,6 +1,6 @@
 import { PaymentMcpServer } from "x402-mcp";
 import { z } from "zod";
-import { type RegisteredTool } from "@modelcontextprotocol/sdk";
+import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp";
 import { getArtistSocials } from "@/lib/artist/getArtistSocials";
 import { ArtistSocialsQuery } from "@/lib/artist/validateArtistSocialsQuery";
 
