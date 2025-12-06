@@ -14,17 +14,16 @@ async function getHandler(): Promise<ReturnType<typeof createPaidMcpHandler>> {
   if (!handler) {
     handler = createPaidMcpHandler(
       server => {
-        server.paidTool(
+        server.registerTool(
           "get_random_number",
-          "Get a random number between two numbers",
-          { price: 0.001 },
           {
-            // @ts-expect-error - Zod version mismatch with x402-mcp types
-            min: z.number().int(),
-            // @ts-expect-error - Zod version mismatch with x402-mcp types
-            max: z.number().int(),
+            inputSchema: {
+              // @ts-expect-error - Zod version mismatch with x402-mcp types
+              min: z.number().int(),
+              // @ts-expect-error - Zod version mismatch with x402-mcp types
+              max: z.number().int(),
+            },
           },
-          {},
           async args => {
             const randomNumber = Math.floor(Math.random() * (args.max - args.min + 1)) + args.min;
             return {
@@ -32,22 +31,19 @@ async function getHandler(): Promise<ReturnType<typeof createPaidMcpHandler>> {
             };
           },
         );
-        server.paidTool(
+        server.registerTool(
           "add",
-          "Add two numbers",
-          { price: 0.001 },
           {
-            // @ts-expect-error - Zod version mismatch with x402-mcp types
-            a: z.number().int(),
-            // @ts-expect-error - Zod version mismatch with x402-mcp types
-            b: z.number().int(),
+            inputSchema: {
+              // @ts-expect-error - Zod version mismatch with x402-mcp types
+              a: z.number().int(),
+              // @ts-expect-error - Zod version mismatch with x402-mcp types
+              b: z.number().int(),
+            },
           },
-          {},
           async args => {
-            const result = args.a + args.b;
-            return {
-              content: [{ type: "text", text: result.toString() }],
-            };
+            const result = args?.a + args?.b;
+            return { content: [{ type: "text", text: result?.toString() }] };
           },
         );
         server.registerTool(
