@@ -1,4 +1,4 @@
-import { PaymentMcpServer } from "x402-mcp";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 /**
@@ -7,14 +7,12 @@ import { z } from "zod";
  *
  * @param server - The MCP server instance to register the tool on.
  */
-export function registerGetRandomNumberTool(server: PaymentMcpServer): void {
+export function registerGetRandomNumberTool(server: McpServer): void {
   server.registerTool(
     "get_random_number",
     {
       inputSchema: {
-        // @ts-expect-error - Zod version mismatch with x402-mcp types
         min: z.number().int() as z.ZodType<number>,
-        // @ts-expect-error - Zod version mismatch with x402-mcp types
         max: z.number().int() as z.ZodType<number>,
       },
     },
