@@ -1,9 +1,9 @@
 import { createPaidMcpHandler } from "x402-mcp";
 import { facilitator } from "@coinbase/x402";
 import { SMART_ACCOUNT_ADDRESS } from "@/lib/const";
-import { registerGetRandomNumberTool } from "@/lib/mcp/registerGetRandomNumberTool";
-import { registerAddTool } from "@/lib/mcp/registerAddTool";
-import { registerHelloRemoteTool } from "@/lib/mcp/registerHelloRemoteTool";
+import { registerGetRandomNumberTool } from "@/lib/mcp/tools/registerGetRandomNumberTool";
+import { registerAddTool } from "@/lib/mcp/tools/registerAddTool";
+import { registerHelloRemoteTool } from "@/lib/mcp/tools/registerHelloRemoteTool";
 
 let handler: ReturnType<typeof createPaidMcpHandler> | null = null;
 
