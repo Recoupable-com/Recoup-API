@@ -1,6 +1,6 @@
 import { PaymentMcpServer } from "x402-mcp";
 import { z } from "zod";
-import { type RegisteredTool, ToolCallback } from "@modelcontextprotocol/sdk";
+import { type RegisteredTool } from "@modelcontextprotocol/sdk";
 import { getArtistSocials } from "@/lib/artist/getArtistSocials";
 import { ArtistSocialsQuery } from "@/lib/artist/validateArtistSocialsQuery";
 
@@ -25,35 +25,10 @@ export function registerGetArtistSocialsTool(server: PaymentMcpServer): void {
       },
     } as RegisteredTool,
     async (args: ArtistSocialsQuery) => {
-      try {
-        const result = await getArtistSocials(args);
-        return {
-          content: [{ type: "text", text: "success" }],
-          structuredContent: [{ type: "text", text: JSON.stringify(result) }],
-        };
-      } catch (error) {
-        console.error("Error fetching artist socials:", error);
-        const errorResult = {
-          success: false,
-          status: "error",
-          message: error instanceof Error ? error.message : "Failed to fetch artist socials",
-          socials: [],
-          pagination: {
-            total_count: 0,
-            page: 1,
-            limit: 20,
-            total_pages: 0,
-          },
-        };
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(errorResult),
-            },
-          ],
-        };
-      }
-    } as ToolCallback,
+      const result = await getArtistSocials(args);
+      return {
+        content: [{ type: "text", text: JSON.stringify(result) }],
+      };
+    },
   );
 }
