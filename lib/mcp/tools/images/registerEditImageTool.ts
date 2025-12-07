@@ -3,7 +3,7 @@ import {
   generateAndProcessImage,
   type GenerateAndProcessImageResult,
 } from "@/lib/image/generateAndProcessImage";
-import { type EditImageQuery } from "@/lib/image/validateEditImageQuery";
+import { editImageQuerySchema, type EditImageQuery } from "@/lib/image/validateEditImageQuery";
 
 /**
  * Registers the "edit_image" tool on the MCP server.
@@ -15,6 +15,7 @@ export function registerEditImageTool(server: McpServer): void {
   server.registerTool(
     "edit_image",
     {
+      inputSchema: editImageQuerySchema,
       description: "Edit existing images.",
     },
     async (args: EditImageQuery): Promise<{ content: Array<{ type: "text"; text: string }> }> => {
