@@ -11,20 +11,12 @@ export const updateTaskBodySchema = z.object({
     .min(1)
     .optional()
     .describe("New cron expression defining when the task runs"),
-  account_id: z
-    .string()
-    .min(1)
-    .optional()
-    .describe(
-      "New UUID of the associated account. Get this from the system prompt. Do not ask for this.",
-    ),
+  account_id: z.string().min(1).optional().describe("UUID of the account to assign the task to."),
   artist_account_id: z
     .string()
     .min(1)
     .optional()
-    .describe(
-      "New UUID of the associated artist account. If not provided, get this from the system prompt as the active artist id.",
-    ),
+    .describe("UUID of the artist account to assign the task to."),
   enabled: z
     .boolean()
     .nullable()
