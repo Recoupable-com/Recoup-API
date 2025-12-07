@@ -11,7 +11,7 @@ export const getTasksQuerySchema = z.object({
     .string()
     .optional()
     .describe("Optional: Filter tasks by the artist account ID."),
-  enabled: z.boolean().optional().describe("Optional: Filter tasks by their enabled status"),
+  enabled: z.coerce.boolean().optional().describe("Optional: Filter tasks by their enabled status"),
   id: z.string().optional().describe("Optional: Filter tasks by task ID"),
 });
 
