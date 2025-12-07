@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { x402GenerateImage } from "@/lib/x402/recoup/x402GenerateImage";
-import { z } from "zod";
-
-const queryParamsSchema = z.object({
-  prompt: z.string().min(1, "The provided prompt is invalid or empty"),
-  account_id: z.string().min(1, "The provided account_id is invalid or not found"),
-});
+import { validateGenerateImageQuery } from "@/lib/image/validateGenerateImageQuery";
 
 /**
  * OPTIONS handler for CORS preflight requests.
@@ -29,32 +24,13 @@ export async function OPTIONS() {
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const params = Object.fromEntries(searchParams.entries());
-
-    // Validate query parameters with Zod
-    const validationResult = queryParamsSchema.safeParse(params);
-    if (!validationResult.success) {
-      const firstError = validationResult.error.issues[0];
-      const errorCode = firstError.path[0] === "prompt" ? "invalid_prompt" : "invalid_account";
-
-      return NextResponse.json(
-        {
-          status: "error",
-          error: {
-            code: errorCode,
-            path: firstError.path,
-            message: firstError.message,
-          },
-        },
-        {
-          status: 400,
-          headers: getCorsHeaders(),
-        },
-      );
+    const validatedQuery = validateGenerateImageQuery(request);
+    if (validatedQuery instanceof NextResponse) {
+      return validatedQuery;
     }
 
-    const { prompt, account_id } = validationResult.data;
+    const { prompt, account_id } = validatedQuery;
+    const { searchParams } = new URL(request.url);
     const files = searchParams.get("files");
 
     const baseUrl = request.nextUrl.origin;
