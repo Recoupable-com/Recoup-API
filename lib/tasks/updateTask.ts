@@ -24,16 +24,10 @@ export async function updateTask(input: UpdateTaskBody): Promise<Tables<"schedul
     throw new Error("Task not found");
   }
 
-  // Prepare update data - only include fields that are defined
-  const updateData: Partial<TablesUpdate<"scheduled_actions">> = {};
-  if (validatedInput.title !== undefined) updateData.title = validatedInput.title;
-  if (validatedInput.prompt !== undefined) updateData.prompt = validatedInput.prompt;
-  if (schedule !== undefined) updateData.schedule = schedule;
-  if (validatedInput.account_id !== undefined) updateData.account_id = validatedInput.account_id;
-  if (validatedInput.artist_account_id !== undefined)
-    updateData.artist_account_id = validatedInput.artist_account_id;
-  if (enabled !== undefined) updateData.enabled = enabled;
-  if (validatedInput.model !== undefined) updateData.model = validatedInput.model;
+  // Prepare update data - only include fields that are defined (exclude id)
+  const updateData = Object.fromEntries(
+    Object.entries(validatedInput).filter(([key, value]) => key !== "id" && value !== undefined),
+  ) as Partial<TablesUpdate<"scheduled_actions">>;
 
   // Sync Trigger.dev schedule if needed
   const finalEnabled = enabled !== undefined ? enabled : (existingTask.enabled ?? true);
