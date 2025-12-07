@@ -21,9 +21,7 @@ export function registerGenerateImageTool(server: McpServer): void {
       description: "Generate an image based on a text prompt.",
       inputSchema: generateImageQuerySchema,
     },
-    async (
-      args: GenerateImageQuery,
-    ): Promise<{ content: Array<{ type: "text"; text: string }> }> => {
+    async (args: GenerateImageQuery) => {
       const result: GenerateAndProcessImageResult = await generateAndProcessImage(
         args.prompt,
         args.account_id,
