@@ -27,10 +27,6 @@ export async function createApiKeyHandler(request: NextRequest): Promise<NextRes
 
     const { key_name, account_id } = validatedBody;
 
-    if (!PRIVY_PROJECT_SECRET) {
-      throw new Error("PRIVY_PROJECT_SECRET environment variable is required");
-    }
-
     const rawApiKey = generateApiKey("recoup_sk");
     const keyHash = hashApiKey(rawApiKey, PRIVY_PROJECT_SECRET);
 
