@@ -22,11 +22,14 @@ export function validateGetApiKeysQuery(
   const validationResult = getApiKeysQuerySchema.safeParse(params);
 
   if (!validationResult.success) {
-    const firstError = validationResult.error.issues[0];
     return NextResponse.json(
       {
         status: "error",
-        message: firstError.message,
+        message: "Invalid input",
+        errors: validationResult.error.issues.map(err => ({
+          field: err.path.join("."),
+          message: err.message,
+        })),
       },
       {
         status: 400,
