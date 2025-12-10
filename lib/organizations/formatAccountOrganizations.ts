@@ -1,10 +1,17 @@
+import type { Database } from "@/types/database.types";
 import type { AccountOrganization } from "@/lib/supabase/account_organization_ids/getAccountOrganizations";
 
+// Use Supabase schema types directly (DRY principle)
+type AccountOrgIdsRow = Database["public"]["Tables"]["account_organization_ids"]["Row"];
+type AccountRow = Database["public"]["Tables"]["accounts"]["Row"];
+type AccountInfoRow = Database["public"]["Tables"]["account_info"]["Row"];
+
+// FormattedOrganization composes fields from multiple tables
 export interface FormattedOrganization {
-  id: string;
-  organization_id: string | null;
-  organization_name: string | null;
-  organization_image: string | null;
+  id: AccountOrgIdsRow["id"];
+  organization_id: AccountOrgIdsRow["organization_id"];
+  organization_name: AccountRow["name"];
+  organization_image: AccountInfoRow["image"];
 }
 
 /**

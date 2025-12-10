@@ -3,8 +3,8 @@ import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { z } from "zod";
 
 export const createOrganizationBodySchema = z.object({
-  name: z.string().min(1, "name is required"),
-  accountId: z.string().uuid("accountId must be a valid UUID"),
+  name: z.string({ required_error: "name is required" }).min(1, "name cannot be empty"),
+  accountId: z.string({ required_error: "accountId is required" }).uuid("accountId must be a valid UUID"),
 });
 
 export type CreateOrganizationBody = z.infer<typeof createOrganizationBodySchema>;
@@ -25,6 +25,7 @@ export function validateCreateOrganizationBody(
     return NextResponse.json(
       {
         status: "error",
+        missing_fields: firstError.path,
         error: firstError.message,
       },
       {

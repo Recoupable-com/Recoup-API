@@ -1,20 +1,44 @@
 import { getSocialPlatformByLink } from "./getSocialPlatformByLink";
+import type { Database } from "@/types/database.types";
 
-export interface FormattedArtist {
-  account_id: string;
-  name: string | null;
-  image?: string | null;
-  instruction?: string | null;
-  knowledges?: unknown;
-  label?: string | null;
-  account_socials: Array<{
-    id: string;
-    profile_url: string;
-    username: string;
-    link: string;
-    type: string;
-    [key: string]: unknown;
-  }>;
+// Use Supabase schema types directly (DRY principle)
+type AccountRow = Database["public"]["Tables"]["accounts"]["Row"];
+type AccountInfoRow = Database["public"]["Tables"]["account_info"]["Row"];
+type AccountSocialsRow = Database["public"]["Tables"]["account_socials"]["Row"];
+type SocialsRow = Database["public"]["Tables"]["socials"]["Row"];
+
+// Input type: Supabase join query result shape from account_artist_ids or artist_organization_ids
+type AccountSocialWithSocial = AccountSocialsRow & {
+  social: SocialsRow | null;
+};
+
+type ArtistInfo = AccountRow & {
+  account_socials: AccountSocialWithSocial[];
+  account_info: AccountInfoRow[];
+};
+
+// Row from account_artist_ids or artist_organization_ids with joined artist_info
+export interface ArtistQueryRow {
+  artist_info?: ArtistInfo | null;
+  pinned?: boolean;
+  // Allow direct artist fields when row IS the artist (no artist_info wrapper)
+  id?: string;
+  name?: string | null;
+  account_socials?: AccountSocialWithSocial[];
+  account_info?: AccountInfoRow[];
+}
+
+// FormattedArtist composes fields from multiple tables + computed fields
+export interface FormattedArtist
+  extends Pick<AccountInfoRow, "image" | "instruction" | "knowledges" | "label"> {
+  account_id: AccountRow["id"];
+  name: AccountRow["name"];
+  account_socials: Array<
+    Pick<SocialsRow, "id" | "profile_url" | "username"> & {
+      link: string;
+      type: string;
+    }
+  >;
   pinned: boolean;
   isWorkspace?: boolean;
 }
@@ -25,10 +49,9 @@ export interface FormattedArtist {
  * @param row - The raw row from account_artist_ids or artist_organization_ids query
  * @returns Formatted artist object
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function getFormattedArtist(row: any): FormattedArtist {
+export function getFormattedArtist(row: ArtistQueryRow): FormattedArtist {
   const artist = row.artist_info || row;
-  const account_id = artist.id;
+  const account_id = artist.id || "";
   const account_info = artist.account_info?.[0];
   const info = account_info || {
     image: "",
@@ -38,8 +61,7 @@ export function getFormattedArtist(row: any): FormattedArtist {
   };
 
   const account_socials = (artist.account_socials || []).map(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (social: any) => ({
+    (social: AccountSocialWithSocial) => ({
       ...social.social,
       link: social.social?.profile_url || "",
       type: getSocialPlatformByLink(social.social?.profile_url || ""),

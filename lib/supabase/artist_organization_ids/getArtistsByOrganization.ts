@@ -1,53 +1,40 @@
 import supabase from "../serverClient";
-import { getFormattedArtist, FormattedArtist } from "@/lib/artists/getFormattedArtist";
+import type { ArtistQueryRow } from "@/lib/artists/getFormattedArtist";
+
+// Raw row type returned by this query
+export type ArtistOrgRow = ArtistQueryRow & { artist_id: string };
 
 /**
  * Get all artists that belong to an organization (or multiple organizations).
+ * Returns raw data - formatting should be done by caller.
  *
  * @param organizationIds - Array of organization IDs
- * @returns Array of formatted artist objects
+ * @returns Array of raw artist rows from database
  */
-export async function getArtistsByOrganization(organizationIds: string[]): Promise<FormattedArtist[]> {
+export async function getArtistsByOrganization(organizationIds: string[]): Promise<ArtistOrgRow[]> {
   if (!organizationIds || organizationIds.length === 0) return [];
 
-  try {
-    const { data, error } = await supabase
-      .from("artist_organization_ids")
-      .select(
-        `
-        artist_id,
-        artist_info:accounts!artist_organization_ids_artist_id_fkey (
+  const { data, error } = await supabase
+    .from("artist_organization_ids")
+    .select(
+      `
+      artist_id,
+      artist_info:accounts!artist_organization_ids_artist_id_fkey (
+        *,
+        account_socials (
           *,
-          account_socials (
-            *,
-            social:socials (*)
-          ),
-          account_info (*)
-        )
-      `,
+          social:socials (*)
+        ),
+        account_info (*)
       )
-      .in("organization_id", organizationIds);
+    `,
+    )
+    .in("organization_id", organizationIds);
 
-    if (error) {
-      return [];
-    }
-
-    // Format each artist using getFormattedArtist
-    // Deduplicate by artist_id in case same artist is in multiple orgs
-    const artistMap = new Map<string, FormattedArtist>();
-
-    (data || []).forEach(row => {
-      if (row.artist_id && !artistMap.has(row.artist_id)) {
-        const formatted = getFormattedArtist(row);
-        if (formatted?.account_id) {
-          artistMap.set(row.artist_id, formatted);
-        }
-      }
-    });
-
-    return Array.from(artistMap.values());
-  } catch {
+  if (error) {
     return [];
   }
+
+  return (data || []) as ArtistOrgRow[];
 }
 

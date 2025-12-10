@@ -3,8 +3,8 @@ import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { z } from "zod";
 
 export const addArtistToOrgBodySchema = z.object({
-  artistId: z.string().uuid("artistId must be a valid UUID"),
-  organizationId: z.string().uuid("organizationId must be a valid UUID"),
+  artistId: z.string({ required_error: "artistId is required" }).uuid("artistId must be a valid UUID"),
+  organizationId: z.string({ required_error: "organizationId is required" }).uuid("organizationId must be a valid UUID"),
 });
 
 export type AddArtistToOrgBody = z.infer<typeof addArtistToOrgBodySchema>;
@@ -23,6 +23,7 @@ export function validateAddArtistToOrgBody(body: unknown): NextResponse | AddArt
     return NextResponse.json(
       {
         status: "error",
+        missing_fields: firstError.path,
         error: firstError.message,
       },
       {

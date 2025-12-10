@@ -3,7 +3,7 @@ import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { z } from "zod";
 
 export const accountParamsSchema = z.object({
-  id: z.string().uuid("id must be a valid UUID"),
+  id: z.string({ required_error: "id is required" }).uuid("id must be a valid UUID"),
 });
 
 export type AccountParams = z.infer<typeof accountParamsSchema>;
@@ -22,6 +22,7 @@ export function validateAccountParams(id: string): NextResponse | AccountParams 
     return NextResponse.json(
       {
         status: "error",
+        missing_fields: firstError.path,
         error: firstError.message,
       },
       {

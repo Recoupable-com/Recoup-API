@@ -3,7 +3,7 @@ import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { z } from "zod";
 
 export const organizationsQuerySchema = z.object({
-  accountId: z.string().uuid("accountId must be a valid UUID"),
+  accountId: z.string({ required_error: "accountId is required" }).uuid("accountId must be a valid UUID"),
 });
 
 export type OrganizationsQuery = z.infer<typeof organizationsQuerySchema>;
@@ -25,6 +25,7 @@ export function validateOrganizationsQuery(
     return NextResponse.json(
       {
         status: "error",
+        missing_fields: firstError.path,
         error: firstError.message,
       },
       {

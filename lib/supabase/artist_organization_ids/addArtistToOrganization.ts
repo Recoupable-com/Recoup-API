@@ -14,25 +14,21 @@ export async function addArtistToOrganization(
 ): Promise<string | null> {
   if (!artistId || !organizationId) return null;
 
-  try {
-    // Atomic upsert: insert or return existing row
-    // Requires unique constraint on (artist_id, organization_id)
-    const { data, error } = await supabase
-      .from("artist_organization_ids")
-      .upsert(
-        { artist_id: artistId, organization_id: organizationId },
-        { onConflict: "artist_id,organization_id", ignoreDuplicates: false },
-      )
-      .select("id")
-      .single();
+  // Atomic upsert: insert or return existing row
+  // Requires unique constraint on (artist_id, organization_id)
+  const { data, error } = await supabase
+    .from("artist_organization_ids")
+    .upsert(
+      { artist_id: artistId, organization_id: organizationId },
+      { onConflict: "artist_id,organization_id", ignoreDuplicates: false },
+    )
+    .select("id")
+    .single();
 
-    if (error) {
-      return null;
-    }
-
-    return data?.id || null;
-  } catch {
+  if (error) {
     return null;
   }
+
+  return data?.id || null;
 }
 

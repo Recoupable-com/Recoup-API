@@ -3,9 +3,9 @@ import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { z } from "zod";
 
 export const artistsQuerySchema = z.object({
-  accountId: z.string().uuid("accountId must be a valid UUID"),
+  accountId: z.string({ required_error: "accountId is required" }).uuid("accountId must be a valid UUID"),
   orgId: z.string().uuid("orgId must be a valid UUID").optional(),
-  personal: z.enum(["true", "false"]).optional(),
+  personal: z.enum(["true", "false"], { invalid_type_error: "personal must be 'true' or 'false'" }).optional(),
 });
 
 export type ArtistsQuery = z.infer<typeof artistsQuerySchema>;
@@ -25,6 +25,7 @@ export function validateArtistsQuery(searchParams: URLSearchParams): NextRespons
     return NextResponse.json(
       {
         status: "error",
+        missing_fields: firstError.path,
         error: firstError.message,
       },
       {
