@@ -3,7 +3,7 @@ import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { z } from "zod";
 
 export const accountParamsSchema = z.object({
-  id: z.string({ required_error: "id is required" }).uuid("id must be a valid UUID"),
+  id: z.string({ message: "id is required" }).uuid("id must be a valid UUID"),
 });
 
 export type AccountParams = z.infer<typeof accountParamsSchema>;

@@ -41,6 +41,6 @@ export async function getArtistsByOrganization(organizationIds: string[]): Promi
     throw error;
   }
 
-  return (data || []) as ArtistOrgRow[];
+  return (data || []) as unknown as ArtistOrgRow[];
 }
 
