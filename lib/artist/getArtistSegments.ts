@@ -1,5 +1,5 @@
 import { selectArtistSegmentsCount } from "@/lib/supabase/artist_segments/selectArtistSegmentsCount";
-import { selectArtistSegments } from "@/lib/supabase/artist_segments/selectArtistSegments";
+import { selectArtistSegmentsWithDetails } from "@/lib/supabase/artist_segments/selectArtistSegmentsWithDetails";
 import type { ArtistSegmentsQuery } from "@/lib/artist/validateArtistSegmentsQuery";
 import { mapArtistSegments, type MappedArtistSegment } from "@/lib/artist/mapArtistSegments";
 
@@ -38,7 +38,7 @@ export const getArtistSegments = async ({
       };
     }
 
-    const data = await selectArtistSegments(artist_account_id, offset, limit);
+    const data = await selectArtistSegmentsWithDetails(artist_account_id, offset, limit);
 
     if (!data) {
       return {

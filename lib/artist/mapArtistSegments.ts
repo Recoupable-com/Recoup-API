@@ -1,4 +1,4 @@
-import type { SegmentQueryResult } from "@/lib/supabase/artist_segments/selectArtistSegments";
+import type { SegmentQueryResult } from "@/lib/supabase/artist_segments/selectArtistSegmentsWithDetails";
 
 export interface MappedArtistSegment {
   id: string;

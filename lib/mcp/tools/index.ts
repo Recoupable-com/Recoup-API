@@ -10,6 +10,7 @@ import { registerUpdateAccountInfoTool } from "./registerUpdateAccountInfoTool";
 import { registerAllArtistSocialsTools } from "./artistSocials";
 import { registerSearchWebTool } from "./registerSearchWebTool";
 import { registerAllFileTools } from "./files";
+import { registerCreateSegmentsTool } from "./registerCreateSegmentsTool";
 
 /**
  * Registers all MCP tools on the server.
@@ -29,4 +30,5 @@ export const registerAllTools = (server: McpServer): void => {
   registerGetLocalTimeTool(server);
   registerSearchWebTool(server);
   registerUpdateAccountInfoTool(server);
+  registerCreateSegmentsTool(server);
 };
