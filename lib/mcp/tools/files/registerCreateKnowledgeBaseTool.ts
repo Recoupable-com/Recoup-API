@@ -52,3 +52,4 @@ export function registerCreateKnowledgeBaseTool(server: McpServer): void {
     },
   );
 }
+

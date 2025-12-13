@@ -1,4 +1,4 @@
-import { uploadToArweave } from "@/lib/arweave/uploadToArweave";
+import { uploadTextToArweave } from "@/lib/arweave/uploadTextToArweave";
 import { arweaveGatewayUrl } from "@/lib/arweave/arweaveGatewayUrl";
 import { selectAccountInfo } from "@/lib/supabase/account_info/selectAccountInfo";
 import { updateAccountInfo } from "@/lib/supabase/account_info/updateAccountInfo";
@@ -22,9 +22,7 @@ export async function createKnowledgeBase(
   }
 
   // Upload text to Arweave
-  const textBuffer = Buffer.from(knowledgeBaseText, "utf-8");
-  const transaction = await uploadToArweave(textBuffer, "text/plain");
-  const arweaveUrl = `ar://${transaction.id}`;
+  const arweaveUrl = await uploadTextToArweave(knowledgeBaseText);
   const fetchableUrl = arweaveGatewayUrl(arweaveUrl);
 
   // Generate a name from the first line or a default name

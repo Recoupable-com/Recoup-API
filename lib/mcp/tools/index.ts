@@ -9,7 +9,7 @@ import { registerContactTeamTool } from "./registerContactTeamTool";
 import { registerUpdateAccountInfoTool } from "./registerUpdateAccountInfoTool";
 import { registerAllArtistSocialsTools } from "./artistSocials";
 import { registerSearchWebTool } from "./registerSearchWebTool";
-import { registerCreateKnowledgeBaseTool } from "./registerCreateKnowledgeBaseTool";
+import { registerAllFileTools } from "./files";
 
 /**
  * Registers all MCP tools on the server.
@@ -19,14 +19,14 @@ import { registerCreateKnowledgeBaseTool } from "./registerCreateKnowledgeBaseTo
  */
 export const registerAllTools = (server: McpServer): void => {
   registerAllArtistSocialsTools(server);
-  registerGetLocalTimeTool(server);
-  registerAllTaskTools(server);
-  registerAllImageTools(server);
   registerAllCatalogTools(server);
+  registerAllFileTools(server);
+  registerAllImageTools(server);
   registerAllSora2Tools(server);
   registerAllSpotifyTools(server);
+  registerAllTaskTools(server);
   registerContactTeamTool(server);
-  registerUpdateAccountInfoTool(server);
+  registerGetLocalTimeTool(server);
   registerSearchWebTool(server);
-  registerCreateKnowledgeBaseTool(server);
+  registerUpdateAccountInfoTool(server);
 };
