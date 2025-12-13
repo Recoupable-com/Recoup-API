@@ -3,6 +3,7 @@ import supabase from "../serverClient";
 
 type SelectSocialsParams = {
   id?: string;
+  profile_url?: string;
 };
 
 /**
@@ -19,6 +20,10 @@ export async function selectSocials(
 
   if (params.id) {
     query = query.eq("id", params.id);
+  }
+
+  if (params.profile_url) {
+    query = query.eq("profile_url", params.profile_url);
   }
 
   const { data, error } = await query;

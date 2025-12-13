@@ -26,3 +26,4 @@ export function registerGetArtistSocialsTool(server: McpServer): void {
     },
   );
 }
+
