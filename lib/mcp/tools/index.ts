@@ -5,6 +5,7 @@ import { registerAllTaskTools } from "./tasks";
 import { registerAllImageTools } from "./images";
 import { registerAllCatalogTools } from "./catalogs";
 import { registerAllSora2Tools } from "./sora2";
+import { registerAllSpotifyTools } from "./spotify";
 import { registerContactTeamTool } from "./registerContactTeamTool";
 
 /**
@@ -20,5 +21,6 @@ export const registerAllTools = (server: McpServer): void => {
   registerAllImageTools(server);
   registerAllCatalogTools(server);
   registerAllSora2Tools(server);
+  registerAllSpotifyTools(server);
   registerContactTeamTool(server);
 };
