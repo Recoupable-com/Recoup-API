@@ -1,4 +1,4 @@
-import { CallToolResult } from "./getToolResultSuccess";
+import { CallToolResult, getCallToolResult } from "./getCallToolResult";
 
 /**
  * Creates a standardized error response for MCP tools.
@@ -7,15 +7,10 @@ import { CallToolResult } from "./getToolResultSuccess";
  * @returns An MCP tool response with error content
  */
 export function getToolResultError(message: string): CallToolResult {
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: JSON.stringify({
-          success: false,
-          message,
-        }),
-      },
-    ],
-  };
+  return getCallToolResult(
+    JSON.stringify({
+      success: false,
+      message,
+    }),
+  );
 }

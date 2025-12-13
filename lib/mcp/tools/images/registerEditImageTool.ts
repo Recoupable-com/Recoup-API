@@ -4,7 +4,8 @@ import {
   type GenerateAndProcessImageResult,
 } from "@/lib/image/generateAndProcessImage";
 import { editImageQuerySchema, type EditImageQuery } from "@/lib/image/validateEditImageQuery";
-import { getToolResultSuccess, CallToolResult } from "@/lib/mcp/getToolResultSuccess";
+import { getToolResultSuccess } from "@/lib/mcp/getToolResultSuccess";
+import { CallToolResult } from "@/lib/mcp/getCallToolResult";
 
 /**
  * Registers the "edit_image" tool on the MCP server.

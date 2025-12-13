@@ -1,8 +1,4 @@
-import { TextContent } from "@modelcontextprotocol/sdk/types.js";
-
-export type CallToolResult = {
-  content: TextContent[];
-};
+import { CallToolResult, getCallToolResult } from "./getCallToolResult";
 
 /**
  * Creates a standardized success response for MCP tools.
@@ -11,12 +7,5 @@ export type CallToolResult = {
  * @returns An MCP tool response with success content
  */
 export function getToolResultSuccess(data: unknown): CallToolResult {
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: JSON.stringify(data),
-      },
-    ],
-  };
+  return getCallToolResult(JSON.stringify(data));
 }
