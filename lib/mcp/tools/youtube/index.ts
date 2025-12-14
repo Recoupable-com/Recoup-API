@@ -3,6 +3,7 @@ import { registerYouTubeLoginTool } from "./registerYouTubeLoginTool";
 import { registerGetYouTubeChannelsTool } from "./registerGetYouTubeChannelsTool";
 import { registerGetYouTubeRevenueTool } from "./registerGetYouTubeRevenueTool";
 import { registerGetYouTubeChannelVideoListTool } from "./registerGetYouTubeChannelVideoListTool";
+import { registerSetYouTubeThumbnailTool } from "./registerSetYouTubeThumbnailTool";
 
 /**
  * Registers all YouTube-related MCP tools on the server.
@@ -14,4 +15,5 @@ export const registerAllYouTubeTools = (server: McpServer): void => {
   registerGetYouTubeChannelsTool(server);
   registerGetYouTubeRevenueTool(server);
   registerGetYouTubeChannelVideoListTool(server);
+  registerSetYouTubeThumbnailTool(server);
 };

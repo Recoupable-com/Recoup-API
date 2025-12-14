@@ -68,6 +68,9 @@ importers:
       react-dom:
         specifier: ^19.2.1
         version: 19.2.1(react@19.2.1)
+      sharp:
+        specifier: ^0.34.5
+        version: 0.34.5
       viem:
         specifier: ^2.21.26
         version: 2.40.3(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.1.13)
@@ -5496,8 +5499,7 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
-  '@img/colour@1.0.0':
-    optional: true
+  '@img/colour@1.0.0': {}
 
   '@img/sharp-darwin-arm64@0.34.5':
     optionalDependencies:
@@ -8800,8 +8802,7 @@ snapshots:
 
   detect-browser@5.3.0: {}
 
-  detect-libc@2.1.2:
-    optional: true
+  detect-libc@2.1.2: {}
 
   didyoumean@1.2.2: {}
 
@@ -11022,7 +11023,6 @@ snapshots:
       '@img/sharp-win32-arm64': 0.34.5
       '@img/sharp-win32-ia32': 0.34.5
       '@img/sharp-win32-x64': 0.34.5
-    optional: true
 
   shebang-command@2.0.0:
     dependencies:
