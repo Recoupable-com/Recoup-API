@@ -34,23 +34,8 @@ export async function createApiKeyHandler(request: NextRequest): Promise<NextRes
 
     const { key_name, organizationId } = validatedBody;
 
-    console.log(
-      "Creating API key for account:",
-      accountId,
-      "and key name:",
-      key_name,
-      "and organizationId:",
-      organizationId,
-    );
-
     // If organizationId is provided, delegate to org-specific handler
     if (organizationId) {
-      console.log(
-        "Creating organization API key for account:",
-        accountId,
-        "and organization:",
-        organizationId,
-      );
       return createOrgApiKeysHandler(accountId, organizationId, key_name);
     }
 
