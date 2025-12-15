@@ -16,6 +16,7 @@ export type CreateApiKeyBody = z.infer<typeof createApiKeyBodySchema>;
  * @returns A NextResponse with an error if validation fails, or the validated body if validation passes.
  */
 export function validateCreateApiKeyBody(body: unknown): NextResponse | CreateApiKeyBody {
+  console.log("Validating create API key body:", body);
   const validationResult = createApiKeyBodySchema.safeParse(body);
 
   if (!validationResult.success) {
