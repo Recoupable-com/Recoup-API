@@ -1,4 +1,4 @@
-import { SYSTEM_PROMPT } from "@/lib/const";
+import { SYSTEM_PROMPT } from "@/lib/chat/const";
 import { AccountWithDetails } from "@/lib/supabase/accounts/getAccountWithDetails";
 
 /**
