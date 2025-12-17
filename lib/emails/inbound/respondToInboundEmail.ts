@@ -24,6 +24,13 @@ export async function respondToInboundEmail(
     const from = original.from;
     const toArray = [from];
 
+    // Find the first email in the 'to' array that ends with "@mail.recoupable.com"
+    const customFromEmail = original.to.find(email => email.endsWith("@mail.recoupable.com"));
+
+    if (!customFromEmail) {
+      throw new Error("No email found ending with @mail.recoupable.com in the 'to' array");
+    }
+
     const emailText = await getEmailContent(emailId);
 
     const accountEmails = await selectAccountEmails({ emails: [from] });
@@ -36,7 +43,7 @@ export async function respondToInboundEmail(
       prompt: emailText,
     });
     const payload = {
-      from: "hi@recoupable.com",
+      from: customFromEmail,
       to: toArray,
       subject,
       html: `<p>${chatResponse.text}</p>`,
