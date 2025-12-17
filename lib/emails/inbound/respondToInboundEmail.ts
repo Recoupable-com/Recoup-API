@@ -18,7 +18,9 @@ export async function respondToInboundEmail(
   event: ResendEmailReceivedEvent,
 ): Promise<NextResponse> {
   try {
+    console.log("event", event);
     const original = event.data;
+    console.log("original", original);
     const subject = original.subject ? `Re: ${original.subject}` : "Re: Your email";
     const messageId = original.message_id;
     const emailId = original.email_id;
