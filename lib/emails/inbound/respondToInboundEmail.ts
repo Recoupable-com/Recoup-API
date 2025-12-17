@@ -31,6 +31,10 @@ export async function respondToInboundEmail(
       throw new Error("No email found ending with @mail.recoupable.com in the 'to' array");
     }
 
+    // Extract the name part (everything before the @ sign) for a human-readable from name
+    const emailName = customFromEmail.split("@")[0];
+    const fromWithName = `${emailName} <${customFromEmail}>`;
+
     const emailText = await getEmailContent(emailId);
 
     const accountEmails = await selectAccountEmails({ emails: [from] });
@@ -43,7 +47,7 @@ export async function respondToInboundEmail(
       prompt: emailText,
     });
     const payload = {
-      from: customFromEmail,
+      from: fromWithName,
       to: toArray,
       subject,
       html: `<p>${chatResponse.text}</p>`,
