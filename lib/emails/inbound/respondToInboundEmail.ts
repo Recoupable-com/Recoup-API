@@ -32,7 +32,8 @@ export async function respondToInboundEmail(
     }
 
     // Extract the name part (everything before the @ sign) for a human-readable from name
-    const emailName = customFromEmail.split("@")[0];
+    const emailNameRaw = customFromEmail.split("@")[0];
+    const emailName = emailNameRaw.charAt(0).toUpperCase() + emailNameRaw.slice(1);
     const fromWithName = `${emailName} <${customFromEmail}>`;
 
     const emailText = await getEmailContent(emailId);
