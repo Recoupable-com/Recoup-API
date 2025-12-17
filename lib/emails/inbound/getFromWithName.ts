@@ -7,7 +7,9 @@
  */
 export function getFromWithName(toEmails: string[]): string {
   // Find the first email in the 'to' array that ends with "@mail.recoupable.com"
-  const customFromEmail = toEmails.find(email => email.endsWith("@mail.recoupable.com"));
+  const customFromEmail = toEmails.find(email =>
+    email.toLowerCase().endsWith("@mail.recoupable.com"),
+  );
 
   if (!customFromEmail) {
     throw new Error("No email found ending with @mail.recoupable.com in the 'to' array");
