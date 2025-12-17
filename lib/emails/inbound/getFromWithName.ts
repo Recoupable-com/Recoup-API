@@ -1,7 +1,5 @@
 /**
  * Gets a formatted "from" email address with a human-readable name.
- * Finds the first email in the 'to' array ending with "@mail.recoupable.com",
- * extracts the name part (before the @), capitalizes it, and formats it as "Name <email@domain.com>".
  *
  * @param toEmails - Array of email addresses from the 'to' field
  * @returns Formatted email address with display name (e.g., "Support <support@mail.recoupable.com>")
