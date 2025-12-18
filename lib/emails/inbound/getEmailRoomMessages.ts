@@ -1,6 +1,5 @@
 import type { ModelMessage } from "ai";
 import selectMemories from "@/lib/supabase/memories/selectMemories";
-import { TextPart } from "ai";
 
 /**
  * Builds a messages array for agent.generate, including conversation history if roomId exists.
@@ -34,8 +33,5 @@ export async function getEmailRoomMessages(
     content: [{ type: "text", text: emailText }],
   } as ModelMessage);
 
-  for (const message of messages) {
-    console.log("[getEmailRoomMessages] Message:", (message.content[0] as TextPart)?.text);
-  }
   return messages;
 }
