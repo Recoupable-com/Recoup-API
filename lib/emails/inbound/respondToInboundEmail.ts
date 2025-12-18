@@ -6,6 +6,8 @@ import { getMessages } from "@/lib/messages/getMessages";
 import getGeneralAgent from "@/lib/agents/generalAgent/getGeneralAgent";
 import { getEmailContent } from "@/lib/emails/inbound/getEmailContent";
 import { getFromWithName } from "@/lib/emails/inbound/getFromWithName";
+import { handleChatCompletion } from "@/lib/chat/handleChatCompletion";
+import { ChatRequestBody } from "@/lib/chat/validateChatRequest";
 
 /**
  * Responds to an inbound email by sending a hard-coded reply in the same thread.
@@ -31,8 +33,11 @@ export async function respondToInboundEmail(
     const accountEmails = await selectAccountEmails({ emails: [to] });
     if (accountEmails.length === 0) throw new Error("Account not found");
     const accountId = accountEmails[0].account_id;
-
-    const decision = await getGeneralAgent({ accountId, messages: getMessages(emailText) });
+    const chatRequestBody: ChatRequestBody = {
+      accountId,
+      messages: getMessages(emailText),
+    };
+    const decision = await getGeneralAgent(chatRequestBody);
     const agent = decision.agent;
     const chatResponse = await agent.generate({
       prompt: emailText,
@@ -41,13 +46,15 @@ export async function respondToInboundEmail(
       from,
       to: toArray,
       subject,
-      html: `<p>${chatResponse.text}</p>`,
+      html: chatResponse.text,
       headers: {
         "In-Reply-To": messageId,
       },
     };
 
     const result = await sendEmailWithResend(payload);
+
+    await handleChatCompletion(chatRequestBody, getMessages(chatResponse.text, "assistant"));
 
     if (result instanceof NextResponse) {
       return result;
