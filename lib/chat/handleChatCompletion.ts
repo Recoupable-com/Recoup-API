@@ -10,6 +10,7 @@ import { sendErrorNotification } from "@/lib/telegram/errors/sendErrorNotificati
 import selectAccountEmails from "@/lib/supabase/account_emails/selectAccountEmails";
 import { ChatRequestBody } from "./validateChatRequest";
 import { UIMessage } from "ai";
+import { generateUUID } from "@/lib/uuid/generateUUID";
 
 /**
  * Handles the chat completion and saves the messages to the database.
@@ -23,8 +24,9 @@ export async function handleChatCompletion(
   responseMessages: UIMessage[],
 ): Promise<void> {
   try {
-    const { messages, roomId = "", accountId, artistId } = body;
+    const { messages, roomId = generateUUID(), accountId, artistId } = body;
 
+    console.log("roomId", roomId);
     let email = "";
     const accountEmails = await selectAccountEmails({ accountIds: accountId });
     if (accountEmails.length > 0 && accountEmails[0].email) {
@@ -45,6 +47,7 @@ export async function handleChatCompletion(
           account_id: accountId,
           topic: conversationName,
           artist_id: artistId || undefined,
+          id: roomId,
         }),
         sendNewConversationNotification({
           accountId,

@@ -6,6 +6,7 @@ import { getMessages } from "@/lib/messages/getMessages";
 import getGeneralAgent from "@/lib/agents/generalAgent/getGeneralAgent";
 import { getEmailContent } from "@/lib/emails/inbound/getEmailContent";
 import { getFromWithName } from "@/lib/emails/inbound/getFromWithName";
+import { handleChatCompletion } from "@/lib/chat/handleChatCompletion";
 
 /**
  * Responds to an inbound email by sending a hard-coded reply in the same thread.
@@ -50,6 +51,20 @@ export async function respondToInboundEmail(
     };
 
     const result = await sendEmailWithResend(payload);
+
+    // Fire-and-forget: persist this email interaction as a chat conversation
+    try {
+      await handleChatCompletion(
+        {
+          accountId,
+          roomId: messageId,
+          messages: getMessages(emailText),
+        },
+        getMessages(chatResponse.text),
+      );
+    } catch (loggingError) {
+      console.error("[respondToInboundEmail] Failed to persist chat completion", loggingError);
+    }
 
     if (result instanceof NextResponse) {
       return result;
