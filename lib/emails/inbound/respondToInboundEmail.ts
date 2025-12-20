@@ -33,13 +33,13 @@ export async function respondToInboundEmail(
       return validationResult.response;
     }
 
-    const { chatRequestBody, emailText } = validationResult;
+    const { chatRequestBody } = validationResult;
     const { roomId } = chatRequestBody;
 
     const decision = await getGeneralAgent(chatRequestBody);
     const agent = decision.agent;
 
-    const messages = await getEmailRoomMessages(roomId, emailText);
+    const messages = await getEmailRoomMessages(roomId);
 
     const chatResponse = await agent.generate({
       messages,
