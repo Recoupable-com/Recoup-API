@@ -29,6 +29,7 @@ export const resendEmailReceivedEventSchema = z.object({
 });
 
 export type ResendEmailReceivedEvent = z.infer<typeof resendEmailReceivedEventSchema>;
+export type ResendEmailData = z.infer<typeof resendEmailDataSchema>;
 
 /**
  * Validates the inbound Resend email webhook event against the expected schema.

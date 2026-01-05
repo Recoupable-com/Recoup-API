@@ -36,13 +36,7 @@ export async function respondToInboundEmail(
     const { chatRequestBody, emailText } = validationResult;
 
     // Check if Recoup is only CC'd - use LLM to determine if reply is expected
-    const ccValidation = await validateCcReplyExpected({
-      from: original.from,
-      to: original.to,
-      cc: original.cc,
-      subject: original.subject,
-      emailText,
-    });
+    const ccValidation = await validateCcReplyExpected(original, emailText);
     if (ccValidation) {
       return ccValidation.response;
     }
