@@ -7,6 +7,7 @@ import insertMemories from "@/lib/supabase/memories/insertMemories";
 import filterMessageContentForMemories from "@/lib/messages/filterMessageContentForMemories";
 import { validateNewEmailMemory } from "@/lib/emails/inbound/validateNewEmailMemory";
 import { generateEmailResponse } from "@/lib/emails/inbound/generateEmailResponse";
+import { validateCcReplyExpected } from "@/lib/emails/inbound/validateCcReplyExpected";
 
 /**
  * Responds to an inbound email by sending a hard-coded reply in the same thread.
@@ -24,8 +25,8 @@ export async function respondToInboundEmail(
     const messageId = original.message_id;
     const to = original.from;
     const toArray = [to];
-    const from = getFromWithName(original.to);
-    const cc = original.cc && original.cc.length > 0 ? original.cc : undefined;
+    const from = getFromWithName(original.to, original.cc);
+    const cc = original.cc?.length ? original.cc : undefined;
 
     // Validate new memory and get chat request body (or early return if duplicate)
     const validationResult = await validateNewEmailMemory(event);
@@ -33,7 +34,14 @@ export async function respondToInboundEmail(
       return validationResult.response;
     }
 
-    const { chatRequestBody } = validationResult;
+    const { chatRequestBody, emailText } = validationResult;
+
+    // Check if Recoup is only CC'd - use LLM to determine if reply is expected
+    const ccValidation = await validateCcReplyExpected(original, emailText);
+    if (ccValidation) {
+      return ccValidation.response;
+    }
+
     const { roomId } = chatRequestBody;
 
     const { text, html } = await generateEmailResponse(chatRequestBody);
