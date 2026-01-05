@@ -1,11 +1,16 @@
-import generateText from "@/lib/ai/generateText";
+import { Output, ToolLoopAgent, stepCountIs } from "ai";
+import { z } from "zod";
 import { LIGHTWEIGHT_MODEL } from "@/lib/const";
 import type { ResendEmailData } from "@/lib/emails/validateInboundEmailEvent";
 
 type EmailContext = Pick<ResendEmailData, "from" | "to" | "cc" | "subject"> & { body: string };
 
+const replyDecisionSchema = z.object({
+  shouldReply: z.boolean().describe("Whether the Recoup AI assistant should reply to this email"),
+});
+
 /**
- * Uses an LLM to determine if a reply is expected from the Recoup AI assistant.
+ * Uses an agent to determine if a reply is expected from the Recoup AI assistant.
  *
  * @param context - The email context including from, to, cc, subject, and body
  * @returns true if a reply is expected, false otherwise
@@ -13,28 +18,29 @@ type EmailContext = Pick<ResendEmailData, "from" | "to" | "cc" | "subject"> & { 
 export async function shouldReplyToCcEmail(context: EmailContext): Promise<boolean> {
   const { from, to, cc, subject, body } = context;
 
-  const prompt = `You are analyzing an email to determine if a Recoup AI assistant (@mail.recoupable.com) should reply.
+  const instructions = `You analyze emails to determine if a Recoup AI assistant (@mail.recoupable.com) should reply.
 
-Email details:
+Rules:
+1. If a Recoup address (@mail.recoupable.com) is in the TO field → ALWAYS reply
+2. If a Recoup address is ONLY in CC (not in TO):
+   - Reply if the email directly addresses Recoup or asks for its input
+   - Do NOT reply if Recoup is just being kept in the loop for visibility`;
+
+  const agent = new ToolLoopAgent({
+    model: LIGHTWEIGHT_MODEL,
+    instructions,
+    output: Output.object({ schema: replyDecisionSchema }),
+    stopWhen: stepCountIs(1),
+  });
+
+  const prompt = `Analyze this email:
 - From: ${from}
 - To: ${to.join(", ")}
 - CC: ${cc.join(", ")}
 - Subject: ${subject}
-- Body: ${body}
+- Body: ${body}`;
 
-Rules:
-1. If a Recoup address (@mail.recoupable.com) is in the TO field → ALWAYS reply (return "true")
-2. If a Recoup address is ONLY in CC (not in TO):
-   - Return "true" if the email directly addresses Recoup or asks for its input
-   - Return "false" if Recoup is just being kept in the loop for visibility
+  const { output } = await agent.generate({ prompt });
 
-Respond with ONLY "true" or "false".`;
-
-  const response = await generateText({
-    prompt,
-    model: LIGHTWEIGHT_MODEL,
-  });
-
-  const result = response.text.trim().toLowerCase();
-  return result === "true";
+  return output.shouldReply;
 }

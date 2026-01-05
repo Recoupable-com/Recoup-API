@@ -2,14 +2,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { validateCcReplyExpected } from "../validateCcReplyExpected";
 import type { ResendEmailData } from "@/lib/emails/validateInboundEmailEvent";
 
-// Mock the shouldReplyToCcEmail function
-vi.mock("@/lib/emails/inbound/shouldReplyToCcEmail", () => ({
-  shouldReplyToCcEmail: vi.fn(),
+const mockGenerate = vi.fn();
+
+// Mock the ai module
+vi.mock("ai", () => ({
+  Output: { object: vi.fn() },
+  ToolLoopAgent: vi.fn().mockImplementation(() => ({
+    generate: mockGenerate,
+  })),
+  stepCountIs: vi.fn(),
 }));
-
-import { shouldReplyToCcEmail } from "@/lib/emails/inbound/shouldReplyToCcEmail";
-
-const mockShouldReply = vi.mocked(shouldReplyToCcEmail);
 
 describe("validateCcReplyExpected", () => {
   const baseEmailData: ResendEmailData = {
@@ -28,8 +30,8 @@ describe("validateCcReplyExpected", () => {
     vi.clearAllMocks();
   });
 
-  it("always calls shouldReplyToCcEmail regardless of TO/CC", async () => {
-    mockShouldReply.mockResolvedValue(true);
+  it("always calls agent.generate regardless of TO/CC", async () => {
+    mockGenerate.mockResolvedValue({ output: { shouldReply: true } });
 
     const emailData: ResendEmailData = {
       ...baseEmailData,
@@ -39,11 +41,11 @@ describe("validateCcReplyExpected", () => {
 
     await validateCcReplyExpected(emailData, "Hello");
 
-    expect(mockShouldReply).toHaveBeenCalledTimes(1);
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
   });
 
-  it("returns null when shouldReplyToCcEmail returns true", async () => {
-    mockShouldReply.mockResolvedValue(true);
+  it("returns null when agent returns shouldReply: true", async () => {
+    mockGenerate.mockResolvedValue({ output: { shouldReply: true } });
 
     const emailData: ResendEmailData = {
       ...baseEmailData,
@@ -56,8 +58,8 @@ describe("validateCcReplyExpected", () => {
     expect(result).toBeNull();
   });
 
-  it("returns response when shouldReplyToCcEmail returns false", async () => {
-    mockShouldReply.mockResolvedValue(false);
+  it("returns response when agent returns shouldReply: false", async () => {
+    mockGenerate.mockResolvedValue({ output: { shouldReply: false } });
 
     const emailData: ResendEmailData = {
       ...baseEmailData,
@@ -71,25 +73,28 @@ describe("validateCcReplyExpected", () => {
     expect(result?.response).toBeDefined();
   });
 
-  it("passes correct params to shouldReplyToCcEmail", async () => {
-    mockShouldReply.mockResolvedValue(true);
+  it("passes email context in prompt to agent.generate", async () => {
+    mockGenerate.mockResolvedValue({ output: { shouldReply: true } });
 
     const emailData: ResendEmailData = {
       ...baseEmailData,
       from: "test@example.com",
       to: ["hi@mail.recoupable.com"],
       cc: ["cc@example.com"],
-      subject: "Test",
+      subject: "Test Subject",
     };
 
     await validateCcReplyExpected(emailData, "Email body");
 
-    expect(mockShouldReply).toHaveBeenCalledWith({
-      from: "test@example.com",
-      to: ["hi@mail.recoupable.com"],
-      cc: ["cc@example.com"],
-      subject: "Test",
-      body: "Email body",
-    });
+    expect(mockGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: expect.stringContaining("test@example.com"),
+      }),
+    );
+    expect(mockGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: expect.stringContaining("Email body"),
+      }),
+    );
   });
 });
