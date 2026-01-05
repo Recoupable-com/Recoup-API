@@ -20,11 +20,11 @@ export async function shouldReplyToCcEmail(context: EmailContext): Promise<boole
 
   const instructions = `You analyze emails to determine if a Recoup AI assistant (@mail.recoupable.com) should reply.
 
-Rules:
-1. If a Recoup address (@mail.recoupable.com) is in the TO field → ALWAYS reply
-2. If a Recoup address is ONLY in CC (not in TO):
-   - Reply if the email directly addresses Recoup or asks for its input
-   - Do NOT reply if Recoup is just being kept in the loop for visibility`;
+Rules (check in this order):
+1. FIRST check the body/subject: If the sender explicitly asks NOT to reply (e.g., "don't reply", "do not reply", "stop replying", "no response needed") → return false
+2. If Recoup is in TO and the email asks a question or requests help → return true
+3. If Recoup is ONLY in CC: return true only if directly addressed, otherwise return false
+4. When in doubt, return false`;
 
   const agent = new ToolLoopAgent({
     model: LIGHTWEIGHT_MODEL,
