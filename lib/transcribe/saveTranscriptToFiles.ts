@@ -16,7 +16,7 @@ export async function saveTranscriptToFiles(params: SaveTranscriptParams): Promi
     upsert: false,
   });
 
-  const data = await createFileRecord({
+  return createFileRecord({
     ownerAccountId,
     artistAccountId,
     storageKey,
@@ -26,10 +26,4 @@ export async function saveTranscriptToFiles(params: SaveTranscriptParams): Promi
     description: `Transcript for "${title}"`,
     tags: params.tags || ["transcription"],
   });
-
-  return {
-    id: data.id,
-    file_name: data.file_name,
-    storage_key: data.storage_key,
-  };
 }

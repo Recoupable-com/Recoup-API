@@ -2,11 +2,7 @@
  * Types for the audio transcription feature.
  */
 
-export interface FileRecord {
-  id: string;
-  file_name: string;
-  storage_key: string;
-}
+export type { FileRecord } from "@/lib/supabase/files/createFileRecord";
 
 export interface TranscriptionResult {
   text: string;

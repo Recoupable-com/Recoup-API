@@ -14,7 +14,7 @@ export async function saveAudioToFiles(params: SaveAudioParams): Promise<FileRec
     upsert: false,
   });
 
-  const data = await createFileRecord({
+  return createFileRecord({
     ownerAccountId,
     artistAccountId,
     storageKey,
@@ -24,10 +24,4 @@ export async function saveAudioToFiles(params: SaveAudioParams): Promise<FileRec
     description: `Audio file: "${title}"`,
     tags: params.tags || ["audio"],
   });
-
-  return {
-    id: data.id,
-    file_name: data.file_name,
-    storage_key: data.storage_key,
-  };
 }

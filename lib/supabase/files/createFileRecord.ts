@@ -1,6 +1,6 @@
 import supabase from "@/lib/supabase/serverClient";
 
-interface FileRecord {
+export interface FileRecord {
   id: string;
   owner_account_id: string;
   artist_account_id: string;
@@ -12,7 +12,7 @@ interface FileRecord {
   tags: string[];
 }
 
-interface CreateFileRecordParams {
+export interface CreateFileRecordParams {
   ownerAccountId: string;
   artistAccountId: string;
   storageKey: string;
