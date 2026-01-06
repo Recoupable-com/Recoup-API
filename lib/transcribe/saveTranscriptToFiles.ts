@@ -1,20 +1,6 @@
 import supabase from "@/lib/supabase/serverClient";
-import { SaveTranscriptParams } from "./types";
+import { SaveTranscriptParams, FileRecord, STORAGE_BUCKET } from "./types";
 
-const SUPABASE_STORAGE_BUCKET = "user-files";
-
-interface FileRecord {
-  id: string;
-  file_name: string;
-  storage_key: string;
-}
-
-/**
- * Saves transcript markdown to customer files (storage + database record).
- *
- * @param params - Markdown content and account information
- * @returns The created file record
- */
 export async function saveTranscriptToFiles(params: SaveTranscriptParams): Promise<FileRecord> {
   const { markdown, ownerAccountId, artistAccountId, title = "Transcription" } = params;
 
@@ -22,10 +8,9 @@ export async function saveTranscriptToFiles(params: SaveTranscriptParams): Promi
   const fileName = `${safeTitle}-transcript.md`;
   const storageKey = `files/${ownerAccountId}/${artistAccountId}/${fileName}`;
 
-  // 1. Upload to Supabase Storage
   const markdownBlob = new Blob([markdown], { type: "text/markdown" });
   const { error: uploadError } = await supabase.storage
-    .from(SUPABASE_STORAGE_BUCKET)
+    .from(STORAGE_BUCKET)
     .upload(storageKey, markdownBlob, {
       contentType: "text/markdown",
       upsert: false,
@@ -35,7 +20,6 @@ export async function saveTranscriptToFiles(params: SaveTranscriptParams): Promi
     throw new Error(`Failed to upload transcript: ${uploadError.message}`);
   }
 
-  // 2. Create database record
   const { data, error: insertError } = await supabase
     .from("files")
     .insert({

@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { processAudioTranscription } from "@/lib/transcribe/processAudioTranscription";
+import { formatTranscriptionError } from "@/lib/transcribe/types";
 import { getToolResultSuccess } from "@/lib/mcp/getToolResultSuccess";
 import { getToolResultError } from "@/lib/mcp/getToolResultError";
 
@@ -14,13 +15,6 @@ const transcribeAudioSchema = z.object({
 
 type TranscribeAudioArgs = z.infer<typeof transcribeAudioSchema>;
 
-/**
- * Registers the "transcribe_audio" tool on the MCP server.
- * Transcribes audio using OpenAI Whisper and saves both the audio and transcript
- * to the customer's files.
- *
- * @param server - The MCP server instance to register the tool on.
- */
 export function registerTranscribeAudioTool(server: McpServer): void {
   server.registerTool(
     "transcribe_audio",
@@ -39,33 +33,17 @@ export function registerTranscribeAudioTool(server: McpServer): void {
           includeTimestamps: args.include_timestamps,
         });
 
-        const response = {
+        return getToolResultSuccess({
           success: true,
           message: `Saved "${result.audioFile.fileName}" and "${result.transcriptFile.fileName}"`,
           audioFile: result.audioFile,
           transcriptFile: result.transcriptFile,
           text: result.text,
           language: result.language,
-        };
-
-        return getToolResultSuccess(response);
+        });
       } catch (error) {
-        console.error("Error transcribing audio:", error);
-
-        let errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
-
-        // Format helpful error messages
-        if (errorMessage.includes("OPENAI_API_KEY")) {
-          errorMessage = "OpenAI API key is missing. Please check environment variables.";
-        } else if (errorMessage.includes("rate limit")) {
-          errorMessage = "Rate limit exceeded. Please try again later.";
-        } else if (errorMessage.includes("fetch audio")) {
-          errorMessage = "Could not fetch the audio file. Please check the URL is accessible.";
-        } else if (errorMessage.includes("25 MB") || errorMessage.includes("file size")) {
-          errorMessage = "Audio file is too large. OpenAI Whisper has a 25MB limit.";
-        }
-
-        return getToolResultError(`Failed to transcribe audio. ${errorMessage}`);
+        const { message } = formatTranscriptionError(error);
+        return getToolResultError(`Failed to transcribe audio. ${message}`);
       }
     },
   );

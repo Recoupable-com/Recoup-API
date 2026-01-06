@@ -1,20 +1,6 @@
 import supabase from "@/lib/supabase/serverClient";
-import { SaveAudioParams } from "./types";
+import { SaveAudioParams, FileRecord, STORAGE_BUCKET } from "./types";
 
-const SUPABASE_STORAGE_BUCKET = "user-files";
-
-interface FileRecord {
-  id: string;
-  file_name: string;
-  storage_key: string;
-}
-
-/**
- * Saves audio blob to customer files (storage + database record).
- *
- * @param params - Audio file and account information
- * @returns The created file record
- */
 export async function saveAudioToFiles(params: SaveAudioParams): Promise<FileRecord> {
   const { audioBlob, contentType, fileName, ownerAccountId, artistAccountId, title = "Audio" } =
     params;
@@ -22,9 +8,8 @@ export async function saveAudioToFiles(params: SaveAudioParams): Promise<FileRec
   const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
   const storageKey = `files/${ownerAccountId}/${artistAccountId}/${safeFileName}`;
 
-  // 1. Upload to Supabase Storage
   const { error: uploadError } = await supabase.storage
-    .from(SUPABASE_STORAGE_BUCKET)
+    .from(STORAGE_BUCKET)
     .upload(storageKey, audioBlob, {
       contentType,
       upsert: false,
@@ -34,7 +19,6 @@ export async function saveAudioToFiles(params: SaveAudioParams): Promise<FileRec
     throw new Error(`Failed to upload audio: ${uploadError.message}`);
   }
 
-  // 2. Create database record
   const { data, error: insertError } = await supabase
     .from("files")
     .insert({

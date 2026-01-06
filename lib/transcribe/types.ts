@@ -1,7 +1,14 @@
 /**
- * Types for the audio transcription feature.
- * Used by transcribeAudio, formatTranscriptMd, and related functions.
+ * Shared types and constants for the audio transcription feature.
  */
+
+export const STORAGE_BUCKET = "user-files";
+
+export interface FileRecord {
+  id: string;
+  file_name: string;
+  storage_key: string;
+}
 
 export interface TranscriptionResult {
   text: string;
@@ -50,5 +57,28 @@ export interface ProcessTranscriptionResult {
   transcriptFile: FileInfo;
   text: string;
   language?: string;
+}
+
+/**
+ * Formats transcription errors into user-friendly messages.
+ * Centralizes error message logic to avoid duplication.
+ */
+export function formatTranscriptionError(error: unknown): { message: string; status: number } {
+  const rawMessage = error instanceof Error ? error.message : "Transcription failed";
+
+  if (rawMessage.includes("OPENAI_API_KEY")) {
+    return { message: "OpenAI API key is not configured", status: 500 };
+  }
+  if (rawMessage.includes("fetch audio") || rawMessage.includes("Failed to fetch")) {
+    return { message: "Could not fetch the audio file. Please check the URL is accessible.", status: 400 };
+  }
+  if (rawMessage.includes("25 MB") || rawMessage.includes("file size")) {
+    return { message: "Audio file exceeds the 25MB limit", status: 413 };
+  }
+  if (rawMessage.includes("rate limit")) {
+    return { message: "Rate limit exceeded. Please try again later.", status: 429 };
+  }
+
+  return { message: rawMessage, status: 500 };
 }
 
