@@ -1,15 +1,7 @@
 import { NextResponse } from "next/server";
 import type { ResendEmailData } from "@/lib/emails/validateInboundEmailEvent";
 import { shouldReplyToCcEmail } from "@/lib/emails/inbound/shouldReplyToCcEmail";
-
-const RECOUP_EMAIL_DOMAIN = "mail.recoupable.com";
-
-/**
- * Checks if any email address in the array is a recoup email address.
- */
-function containsRecoupEmail(addresses: string[]): boolean {
-  return addresses.some(addr => addr.toLowerCase().includes(RECOUP_EMAIL_DOMAIN));
-}
+import { containsRecoupEmail } from "@/lib/emails/containsRecoupEmail";
 
 /**
  * Validates whether a reply should be sent.

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { validateCcReplyExpected } from "../validateCcReplyExpected";
 import type { ResendEmailData } from "@/lib/emails/validateInboundEmailEvent";
+import { RECOUP_EMAIL_DOMAIN } from "@/lib/const";
 
 const mockGenerate = vi.fn();
 
@@ -32,7 +33,7 @@ describe("validateCcReplyExpected", () => {
     it("skips agent call and returns null (always reply)", async () => {
       const emailData: ResendEmailData = {
         ...baseEmailData,
-        to: ["hi@mail.recoupable.com"],
+        to: [`hi${RECOUP_EMAIL_DOMAIN}`],
         cc: [],
       };
 
@@ -45,7 +46,7 @@ describe("validateCcReplyExpected", () => {
     it("handles multiple TO addresses with recoup email", async () => {
       const emailData: ResendEmailData = {
         ...baseEmailData,
-        to: ["other@example.com", "hi@mail.recoupable.com"],
+        to: ["other@example.com", `hi${RECOUP_EMAIL_DOMAIN}`],
         cc: [],
       };
 
@@ -63,7 +64,7 @@ describe("validateCcReplyExpected", () => {
       const emailData: ResendEmailData = {
         ...baseEmailData,
         to: ["someone@example.com"],
-        cc: ["hi@mail.recoupable.com"],
+        cc: [`hi${RECOUP_EMAIL_DOMAIN}`],
       };
 
       await validateCcReplyExpected(emailData, "FYI");
@@ -77,7 +78,7 @@ describe("validateCcReplyExpected", () => {
       const emailData: ResendEmailData = {
         ...baseEmailData,
         to: ["someone@example.com"],
-        cc: ["hi@mail.recoupable.com"],
+        cc: [`hi${RECOUP_EMAIL_DOMAIN}`],
       };
 
       const result = await validateCcReplyExpected(emailData, "Please review");
@@ -91,7 +92,7 @@ describe("validateCcReplyExpected", () => {
       const emailData: ResendEmailData = {
         ...baseEmailData,
         to: ["someone@example.com"],
-        cc: ["hi@mail.recoupable.com"],
+        cc: [`hi${RECOUP_EMAIL_DOMAIN}`],
       };
 
       const result = await validateCcReplyExpected(emailData, "FYI");
@@ -107,8 +108,8 @@ describe("validateCcReplyExpected", () => {
 
       const emailData: ResendEmailData = {
         ...baseEmailData,
-        to: ["hi@mail.recoupable.com"],
-        cc: ["hi@mail.recoupable.com"],
+        to: [`hi${RECOUP_EMAIL_DOMAIN}`],
+        cc: [`hi${RECOUP_EMAIL_DOMAIN}`],
       };
 
       await validateCcReplyExpected(emailData, "Hello");
@@ -121,8 +122,8 @@ describe("validateCcReplyExpected", () => {
 
       const emailData: ResendEmailData = {
         ...baseEmailData,
-        to: ["hi@mail.recoupable.com"],
-        cc: ["hi@mail.recoupable.com"],
+        to: [`hi${RECOUP_EMAIL_DOMAIN}`],
+        cc: [`hi${RECOUP_EMAIL_DOMAIN}`],
       };
 
       const result = await validateCcReplyExpected(emailData, "Hello");
@@ -135,8 +136,8 @@ describe("validateCcReplyExpected", () => {
 
       const emailData: ResendEmailData = {
         ...baseEmailData,
-        to: ["hi@mail.recoupable.com"],
-        cc: ["hi@mail.recoupable.com"],
+        to: [`hi${RECOUP_EMAIL_DOMAIN}`],
+        cc: [`hi${RECOUP_EMAIL_DOMAIN}`],
       };
 
       const result = await validateCcReplyExpected(emailData, "FYI");
@@ -153,7 +154,7 @@ describe("validateCcReplyExpected", () => {
       ...baseEmailData,
       from: "test@example.com",
       to: ["someone@example.com"],
-      cc: ["hi@mail.recoupable.com", "cc@example.com"],
+      cc: [`hi${RECOUP_EMAIL_DOMAIN}`, "cc@example.com"],
       subject: "Test Subject",
     };
 
