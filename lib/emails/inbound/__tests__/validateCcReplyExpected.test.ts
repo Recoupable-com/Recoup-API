@@ -95,4 +95,50 @@ describe("validateCcReplyExpected", () => {
       }),
     );
   });
+
+  it("includes both TO and CC in prompt when address appears in both", async () => {
+    mockGenerate.mockResolvedValue({ output: { shouldReply: false } });
+
+    const emailData: ResendEmailData = {
+      ...baseEmailData,
+      to: ["hi@mail.recoupable.com", "other@example.com"],
+      cc: ["hi@mail.recoupable.com"],
+    };
+
+    await validateCcReplyExpected(emailData, "Hello");
+
+    expect(mockGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: expect.stringContaining("To: hi@mail.recoupable.com, other@example.com"),
+      }),
+    );
+    expect(mockGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: expect.stringContaining("CC: hi@mail.recoupable.com"),
+      }),
+    );
+  });
+
+  it("handles only TO (no CC) scenario", async () => {
+    mockGenerate.mockResolvedValue({ output: { shouldReply: true } });
+
+    const emailData: ResendEmailData = {
+      ...baseEmailData,
+      to: ["hi@mail.recoupable.com"],
+      cc: [],
+    };
+
+    await validateCcReplyExpected(emailData, "Can you help me?");
+
+    expect(mockGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: expect.stringContaining("To: hi@mail.recoupable.com"),
+      }),
+    );
+    expect(mockGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: expect.stringContaining("CC: "),
+      }),
+    );
+  });
 });
