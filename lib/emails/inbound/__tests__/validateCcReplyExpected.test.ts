@@ -28,47 +28,122 @@ describe("validateCcReplyExpected", () => {
     vi.clearAllMocks();
   });
 
-  it("always calls agent.generate regardless of TO/CC", async () => {
-    mockGenerate.mockResolvedValue({ output: { shouldReply: true } });
+  describe("when recoup email is only in TO (not CC)", () => {
+    it("skips agent call and returns null (always reply)", async () => {
+      const emailData: ResendEmailData = {
+        ...baseEmailData,
+        to: ["hi@mail.recoupable.com"],
+        cc: [],
+      };
 
-    const emailData: ResendEmailData = {
-      ...baseEmailData,
-      to: ["hi@mail.recoupable.com"],
-      cc: [],
-    };
+      const result = await validateCcReplyExpected(emailData, "Hello");
 
-    await validateCcReplyExpected(emailData, "Hello");
+      expect(mockGenerate).not.toHaveBeenCalled();
+      expect(result).toBeNull();
+    });
 
-    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    it("handles multiple TO addresses with recoup email", async () => {
+      const emailData: ResendEmailData = {
+        ...baseEmailData,
+        to: ["other@example.com", "hi@mail.recoupable.com"],
+        cc: [],
+      };
+
+      const result = await validateCcReplyExpected(emailData, "Hello");
+
+      expect(mockGenerate).not.toHaveBeenCalled();
+      expect(result).toBeNull();
+    });
   });
 
-  it("returns null when agent returns shouldReply: true", async () => {
-    mockGenerate.mockResolvedValue({ output: { shouldReply: true } });
+  describe("when recoup email is only in CC", () => {
+    it("calls agent to determine if reply is expected", async () => {
+      mockGenerate.mockResolvedValue({ output: { shouldReply: true } });
 
-    const emailData: ResendEmailData = {
-      ...baseEmailData,
-      to: ["hi@mail.recoupable.com"],
-      cc: [],
-    };
+      const emailData: ResendEmailData = {
+        ...baseEmailData,
+        to: ["someone@example.com"],
+        cc: ["hi@mail.recoupable.com"],
+      };
 
-    const result = await validateCcReplyExpected(emailData, "Hello");
+      await validateCcReplyExpected(emailData, "FYI");
 
-    expect(result).toBeNull();
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+    });
+
+    it("returns null when agent returns shouldReply: true", async () => {
+      mockGenerate.mockResolvedValue({ output: { shouldReply: true } });
+
+      const emailData: ResendEmailData = {
+        ...baseEmailData,
+        to: ["someone@example.com"],
+        cc: ["hi@mail.recoupable.com"],
+      };
+
+      const result = await validateCcReplyExpected(emailData, "Please review");
+
+      expect(result).toBeNull();
+    });
+
+    it("returns response when agent returns shouldReply: false", async () => {
+      mockGenerate.mockResolvedValue({ output: { shouldReply: false } });
+
+      const emailData: ResendEmailData = {
+        ...baseEmailData,
+        to: ["someone@example.com"],
+        cc: ["hi@mail.recoupable.com"],
+      };
+
+      const result = await validateCcReplyExpected(emailData, "FYI");
+
+      expect(result).not.toBeNull();
+      expect(result?.response).toBeDefined();
+    });
   });
 
-  it("returns response when agent returns shouldReply: false", async () => {
-    mockGenerate.mockResolvedValue({ output: { shouldReply: false } });
+  describe("when recoup email is in both TO and CC", () => {
+    it("treats as CC and calls agent", async () => {
+      mockGenerate.mockResolvedValue({ output: { shouldReply: true } });
 
-    const emailData: ResendEmailData = {
-      ...baseEmailData,
-      to: ["someone@example.com"],
-      cc: ["hi@mail.recoupable.com"],
-    };
+      const emailData: ResendEmailData = {
+        ...baseEmailData,
+        to: ["hi@mail.recoupable.com"],
+        cc: ["hi@mail.recoupable.com"],
+      };
 
-    const result = await validateCcReplyExpected(emailData, "FYI");
+      await validateCcReplyExpected(emailData, "Hello");
 
-    expect(result).not.toBeNull();
-    expect(result?.response).toBeDefined();
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+    });
+
+    it("returns null when agent returns shouldReply: true", async () => {
+      mockGenerate.mockResolvedValue({ output: { shouldReply: true } });
+
+      const emailData: ResendEmailData = {
+        ...baseEmailData,
+        to: ["hi@mail.recoupable.com"],
+        cc: ["hi@mail.recoupable.com"],
+      };
+
+      const result = await validateCcReplyExpected(emailData, "Hello");
+
+      expect(result).toBeNull();
+    });
+
+    it("returns response when agent returns shouldReply: false", async () => {
+      mockGenerate.mockResolvedValue({ output: { shouldReply: false } });
+
+      const emailData: ResendEmailData = {
+        ...baseEmailData,
+        to: ["hi@mail.recoupable.com"],
+        cc: ["hi@mail.recoupable.com"],
+      };
+
+      const result = await validateCcReplyExpected(emailData, "FYI");
+
+      expect(result).not.toBeNull();
+      expect(result?.response).toBeDefined();
+    });
   });
 
   it("passes email context in prompt to agent.generate", async () => {
@@ -77,8 +152,8 @@ describe("validateCcReplyExpected", () => {
     const emailData: ResendEmailData = {
       ...baseEmailData,
       from: "test@example.com",
-      to: ["hi@mail.recoupable.com"],
-      cc: ["cc@example.com"],
+      to: ["someone@example.com"],
+      cc: ["hi@mail.recoupable.com", "cc@example.com"],
       subject: "Test Subject",
     };
 
