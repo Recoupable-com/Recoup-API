@@ -1,8 +1,6 @@
 /**
- * Shared types and constants for the audio transcription feature.
+ * Types for the audio transcription feature.
  */
-
-export const STORAGE_BUCKET = "user-files";
 
 export interface FileRecord {
   id: string;
