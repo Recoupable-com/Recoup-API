@@ -49,8 +49,7 @@ describe("registerSendEmailTool", () => {
       to: ["test@example.com"],
       cc: undefined,
       subject: "Test Subject",
-      text: "Test body",
-      html: undefined,
+      html: expect.stringMatching(/Test body.*you can reply directly to this email/s),
       headers: {},
     });
 

@@ -33,8 +33,8 @@ export const registerAllTools = (server: McpServer): void => {
   registerContactTeamTool(server);
   registerGetLocalTimeTool(server);
   registerSearchWebTool(server);
+  registerSendEmailTool(server);
   registerUpdateAccountInfoTool(server);
   registerCreateSegmentsTool(server);
   registerAllYouTubeTools(server);
-  registerSendEmailTool(server);
 };

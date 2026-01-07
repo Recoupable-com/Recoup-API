@@ -4,6 +4,7 @@ import { sendEmailWithResend } from "@/lib/emails/sendEmail";
 import { getToolResultSuccess } from "@/lib/mcp/getToolResultSuccess";
 import { getToolResultError } from "@/lib/mcp/getToolResultError";
 import { RECOUP_FROM_EMAIL } from "@/lib/const";
+import { getEmailFooter } from "@/lib/emails/getEmailFooter";
 import { NextResponse } from "next/server";
 
 /**
@@ -20,15 +21,18 @@ export function registerSendEmailTool(server: McpServer): void {
       inputSchema: sendEmailSchema,
     },
     async (args: SendEmailInput) => {
-      const { to, cc = [], subject, text, html = "", headers = {} } = args;
+      const { to, cc = [], subject, text, html = "", headers = {}, room_id } = args;
+
+      const footer = getEmailFooter(room_id);
+      const bodyHtml = html || (text ? `<p>${text}</p>` : "");
+      const htmlWithFooter = `${bodyHtml}\n\n${footer}`;
 
       const result = await sendEmailWithResend({
         from: RECOUP_FROM_EMAIL,
         to,
         cc: cc.length > 0 ? cc : undefined,
         subject,
-        text,
-        html: html || undefined,
+        html: htmlWithFooter,
         headers,
       });
 

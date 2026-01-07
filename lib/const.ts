@@ -18,7 +18,7 @@ export const INBOUND_EMAIL_DOMAIN = "@mail.recoupable.com";
 /** Domain for sending outbound emails (e.g., support@recoupable.com) */
 export const OUTBOUND_EMAIL_DOMAIN = "@recoupable.com";
 
-export const SUPABASE_STORAGE_BUCKET = "user-files";
-
-/** Default from address for outbound emails sent by the agent */
+/** Default from address for outbound emails */
 export const RECOUP_FROM_EMAIL = `Agent by Recoup <agent${OUTBOUND_EMAIL_DOMAIN}>`;
+
+export const SUPABASE_STORAGE_BUCKET = "user-files";

@@ -10,6 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 2. Push commits to the current feature branch
 3. **NEVER push directly to `main` or `test` branches** - always use feature branches and PRs
 4. Before pushing, verify the current branch is not `main` or `test`
+5. **Open PRs against the `test` branch**, not `main`
 
 ### Starting a New Task
 

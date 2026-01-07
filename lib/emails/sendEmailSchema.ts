@@ -24,6 +24,10 @@ export const sendEmailSchema = z.object({
     .describe("Optional custom headers for the email")
     .default({})
     .optional(),
+  room_id: z
+    .string()
+    .describe("Optional room ID to include in the email footer link")
+    .optional(),
 });
 
 export type SendEmailInput = z.infer<typeof sendEmailSchema>;
