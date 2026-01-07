@@ -6,13 +6,13 @@ describe("getFromWithName", () => {
     it("converts inbound @mail.recoupable.com to outbound @recoupable.com", () => {
       const result = getFromWithName(["support@mail.recoupable.com"]);
 
-      expect(result).toBe("Support <support@recoupable.com>");
+      expect(result).toBe("Support by Recoup <support@recoupable.com>");
     });
 
     it("preserves the email name when converting domains", () => {
       const result = getFromWithName(["agent@mail.recoupable.com"]);
 
-      expect(result).toBe("Agent <agent@recoupable.com>");
+      expect(result).toBe("Agent by Recoup <agent@recoupable.com>");
     });
   });
 
@@ -20,7 +20,7 @@ describe("getFromWithName", () => {
     it("finds recoup email in to array", () => {
       const result = getFromWithName(["hello@mail.recoupable.com"]);
 
-      expect(result).toBe("Hello <hello@recoupable.com>");
+      expect(result).toBe("Hello by Recoup <hello@recoupable.com>");
     });
 
     it("finds recoup email among multiple to addresses", () => {
@@ -30,7 +30,7 @@ describe("getFromWithName", () => {
         "another@example.com",
       ]);
 
-      expect(result).toBe("Support <support@recoupable.com>");
+      expect(result).toBe("Support by Recoup <support@recoupable.com>");
     });
 
     it("falls back to cc array when not in to array", () => {
@@ -39,7 +39,7 @@ describe("getFromWithName", () => {
         ["support@mail.recoupable.com"],
       );
 
-      expect(result).toBe("Support <support@recoupable.com>");
+      expect(result).toBe("Support by Recoup <support@recoupable.com>");
     });
 
     it("prefers to array over cc array", () => {
@@ -48,13 +48,13 @@ describe("getFromWithName", () => {
         ["cc-agent@mail.recoupable.com"],
       );
 
-      expect(result).toBe("To-agent <to-agent@recoupable.com>");
+      expect(result).toBe("To-agent by Recoup <to-agent@recoupable.com>");
     });
 
     it("handles case-insensitive domain matching", () => {
       const result = getFromWithName(["Support@MAIL.RECOUPABLE.COM"]);
 
-      expect(result).toBe("Support <Support@recoupable.com>");
+      expect(result).toBe("Support by Recoup <Support@recoupable.com>");
     });
   });
 
@@ -76,13 +76,13 @@ describe("getFromWithName", () => {
     it("capitalizes first letter of name", () => {
       const result = getFromWithName(["lowercase@mail.recoupable.com"]);
 
-      expect(result).toBe("Lowercase <lowercase@recoupable.com>");
+      expect(result).toBe("Lowercase by Recoup <lowercase@recoupable.com>");
     });
 
     it("preserves rest of name casing", () => {
       const result = getFromWithName(["myAgent@mail.recoupable.com"]);
 
-      expect(result).toBe("MyAgent <myAgent@recoupable.com>");
+      expect(result).toBe("MyAgent by Recoup <myAgent@recoupable.com>");
     });
   });
 });
