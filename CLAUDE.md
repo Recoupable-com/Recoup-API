@@ -39,7 +39,14 @@ pnpm format:check   # Check formatting
 
 ## Key Patterns
 
-- Use constants from `lib/consts.ts` and `lib/const.ts`
-- Email domains: inbound at `@mail.recoupable.com`, outbound from `@recoupable.com`
 - All API routes should have JSDoc comments
 - Run `pnpm lint` before committing
+
+## Constants (`lib/const.ts`)
+
+All shared constants live in `lib/const.ts`:
+
+- `INBOUND_EMAIL_DOMAIN` - `@mail.recoupable.com` (where emails are received)
+- `OUTBOUND_EMAIL_DOMAIN` - `@recoupable.com` (where emails are sent from)
+- `SUPABASE_STORAGE_BUCKET` - Storage bucket name
+- Wallet addresses, model names, API keys
