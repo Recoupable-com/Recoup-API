@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import refreshConnectedAccount from "@/lib/composio/googleSheets/refreshConnectedAccount";
+import { refreshConnectedAccount } from "@/lib/composio/refreshConnectedAccount";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 
 /**
  * OPTIONS handler for CORS preflight requests.
- *
- * @returns A NextResponse with CORS headers.
  */
 export async function OPTIONS() {
   return new NextResponse(null, {
@@ -15,10 +13,7 @@ export async function OPTIONS() {
 }
 
 /**
- * POST handler for refreshing a connected account.
- *
- * @param request - The request object.
- * @returns A NextResponse with the refreshed connected account.
+ * POST handler for refreshing a Google Sheets connected account.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -28,34 +23,28 @@ export async function POST(request: NextRequest) {
     if (!accountId) {
       return NextResponse.json(
         { error: "accountId is required" },
-        {
-          status: 400,
-          headers: getCorsHeaders(),
-        },
+        { status: 400, headers: getCorsHeaders() },
       );
     }
 
-    const response = await refreshConnectedAccount(accountId, redirectUrl);
+    const response = await refreshConnectedAccount(
+      "GOOGLE_SHEETS",
+      accountId,
+      redirectUrl,
+    );
 
     return NextResponse.json(
       { message: "Connected account refreshed successfully", ...response },
-      {
-        status: 200,
-        headers: getCorsHeaders(),
-      },
+      { status: 200, headers: getCorsHeaders() },
     );
   } catch (error) {
-    console.error("Error refreshing connected account:", error);
-
-    const errorMessage = error instanceof Error ? error.message : "Internal server error";
+    const errorMessage =
+      error instanceof Error ? error.message : "Internal server error";
     const statusCode = errorMessage.includes("not found") ? 404 : 500;
 
     return NextResponse.json(
       { error: errorMessage },
-      {
-        status: statusCode,
-        headers: getCorsHeaders(),
-      },
+      { status: statusCode, headers: getCorsHeaders() },
     );
   }
 }
