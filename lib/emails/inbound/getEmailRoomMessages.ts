@@ -1,31 +1,10 @@
 import type { ModelMessage } from "ai";
 import selectMemories from "@/lib/supabase/memories/selectMemories";
-
-interface UIPart {
-  type: string;
-  text?: string;
-  toolName?: string;
-  toolCallId?: string;
-  input?: unknown;
-  output?: unknown;
-}
+import { extractTextFromParts } from "./extractTextFromParts";
 
 interface MemoryContent {
   role: string;
-  parts: UIPart[];
-}
-
-/**
- * Extracts text content from UI parts.
- *
- * @param parts - UI parts from stored memory
- * @returns Combined text string from all text parts
- */
-function extractText(parts: UIPart[]): string {
-  return parts
-    .filter(p => p.type === "text" && p.text)
-    .map(p => p.text!)
-    .join("\n");
+  parts: { type: string; text?: string }[];
 }
 
 /**
@@ -49,7 +28,7 @@ export async function getEmailRoomMessages(roomId: string): Promise<ModelMessage
     let text = "";
 
     if (role === "user" || role === "assistant") {
-      text = extractText(content.parts);
+      text = extractTextFromParts(content.parts);
       if (text) {
         messages.push({ role, content: text });
       }
