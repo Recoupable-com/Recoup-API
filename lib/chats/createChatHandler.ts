@@ -23,12 +23,7 @@ export async function createChatHandler(request: NextRequest): Promise<NextRespo
 
     const accountId = accountIdOrError;
 
-    let body: unknown = {};
-    try {
-      body = await request.json();
-    } catch {
-      // Empty body is valid - all params are optional
-    }
+    const body = await request.json();
 
     const validated = validateCreateChatBody(body);
     if (validated instanceof NextResponse) {
