@@ -3,11 +3,7 @@ import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
 import { insertRoom } from "@/lib/supabase/rooms/insertRoom";
 import { generateUUID } from "@/lib/uuid/generateUUID";
-
-interface CreateChatBody {
-  artistId?: string;
-  chatId?: string;
-}
+import { validateCreateChatBody } from "@/lib/chats/validateCreateChatBody";
 
 /**
  * Handler for creating a new chat room.
@@ -27,14 +23,19 @@ export async function createChatHandler(request: NextRequest): Promise<NextRespo
 
     const accountId = accountIdOrError;
 
-    let body: CreateChatBody = {};
+    let body: unknown = {};
     try {
       body = await request.json();
     } catch {
       // Empty body is valid - all params are optional
     }
 
-    const { artistId, chatId } = body;
+    const validated = validateCreateChatBody(body);
+    if (validated instanceof NextResponse) {
+      return validated;
+    }
+
+    const { artistId, chatId } = validated;
 
     const roomId = chatId || generateUUID();
 
