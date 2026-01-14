@@ -21,9 +21,11 @@ export async function selectRoomWithArtist(roomId: string): Promise<RoomWithArti
 
   if (error || !data) return null;
 
+  const account = Array.isArray(data.accounts) ? data.accounts[0] : data.accounts;
+
   return {
     id: data.id,
     artist_id: data.artist_id,
-    artist_name: data.accounts?.name || null,
+    artist_name: account?.name || null,
   };
 }
