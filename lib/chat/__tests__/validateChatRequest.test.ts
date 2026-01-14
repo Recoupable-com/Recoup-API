@@ -1,0 +1,313 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextResponse } from "next/server";
+import { validateChatRequest, chatRequestSchema } from "../validateChatRequest";
+
+// Mock dependencies
+vi.mock("@/lib/auth/getApiKeyAccountId", () => ({
+  getApiKeyAccountId: vi.fn(),
+}));
+
+vi.mock("@/lib/accounts/validateOverrideAccountId", () => ({
+  validateOverrideAccountId: vi.fn(),
+}));
+
+import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
+import { validateOverrideAccountId } from "@/lib/accounts/validateOverrideAccountId";
+
+const mockGetApiKeyAccountId = vi.mocked(getApiKeyAccountId);
+const mockValidateOverrideAccountId = vi.mocked(validateOverrideAccountId);
+
+// Helper to create mock NextRequest
+function createMockRequest(body: unknown, headers: Record<string, string> = {}): Request {
+  return {
+    json: () => Promise.resolve(body),
+    headers: {
+      get: (key: string) => headers[key.toLowerCase()] || null,
+      has: (key: string) => key.toLowerCase() in headers,
+    },
+  } as unknown as Request;
+}
+
+describe("validateChatRequest", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("schema validation", () => {
+    it("rejects when neither messages nor prompt is provided", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("account-123");
+
+      const request = createMockRequest(
+        { roomId: "room-123" },
+        { "x-api-key": "test-key" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).toBeInstanceOf(NextResponse);
+      const json = await (result as NextResponse).json();
+      expect(json.status).toBe("error");
+      expect(json.message).toBe("Invalid input");
+    });
+
+    it("rejects when both messages and prompt are provided", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("account-123");
+
+      const request = createMockRequest(
+        {
+          messages: [{ role: "user", content: "Hello" }],
+          prompt: "Hello",
+        },
+        { "x-api-key": "test-key" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).toBeInstanceOf(NextResponse);
+      const json = await (result as NextResponse).json();
+      expect(json.status).toBe("error");
+      expect(json.message).toBe("Invalid input");
+    });
+
+    it("accepts valid messages array", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("account-123");
+
+      const request = createMockRequest(
+        { messages: [{ role: "user", content: "Hello" }] },
+        { "x-api-key": "test-key" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).accountId).toBe("account-123");
+    });
+
+    it("accepts valid prompt string", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("account-123");
+
+      const request = createMockRequest(
+        { prompt: "Hello, world!" },
+        { "x-api-key": "test-key" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).accountId).toBe("account-123");
+    });
+  });
+
+  describe("authentication", () => {
+    it("rejects request without x-api-key header", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue(
+        NextResponse.json(
+          { status: "error", message: "x-api-key header required" },
+          { status: 401 },
+        ),
+      );
+
+      const request = createMockRequest({ prompt: "Hello" }, {});
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).toBeInstanceOf(NextResponse);
+      const json = await (result as NextResponse).json();
+      expect(json.status).toBe("error");
+    });
+
+    it("rejects request with invalid API key", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue(
+        NextResponse.json(
+          { status: "error", message: "Invalid API key" },
+          { status: 401 },
+        ),
+      );
+
+      const request = createMockRequest(
+        { prompt: "Hello" },
+        { "x-api-key": "invalid-key" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).toBeInstanceOf(NextResponse);
+    });
+
+    it("uses accountId from valid API key", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("account-abc-123");
+
+      const request = createMockRequest(
+        { prompt: "Hello" },
+        { "x-api-key": "valid-key" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).accountId).toBe("account-abc-123");
+    });
+  });
+
+  describe("accountId override", () => {
+    it("allows org API key to override accountId", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("org-account-123");
+      mockValidateOverrideAccountId.mockResolvedValue({
+        accountId: "target-account-456",
+      });
+
+      const request = createMockRequest(
+        { prompt: "Hello", accountId: "target-account-456" },
+        { "x-api-key": "org-api-key" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).accountId).toBe("target-account-456");
+      expect(mockValidateOverrideAccountId).toHaveBeenCalledWith({
+        apiKey: "org-api-key",
+        targetAccountId: "target-account-456",
+      });
+    });
+
+    it("rejects unauthorized accountId override", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("personal-account-123");
+      mockValidateOverrideAccountId.mockResolvedValue(
+        NextResponse.json(
+          { status: "error", message: "Access denied to specified accountId" },
+          { status: 403 },
+        ),
+      );
+
+      const request = createMockRequest(
+        { prompt: "Hello", accountId: "target-account-456" },
+        { "x-api-key": "personal-api-key" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).toBeInstanceOf(NextResponse);
+      const json = await (result as NextResponse).json();
+      expect(json.status).toBe("error");
+      expect(json.message).toBe("Access denied to specified accountId");
+    });
+  });
+
+  describe("message normalization", () => {
+    it("converts prompt to messages array", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("account-123");
+
+      const request = createMockRequest(
+        { prompt: "Hello, world!" },
+        { "x-api-key": "test-key" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).messages).toHaveLength(1);
+      expect((result as any).messages[0].role).toBe("user");
+      expect((result as any).messages[0].parts[0].text).toBe("Hello, world!");
+    });
+
+    it("preserves original messages when provided", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("account-123");
+
+      const originalMessages = [
+        { role: "user", content: "Hi" },
+        { role: "assistant", content: "Hello!" },
+      ];
+      const request = createMockRequest(
+        { messages: originalMessages },
+        { "x-api-key": "test-key" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).messages).toEqual(originalMessages);
+    });
+  });
+
+  describe("optional fields", () => {
+    it("passes through roomId", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("account-123");
+
+      const request = createMockRequest(
+        { prompt: "Hello", roomId: "room-xyz" },
+        { "x-api-key": "test-key" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).roomId).toBe("room-xyz");
+    });
+
+    it("passes through artistId", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("account-123");
+
+      const request = createMockRequest(
+        { prompt: "Hello", artistId: "artist-abc" },
+        { "x-api-key": "test-key" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).artistId).toBe("artist-abc");
+    });
+
+    it("passes through model selection", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("account-123");
+
+      const request = createMockRequest(
+        { prompt: "Hello", model: "gpt-4" },
+        { "x-api-key": "test-key" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).model).toBe("gpt-4");
+    });
+
+    it("passes through excludeTools array", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("account-123");
+
+      const request = createMockRequest(
+        { prompt: "Hello", excludeTools: ["tool1", "tool2"] },
+        { "x-api-key": "test-key" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).excludeTools).toEqual(["tool1", "tool2"]);
+    });
+  });
+
+  describe("chatRequestSchema", () => {
+    it("exports the schema for external validation", () => {
+      expect(chatRequestSchema).toBeDefined();
+      const result = chatRequestSchema.safeParse({ prompt: "test" });
+      expect(result.success).toBe(true);
+    });
+
+    it("schema validates messages array type", () => {
+      const result = chatRequestSchema.safeParse({
+        messages: [{ role: "user", content: "test" }],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("schema enforces mutual exclusivity", () => {
+      const result = chatRequestSchema.safeParse({
+        messages: [{ role: "user", content: "test" }],
+        prompt: "test",
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+});
