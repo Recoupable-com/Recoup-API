@@ -53,7 +53,28 @@ pnpm format:check   # Check formatting
 
 ## Supabase Database Operations
 
-All Supabase database calls **must** be in `lib/supabase/[table_name]/[function].ts`. Never put Supabase queries directly in `lib/auth/`, `lib/chats/`, or other domain folders.
+**CRITICAL: NEVER import `@/lib/supabase/serverClient` outside of `lib/supabase/` directory.**
+
+All Supabase database calls **must** be in `lib/supabase/[table_name]/[function].ts`.
+
+If you need database access in `lib/auth/`, `lib/chats/`, or any other domain folder:
+1. **First** check if a function already exists in `lib/supabase/[table_name]/`
+2. If not, **create** a new function in `lib/supabase/[table_name]/` first
+3. **Then** import and use that function in your domain code
+
+❌ **WRONG** - Direct Supabase call in domain code:
+```typescript
+// lib/auth/someFunction.ts
+import supabase from "@/lib/supabase/serverClient";  // NEVER DO THIS
+const { data } = await supabase.from("accounts").select("*");
+```
+
+✅ **CORRECT** - Import from supabase lib:
+```typescript
+// lib/auth/someFunction.ts
+import { selectAccounts } from "@/lib/supabase/accounts/selectAccounts";
+const accounts = await selectAccounts();
+```
 
 ### Directory Structure
 
