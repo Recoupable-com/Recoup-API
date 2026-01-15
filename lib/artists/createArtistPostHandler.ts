@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { validateCreateArtistBody } from "@/lib/artists/validateCreateArtistBody";
 import { createArtistInDb } from "@/lib/artists/createArtistInDb";
-import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
-import { validateOverrideAccountId } from "@/lib/accounts/validateOverrideAccountId";
+import { getApiKeyDetails } from "@/lib/keys/getApiKeyDetails";
+import { canAccessAccount } from "@/lib/organizations/canAccessAccount";
 
 /**
  * Handler for POST /api/artists.
@@ -24,12 +24,21 @@ import { validateOverrideAccountId } from "@/lib/accounts/validateOverrideAccoun
 export async function createArtistPostHandler(
   request: NextRequest,
 ): Promise<NextResponse> {
-  const accountIdOrError = await getApiKeyAccountId(request);
-  if (accountIdOrError instanceof NextResponse) {
-    return accountIdOrError;
+  const apiKey = request.headers.get("x-api-key");
+  if (!apiKey) {
+    return NextResponse.json(
+      { status: "error", error: "x-api-key header required" },
+      { status: 401, headers: getCorsHeaders() },
+    );
   }
 
-  let accountId = accountIdOrError;
+  const keyDetails = await getApiKeyDetails(apiKey);
+  if (!keyDetails) {
+    return NextResponse.json(
+      { status: "error", error: "Invalid API key" },
+      { status: 401, headers: getCorsHeaders() },
+    );
+  }
 
   let body: unknown;
   try {
@@ -46,16 +55,20 @@ export async function createArtistPostHandler(
     return validated;
   }
 
-  // Handle account_id override for org API keys
+  // Use account_id from body if provided (org API keys only), otherwise use API key's account
+  let accountId = keyDetails.accountId;
   if (validated.account_id) {
-    const overrideResult = await validateOverrideAccountId({
-      apiKey: request.headers.get("x-api-key"),
+    const hasAccess = await canAccessAccount({
+      orgId: keyDetails.orgId,
       targetAccountId: validated.account_id,
     });
-    if (overrideResult instanceof NextResponse) {
-      return overrideResult;
+    if (!hasAccess) {
+      return NextResponse.json(
+        { status: "error", error: "Access denied to specified account_id" },
+        { status: 403, headers: getCorsHeaders() },
+      );
     }
-    accountId = overrideResult.accountId;
+    accountId = validated.account_id;
   }
 
   try {

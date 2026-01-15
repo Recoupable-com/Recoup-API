@@ -1,21 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 const mockCreateArtistInDb = vi.fn();
-const mockGetApiKeyAccountId = vi.fn();
-const mockValidateOverrideAccountId = vi.fn();
+const mockGetApiKeyDetails = vi.fn();
+const mockCanAccessAccount = vi.fn();
 
 vi.mock("@/lib/artists/createArtistInDb", () => ({
   createArtistInDb: (...args: unknown[]) => mockCreateArtistInDb(...args),
 }));
 
-vi.mock("@/lib/auth/getApiKeyAccountId", () => ({
-  getApiKeyAccountId: (...args: unknown[]) => mockGetApiKeyAccountId(...args),
+vi.mock("@/lib/keys/getApiKeyDetails", () => ({
+  getApiKeyDetails: (...args: unknown[]) => mockGetApiKeyDetails(...args),
 }));
 
-vi.mock("@/lib/accounts/validateOverrideAccountId", () => ({
-  validateOverrideAccountId: (...args: unknown[]) =>
-    mockValidateOverrideAccountId(...args),
+vi.mock("@/lib/organizations/canAccessAccount", () => ({
+  canAccessAccount: (...args: unknown[]) => mockCanAccessAccount(...args),
 }));
 
 import { createArtistPostHandler } from "../createArtistPostHandler";
@@ -34,7 +33,10 @@ function createRequest(body: unknown, apiKey = "test-api-key"): NextRequest {
 describe("createArtistPostHandler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetApiKeyAccountId.mockResolvedValue("api-key-account-id");
+    mockGetApiKeyDetails.mockResolvedValue({
+      accountId: "api-key-account-id",
+      orgId: null,
+    });
   });
 
   it("creates artist using account_id from API key", async () => {
@@ -61,6 +63,12 @@ describe("createArtistPostHandler", () => {
   });
 
   it("uses account_id override for org API keys", async () => {
+    mockGetApiKeyDetails.mockResolvedValue({
+      accountId: "org-account-id",
+      orgId: "org-account-id",
+    });
+    mockCanAccessAccount.mockResolvedValue(true);
+
     const mockArtist = {
       id: "artist-123",
       account_id: "artist-123",
@@ -69,9 +77,6 @@ describe("createArtistPostHandler", () => {
       account_socials: [],
     };
     mockCreateArtistInDb.mockResolvedValue(mockArtist);
-    mockValidateOverrideAccountId.mockResolvedValue({
-      accountId: "550e8400-e29b-41d4-a716-446655440000",
-    });
 
     const request = createRequest({
       name: "Test Artist",
@@ -79,8 +84,8 @@ describe("createArtistPostHandler", () => {
     });
     const response = await createArtistPostHandler(request);
 
-    expect(mockValidateOverrideAccountId).toHaveBeenCalledWith({
-      apiKey: "test-api-key",
+    expect(mockCanAccessAccount).toHaveBeenCalledWith({
+      orgId: "org-account-id",
       targetAccountId: "550e8400-e29b-41d4-a716-446655440000",
     });
     expect(mockCreateArtistInDb).toHaveBeenCalledWith(
@@ -92,12 +97,11 @@ describe("createArtistPostHandler", () => {
   });
 
   it("returns 403 when org API key lacks access to account_id", async () => {
-    mockValidateOverrideAccountId.mockResolvedValue(
-      NextResponse.json(
-        { status: "error", message: "Access denied" },
-        { status: 403 },
-      ),
-    );
+    mockGetApiKeyDetails.mockResolvedValue({
+      accountId: "org-account-id",
+      orgId: "org-account-id",
+    });
+    mockCanAccessAccount.mockResolvedValue(false);
 
     const request = createRequest({
       name: "Test Artist",
@@ -133,17 +137,28 @@ describe("createArtistPostHandler", () => {
   });
 
   it("returns 401 when API key is missing", async () => {
-    mockGetApiKeyAccountId.mockResolvedValue(
-      NextResponse.json(
-        { status: "error", message: "x-api-key header required" },
-        { status: 401 },
-      ),
-    );
+    const request = new NextRequest("http://localhost/api/artists", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Test Artist" }),
+    });
+
+    const response = await createArtistPostHandler(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(data.error).toBe("x-api-key header required");
+  });
+
+  it("returns 401 when API key is invalid", async () => {
+    mockGetApiKeyDetails.mockResolvedValue(null);
 
     const request = createRequest({ name: "Test Artist" });
     const response = await createArtistPostHandler(request);
+    const data = await response.json();
 
     expect(response.status).toBe(401);
+    expect(data.error).toBe("Invalid API key");
   });
 
   it("returns 400 when name is missing", async () => {
