@@ -47,9 +47,9 @@ const baseHandler = createMcpHandler(
   },
 );
 
-// Wrap with auth - auth is optional (tools can work without it)
+// Wrap with auth - API key is required for all MCP requests
 const handler = withMcpAuth(baseHandler, verifyApiKey, {
-  required: false,
+  required: true,
 });
 
 /**
