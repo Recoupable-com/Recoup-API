@@ -6,6 +6,7 @@ import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
 import { validateOverrideAccountId } from "@/lib/accounts/validateOverrideAccountId";
 import { insertRoom } from "@/lib/supabase/rooms/insertRoom";
 import { safeParseJson } from "@/lib/networking/safeParseJson";
+import { generateChatTitle } from "../generateChatTitle";
 
 // Mock dependencies
 vi.mock("@/lib/auth/getApiKeyAccountId", () => ({
@@ -30,6 +31,10 @@ vi.mock("@/lib/networking/getCorsHeaders", () => ({
 
 vi.mock("@/lib/networking/safeParseJson", () => ({
   safeParseJson: vi.fn(),
+}));
+
+vi.mock("../generateChatTitle", () => ({
+  generateChatTitle: vi.fn(),
 }));
 
 /**
@@ -166,6 +171,103 @@ describe("createChatHandler", () => {
       expect(json.status).toBe("error");
       expect(json.message).toBe("Failed to validate API key");
       expect(insertRoom).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("with firstMessage (title generation)", () => {
+    it("generates a title from firstMessage when provided", async () => {
+      const apiKeyAccountId = "api-key-account-123";
+      const artistId = "123e4567-e89b-12d3-a456-426614174000";
+      const firstMessage = "What marketing strategies should I use?";
+      const generatedTitle = "Marketing Plan";
+
+      vi.mocked(getApiKeyAccountId).mockResolvedValue(apiKeyAccountId);
+      vi.mocked(safeParseJson).mockResolvedValue({
+        artistId,
+        firstMessage,
+      });
+      vi.mocked(generateChatTitle).mockResolvedValue(generatedTitle);
+      vi.mocked(insertRoom).mockResolvedValue({
+        id: "generated-uuid-123",
+        account_id: apiKeyAccountId,
+        artist_id: artistId,
+        topic: generatedTitle,
+      });
+
+      const request = createMockRequest();
+      const response = await createChatHandler(request);
+      const json = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(json.status).toBe("success");
+      expect(generateChatTitle).toHaveBeenCalledWith(firstMessage);
+      expect(insertRoom).toHaveBeenCalledWith({
+        id: "generated-uuid-123",
+        account_id: apiKeyAccountId,
+        artist_id: artistId,
+        topic: generatedTitle,
+      });
+    });
+
+    it("uses null topic when firstMessage is not provided", async () => {
+      const apiKeyAccountId = "api-key-account-123";
+      const artistId = "123e4567-e89b-12d3-a456-426614174000";
+
+      vi.mocked(getApiKeyAccountId).mockResolvedValue(apiKeyAccountId);
+      vi.mocked(safeParseJson).mockResolvedValue({
+        artistId,
+      });
+      vi.mocked(insertRoom).mockResolvedValue({
+        id: "generated-uuid-123",
+        account_id: apiKeyAccountId,
+        artist_id: artistId,
+        topic: null,
+      });
+
+      const request = createMockRequest();
+      const response = await createChatHandler(request);
+
+      expect(response.status).toBe(200);
+      expect(generateChatTitle).not.toHaveBeenCalled();
+      expect(insertRoom).toHaveBeenCalledWith({
+        id: "generated-uuid-123",
+        account_id: apiKeyAccountId,
+        artist_id: artistId,
+        topic: null,
+      });
+    });
+
+    it("handles title generation failure gracefully (uses null)", async () => {
+      const apiKeyAccountId = "api-key-account-123";
+      const artistId = "123e4567-e89b-12d3-a456-426614174000";
+      const firstMessage = "What marketing strategies should I use?";
+
+      vi.mocked(getApiKeyAccountId).mockResolvedValue(apiKeyAccountId);
+      vi.mocked(safeParseJson).mockResolvedValue({
+        artistId,
+        firstMessage,
+      });
+      vi.mocked(generateChatTitle).mockRejectedValue(new Error("AI generation failed"));
+      vi.mocked(insertRoom).mockResolvedValue({
+        id: "generated-uuid-123",
+        account_id: apiKeyAccountId,
+        artist_id: artistId,
+        topic: null,
+      });
+
+      const request = createMockRequest();
+      const response = await createChatHandler(request);
+      const json = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(json.status).toBe("success");
+      expect(generateChatTitle).toHaveBeenCalledWith(firstMessage);
+      expect(insertRoom).toHaveBeenCalledWith({
+        id: "generated-uuid-123",
+        account_id: apiKeyAccountId,
+        artist_id: artistId,
+        topic: null,
+      });
     });
   });
 });
