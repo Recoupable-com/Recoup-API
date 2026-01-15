@@ -3,6 +3,7 @@ import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/proto
 import type { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import type { McpAuthInfo } from "@/lib/mcp/verifyApiKey";
+import { resolveAccountId } from "@/lib/mcp/resolveAccountId";
 import {
   createArtistInDb,
   type CreateArtistResult,
@@ -10,7 +11,6 @@ import {
 import { copyRoom } from "@/lib/rooms/copyRoom";
 import { getToolResultSuccess } from "@/lib/mcp/getToolResultSuccess";
 import { getToolResultError } from "@/lib/mcp/getToolResultError";
-import { canAccessAccount } from "@/lib/organizations/canAccessAccount";
 
 const createNewArtistSchema = z.object({
   name: z.string().describe("The name of the artist to be created"),
@@ -73,36 +73,19 @@ export function registerCreateNewArtistTool(server: McpServer): void {
       try {
         const { name, account_id, active_conversation_id, organization_id } = args;
 
-        // Get auth info from the MCP auth layer
-        const authInfo = extra.authInfo as McpAuthInfo | undefined;
-        const authAccountId = authInfo?.extra?.accountId;
-        const authOrgId = authInfo?.extra?.orgId;
-
         // Resolve accountId from auth or use provided account_id
-        let resolvedAccountId: string | null = null;
+        const authInfo = extra.authInfo as McpAuthInfo | undefined;
+        const { accountId: resolvedAccountId, error } = await resolveAccountId({
+          authInfo,
+          accountIdOverride: account_id,
+        });
 
-        if (authAccountId) {
-          resolvedAccountId = authAccountId;
-
-          // If account_id override is provided, validate access (for org API keys)
-          if (account_id && account_id !== authAccountId) {
-            const hasAccess = await canAccessAccount({
-              orgId: authOrgId,
-              targetAccountId: account_id,
-            });
-            if (!hasAccess) {
-              return getToolResultError("Access denied to specified account_id");
-            }
-            resolvedAccountId = account_id;
-          }
-        } else if (account_id) {
-          resolvedAccountId = account_id;
+        if (error) {
+          return getToolResultError(error);
         }
 
         if (!resolvedAccountId) {
-          return getToolResultError(
-            "Authentication required. Provide an API key via Authorization: Bearer header, or provide account_id from the system prompt context.",
-          );
+          return getToolResultError("Failed to resolve account ID");
         }
 
         // Create the artist account (with optional org linking)
