@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import type { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
+import type { McpAuthInfo } from "@/lib/mcp/verifyApiKey";
 import {
   createArtistInDb,
   type CreateArtistResult,
@@ -73,9 +74,7 @@ export function registerCreateNewArtistTool(server: McpServer): void {
         const { name, account_id, active_conversation_id, organization_id } = args;
 
         // Get auth info from the MCP auth layer
-        const authInfo = extra.authInfo as
-          | { extra?: { accountId?: string; orgId?: string | null } }
-          | undefined;
+        const authInfo = extra.authInfo as McpAuthInfo | undefined;
         const authAccountId = authInfo?.extra?.accountId;
         const authOrgId = authInfo?.extra?.orgId;
 

@@ -1,6 +1,15 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { getApiKeyDetails } from "@/lib/keys/getApiKeyDetails";
 
+export interface McpAuthInfoExtra {
+  accountId: string;
+  orgId: string | null;
+}
+
+export interface McpAuthInfo extends AuthInfo {
+  extra: McpAuthInfoExtra;
+}
+
 /**
  * Verifies an API key and returns auth info with account details.
  *
@@ -11,7 +20,7 @@ import { getApiKeyDetails } from "@/lib/keys/getApiKeyDetails";
 export async function verifyApiKey(
   _req: Request,
   bearerToken?: string,
-): Promise<AuthInfo | undefined> {
+): Promise<McpAuthInfo | undefined> {
   if (!bearerToken) {
     return undefined;
   }
