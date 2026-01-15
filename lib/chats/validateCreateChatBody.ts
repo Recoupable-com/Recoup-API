@@ -6,6 +6,7 @@ export const createChatBodySchema = z.object({
   artistId: z.string().uuid("artistId must be a valid UUID").optional(),
   chatId: z.string().uuid("chatId must be a valid UUID").optional(),
   accountId: z.string().uuid("accountId must be a valid UUID").optional(),
+  firstMessage: z.string().optional(),
 });
 
 export type CreateChatBody = z.infer<typeof createChatBodySchema>;
