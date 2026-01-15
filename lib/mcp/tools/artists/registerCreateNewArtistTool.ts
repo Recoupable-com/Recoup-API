@@ -1,4 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import type { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import {
   createArtistInDb,
@@ -7,23 +9,16 @@ import {
 import { copyRoom } from "@/lib/rooms/copyRoom";
 import { getToolResultSuccess } from "@/lib/mcp/getToolResultSuccess";
 import { getToolResultError } from "@/lib/mcp/getToolResultError";
-import { getApiKeyDetails } from "@/lib/keys/getApiKeyDetails";
 import { canAccessAccount } from "@/lib/organizations/canAccessAccount";
 
 const createNewArtistSchema = z.object({
   name: z.string().describe("The name of the artist to be created"),
-  api_key: z
-    .string()
-    .optional()
-    .describe(
-      "The API key to authenticate the request. Use this to automatically resolve the account_id.",
-    ),
   account_id: z
     .string()
     .optional()
     .describe(
       "The account ID to create the artist for. Only required for organization API keys creating artists on behalf of other accounts. " +
-        "If api_key is provided, this can be omitted and will be resolved from the API key.",
+        "If not provided, the account ID will be resolved from the authenticated API key.",
     ),
   active_conversation_id: z
     .string()
@@ -66,32 +61,34 @@ export function registerCreateNewArtistTool(server: McpServer): void {
     {
       description:
         "Create a new artist account in the system. " +
-        "Requires either api_key (to authenticate and resolve account) or account_id from the system prompt. " +
+        "Requires authentication via API key (x-api-key header or Authorization: Bearer header). " +
         "The account_id parameter is optional — only provide it when using an organization API key to create artists on behalf of other accounts. " +
         "The active_conversation_id parameter is optional — when omitted, use the active_conversation_id from the system prompt " +
         "to copy the conversation. Never ask the user to provide a room ID. " +
         "The organization_id parameter is optional — use the organization_id from the system prompt context to link the artist to the user's selected organization.",
       inputSchema: createNewArtistSchema,
     },
-    async (args: CreateNewArtistArgs) => {
+    async (args: CreateNewArtistArgs, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {
       try {
-        const { name, api_key, account_id, active_conversation_id, organization_id } = args;
+        const { name, account_id, active_conversation_id, organization_id } = args;
 
-        // Resolve accountId from api_key or use provided account_id
+        // Get auth info from the MCP auth layer
+        const authInfo = extra.authInfo as
+          | { extra?: { accountId?: string; orgId?: string | null } }
+          | undefined;
+        const authAccountId = authInfo?.extra?.accountId;
+        const authOrgId = authInfo?.extra?.orgId;
+
+        // Resolve accountId from auth or use provided account_id
         let resolvedAccountId: string | null = null;
-        let keyDetails: { accountId: string; orgId: string | null } | null = null;
 
-        if (api_key) {
-          keyDetails = await getApiKeyDetails(api_key);
-          if (!keyDetails) {
-            return getToolResultError("Invalid API key");
-          }
-          resolvedAccountId = keyDetails.accountId;
+        if (authAccountId) {
+          resolvedAccountId = authAccountId;
 
           // If account_id override is provided, validate access (for org API keys)
-          if (account_id && account_id !== keyDetails.accountId) {
+          if (account_id && account_id !== authAccountId) {
             const hasAccess = await canAccessAccount({
-              orgId: keyDetails.orgId,
+              orgId: authOrgId,
               targetAccountId: account_id,
             });
             if (!hasAccess) {
@@ -105,7 +102,7 @@ export function registerCreateNewArtistTool(server: McpServer): void {
 
         if (!resolvedAccountId) {
           return getToolResultError(
-            "Either api_key or account_id is required. Provide api_key or account_id from the system prompt context.",
+            "Authentication required. Provide an API key via x-api-key header or Authorization: Bearer header, or provide account_id from the system prompt context.",
           );
         }
 

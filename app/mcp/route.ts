@@ -1,29 +1,56 @@
+import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { registerAllTools } from "@/lib/mcp/tools";
-import { createMcpHandler } from "mcp-handler";
-
-let handler: ReturnType<typeof createMcpHandler> | null = null;
+import { createMcpHandler, withMcpAuth } from "mcp-handler";
+import { getApiKeyDetails } from "@/lib/keys/getApiKeyDetails";
 
 /**
- * Gets the MCP handler for the API.
+ * Verifies an API key and returns auth info with account details.
  *
- * @returns The MCP handler.
+ * @param req - The request object.
+ * @param bearerToken - The bearer token from the Authorization header.
+ * @returns AuthInfo with accountId and orgId, or undefined if invalid.
  */
-async function getHandler(): Promise<ReturnType<typeof createMcpHandler>> {
-  if (!handler) {
-    handler = createMcpHandler(
-      server => {
-        registerAllTools(server);
-      },
-      {
-        serverInfo: {
-          name: "recoup-mcp",
-          version: "0.0.1",
-        },
-      },
-    );
+async function verifyApiKey(req: Request, bearerToken?: string): Promise<AuthInfo | undefined> {
+  // Try Authorization header first, then x-api-key header
+  const apiKey = bearerToken || req.headers.get("x-api-key");
+
+  if (!apiKey) {
+    return undefined;
   }
-  return handler;
+
+  const keyDetails = await getApiKeyDetails(apiKey);
+
+  if (!keyDetails) {
+    return undefined;
+  }
+
+  return {
+    token: apiKey,
+    scopes: ["mcp:tools"],
+    clientId: keyDetails.accountId,
+    extra: {
+      accountId: keyDetails.accountId,
+      orgId: keyDetails.orgId,
+    },
+  };
 }
+
+const baseHandler = createMcpHandler(
+  server => {
+    registerAllTools(server);
+  },
+  {
+    serverInfo: {
+      name: "recoup-mcp",
+      version: "0.0.1",
+    },
+  },
+);
+
+// Wrap with auth - auth is optional (tools can work without it)
+const handler = withMcpAuth(baseHandler, verifyApiKey, {
+  required: false,
+});
 
 /**
  * GET handler for the MCP API.
@@ -32,7 +59,6 @@ async function getHandler(): Promise<ReturnType<typeof createMcpHandler>> {
  * @returns The response from the MCP handler.
  */
 export async function GET(req: Request) {
-  const handler = await getHandler();
   return handler(req);
 }
 
@@ -43,6 +69,5 @@ export async function GET(req: Request) {
  * @returns The response from the MCP handler.
  */
 export async function POST(req: Request) {
-  const handler = await getHandler();
   return handler(req);
 }
