@@ -1,7 +1,7 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { getApiKeyDetails } from "@/lib/keys/getApiKeyDetails";
 
-export interface McpAuthInfoExtra {
+export interface McpAuthInfoExtra extends Record<string, unknown> {
   accountId: string;
   orgId: string | null;
 }
