@@ -101,4 +101,37 @@ describe("validateCreateChatBody", () => {
       }
     });
   });
+
+  describe("firstMessage validation", () => {
+    it("accepts valid string for firstMessage", () => {
+      const result = validateCreateChatBody({
+        artistId: "123e4567-e89b-12d3-a456-426614174000",
+        firstMessage: "What marketing strategies should I use?",
+      });
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).firstMessage).toBe(
+        "What marketing strategies should I use?",
+      );
+    });
+
+    it("accepts missing firstMessage (optional)", () => {
+      const result = validateCreateChatBody({
+        artistId: "123e4567-e89b-12d3-a456-426614174000",
+      });
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).firstMessage).toBeUndefined();
+    });
+
+    it("accepts empty string for firstMessage", () => {
+      const result = validateCreateChatBody({
+        artistId: "123e4567-e89b-12d3-a456-426614174000",
+        firstMessage: "",
+      });
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).firstMessage).toBe("");
+    });
+  });
 });

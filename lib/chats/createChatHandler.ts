@@ -6,6 +6,7 @@ import { insertRoom } from "@/lib/supabase/rooms/insertRoom";
 import { generateUUID } from "@/lib/uuid/generateUUID";
 import { validateCreateChatBody } from "@/lib/chats/validateCreateChatBody";
 import { safeParseJson } from "@/lib/networking/safeParseJson";
+import { generateChatTitle } from "@/lib/chats/generateChatTitle";
 
 /**
  * Handler for creating a new chat room.
@@ -33,7 +34,7 @@ export async function createChatHandler(request: NextRequest): Promise<NextRespo
       return validated;
     }
 
-    const { artistId, chatId, accountId: bodyAccountId } = validated;
+    const { artistId, chatId, accountId: bodyAccountId, firstMessage } = validated;
 
     // Handle accountId override for org API keys
     if (bodyAccountId) {
@@ -49,11 +50,21 @@ export async function createChatHandler(request: NextRequest): Promise<NextRespo
 
     const roomId = chatId || generateUUID();
 
+    // Generate title from firstMessage if provided
+    let topic: string | null = null;
+    if (firstMessage) {
+      try {
+        topic = await generateChatTitle(firstMessage);
+      } catch {
+        // Silently fall back to null topic on generation failure
+      }
+    }
+
     const chat = await insertRoom({
       id: roomId,
       account_id: accountId,
       artist_id: artistId || null,
-      topic: null,
+      topic,
     });
 
     return NextResponse.json(
