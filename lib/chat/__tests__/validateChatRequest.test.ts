@@ -7,14 +7,20 @@ vi.mock("@/lib/auth/getApiKeyAccountId", () => ({
   getApiKeyAccountId: vi.fn(),
 }));
 
+vi.mock("@/lib/auth/getAuthenticatedAccountId", () => ({
+  getAuthenticatedAccountId: vi.fn(),
+}));
+
 vi.mock("@/lib/accounts/validateOverrideAccountId", () => ({
   validateOverrideAccountId: vi.fn(),
 }));
 
 import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
+import { getAuthenticatedAccountId } from "@/lib/auth/getAuthenticatedAccountId";
 import { validateOverrideAccountId } from "@/lib/accounts/validateOverrideAccountId";
 
 const mockGetApiKeyAccountId = vi.mocked(getApiKeyAccountId);
+const mockGetAuthenticatedAccountId = vi.mocked(getAuthenticatedAccountId);
 const mockValidateOverrideAccountId = vi.mocked(validateOverrideAccountId);
 
 // Helper to create mock NextRequest
@@ -99,14 +105,7 @@ describe("validateChatRequest", () => {
   });
 
   describe("authentication", () => {
-    it("rejects request without x-api-key header", async () => {
-      mockGetApiKeyAccountId.mockResolvedValue(
-        NextResponse.json(
-          { status: "error", message: "x-api-key header required" },
-          { status: 401 },
-        ),
-      );
-
+    it("rejects request without any auth header", async () => {
       const request = createMockRequest({ prompt: "Hello" }, {});
 
       const result = await validateChatRequest(request as any);
@@ -114,6 +113,21 @@ describe("validateChatRequest", () => {
       expect(result).toBeInstanceOf(NextResponse);
       const json = await (result as NextResponse).json();
       expect(json.status).toBe("error");
+      expect(json.message).toBe("Exactly one of x-api-key or Authorization must be provided");
+    });
+
+    it("rejects request with both x-api-key and Authorization headers", async () => {
+      const request = createMockRequest(
+        { prompt: "Hello" },
+        { "x-api-key": "test-key", authorization: "Bearer test-token" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).toBeInstanceOf(NextResponse);
+      const json = await (result as NextResponse).json();
+      expect(json.status).toBe("error");
+      expect(json.message).toBe("Exactly one of x-api-key or Authorization must be provided");
     });
 
     it("rejects request with invalid API key", async () => {
@@ -146,6 +160,40 @@ describe("validateChatRequest", () => {
 
       expect(result).not.toBeInstanceOf(NextResponse);
       expect((result as any).accountId).toBe("account-abc-123");
+    });
+
+    it("accepts valid Authorization Bearer token", async () => {
+      mockGetAuthenticatedAccountId.mockResolvedValue("account-from-jwt-456");
+
+      const request = createMockRequest(
+        { prompt: "Hello" },
+        { authorization: "Bearer valid-jwt-token" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).accountId).toBe("account-from-jwt-456");
+    });
+
+    it("rejects request with invalid Authorization token", async () => {
+      mockGetAuthenticatedAccountId.mockResolvedValue(
+        NextResponse.json(
+          { status: "error", message: "Failed to verify authentication token" },
+          { status: 401 },
+        ),
+      );
+
+      const request = createMockRequest(
+        { prompt: "Hello" },
+        { authorization: "Bearer invalid-token" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).toBeInstanceOf(NextResponse);
+      const json = await (result as NextResponse).json();
+      expect(json.status).toBe("error");
     });
   });
 

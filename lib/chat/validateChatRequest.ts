@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
+import { getAuthenticatedAccountId } from "@/lib/auth/getAuthenticatedAccountId";
 import { validateOverrideAccountId } from "@/lib/accounts/validateOverrideAccountId";
 import { getMessages } from "@/lib/messages/getMessages";
 
@@ -77,24 +78,55 @@ export async function validateChatRequest(
 
   const validatedBody: BaseChatRequestBody = validationResult.data;
 
-  // Validate API key authentication
-  const accountIdOrError = await getApiKeyAccountId(request);
-  if (accountIdOrError instanceof NextResponse) {
-    return accountIdOrError;
+  // Check which auth mechanism is provided
+  const apiKey = request.headers.get("x-api-key");
+  const authHeader = request.headers.get("authorization");
+  const hasApiKey = !!apiKey;
+  const hasAuth = !!authHeader;
+
+  // Enforce that exactly one auth mechanism is provided
+  if ((hasApiKey && hasAuth) || (!hasApiKey && !hasAuth)) {
+    return NextResponse.json(
+      {
+        status: "error",
+        message: "Exactly one of x-api-key or Authorization must be provided",
+      },
+      {
+        status: 401,
+        headers: getCorsHeaders(),
+      },
+    );
   }
 
-  let accountId = accountIdOrError;
+  // Authenticate and get accountId
+  let accountId: string;
 
-  // Handle accountId override for org API keys
-  if (validatedBody.accountId) {
-    const overrideResult = await validateOverrideAccountId({
-      apiKey: request.headers.get("x-api-key"),
-      targetAccountId: validatedBody.accountId,
-    });
-    if (overrideResult instanceof NextResponse) {
-      return overrideResult;
+  if (hasApiKey) {
+    // Validate API key authentication
+    const accountIdOrError = await getApiKeyAccountId(request);
+    if (accountIdOrError instanceof NextResponse) {
+      return accountIdOrError;
     }
-    accountId = overrideResult.accountId;
+    accountId = accountIdOrError;
+
+    // Handle accountId override for org API keys
+    if (validatedBody.accountId) {
+      const overrideResult = await validateOverrideAccountId({
+        apiKey,
+        targetAccountId: validatedBody.accountId,
+      });
+      if (overrideResult instanceof NextResponse) {
+        return overrideResult;
+      }
+      accountId = overrideResult.accountId;
+    }
+  } else {
+    // Validate bearer token authentication
+    const accountIdOrError = await getAuthenticatedAccountId(request);
+    if (accountIdOrError instanceof NextResponse) {
+      return accountIdOrError;
+    }
+    accountId = accountIdOrError;
   }
 
   // Normalize chat content:

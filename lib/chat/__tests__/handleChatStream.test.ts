@@ -6,6 +6,10 @@ vi.mock("@/lib/auth/getApiKeyAccountId", () => ({
   getApiKeyAccountId: vi.fn(),
 }));
 
+vi.mock("@/lib/auth/getAuthenticatedAccountId", () => ({
+  getAuthenticatedAccountId: vi.fn(),
+}));
+
 vi.mock("@/lib/accounts/validateOverrideAccountId", () => ({
   validateOverrideAccountId: vi.fn(),
 }));
@@ -71,20 +75,15 @@ describe("handleChatStream", () => {
       expect(json.status).toBe("error");
     });
 
-    it("returns 401 error when x-api-key header is missing", async () => {
-      mockGetApiKeyAccountId.mockResolvedValue(
-        NextResponse.json(
-          { status: "error", message: "x-api-key header required" },
-          { status: 401 },
-        ),
-      );
-
+    it("returns 401 error when no auth header is provided", async () => {
       const request = createMockRequest({ prompt: "Hello" }, {});
 
       const result = await handleChatStream(request as any);
 
       expect(result).toBeInstanceOf(NextResponse);
       expect(result.status).toBe(401);
+      const json = await result.json();
+      expect(json.message).toBe("Exactly one of x-api-key or Authorization must be provided");
     });
   });
 
