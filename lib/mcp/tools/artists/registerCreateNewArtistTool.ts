@@ -9,7 +9,10 @@ const createNewArtistSchema = z.object({
   name: z.string().describe("The name of the artist to be created"),
   account_id: z
     .string()
-    .describe("The account ID of the human with admin access to the new artist account"),
+    .optional()
+    .describe(
+      "The account ID to create the artist for. Only required for organization API keys creating artists on behalf of other accounts.",
+    ),
   active_conversation_id: z
     .string()
     .optional()
@@ -53,20 +56,28 @@ export function registerCreateNewArtistTool(server: McpServer): void {
     {
       description:
         "Create a new artist account in the system. " +
-        "Requires the artist name and the account ID of the user with admin access to the new artist account. " +
+        "The account_id parameter is optional — only provide it when using an organization API key to create artists on behalf of other accounts. " +
         "The active_conversation_id parameter is optional — when omitted, use the active_conversation_id from the system prompt " +
         "to copy the conversation. Never ask the user to provide a room ID. " +
         "The organization_id parameter is optional — use the organization_id from the system prompt context to link the artist to the user's selected organization.",
       inputSchema: createNewArtistSchema,
     },
-    async (args: CreateNewArtistArgs) => {
+    async (args: CreateNewArtistArgs, extra) => {
       try {
         const { name, account_id, active_conversation_id, organization_id } = args;
+
+        // Get account_id from args or from API key context
+        const accountId = account_id ?? extra?.accountId;
+        if (!accountId) {
+          return getToolResultError(
+            "account_id is required. Provide it from the system prompt context.",
+          );
+        }
 
         // Create the artist account (with optional org linking)
         const artist = await createArtistInDb(
           name,
-          account_id,
+          accountId,
           organization_id ?? undefined,
         );
 
