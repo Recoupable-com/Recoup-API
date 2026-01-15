@@ -1,18 +1,32 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 const mockCreateArtistInDb = vi.fn();
+const mockGetApiKeyAccountId = vi.fn();
+const mockValidateOverrideAccountId = vi.fn();
 
 vi.mock("@/lib/artists/createArtistInDb", () => ({
   createArtistInDb: (...args: unknown[]) => mockCreateArtistInDb(...args),
 }));
 
+vi.mock("@/lib/auth/getApiKeyAccountId", () => ({
+  getApiKeyAccountId: (...args: unknown[]) => mockGetApiKeyAccountId(...args),
+}));
+
+vi.mock("@/lib/accounts/validateOverrideAccountId", () => ({
+  validateOverrideAccountId: (...args: unknown[]) =>
+    mockValidateOverrideAccountId(...args),
+}));
+
 import { createArtistPostHandler } from "../createArtistPostHandler";
 
-function createRequest(body: unknown): NextRequest {
+function createRequest(body: unknown, apiKey = "test-api-key"): NextRequest {
   return new NextRequest("http://localhost/api/artists", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+    },
     body: JSON.stringify(body),
   });
 }
@@ -20,9 +34,10 @@ function createRequest(body: unknown): NextRequest {
 describe("createArtistPostHandler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetApiKeyAccountId.mockResolvedValue("api-key-account-id");
   });
 
-  it("creates artist and returns 201 with artist data", async () => {
+  it("creates artist using account_id from API key", async () => {
     const mockArtist = {
       id: "artist-123",
       account_id: "artist-123",
@@ -32,11 +47,7 @@ describe("createArtistPostHandler", () => {
     };
     mockCreateArtistInDb.mockResolvedValue(mockArtist);
 
-    const request = createRequest({
-      name: "Test Artist",
-      account_id: "550e8400-e29b-41d4-a716-446655440000",
-    });
-
+    const request = createRequest({ name: "Test Artist" });
     const response = await createArtistPostHandler(request);
     const data = await response.json();
 
@@ -44,9 +55,57 @@ describe("createArtistPostHandler", () => {
     expect(data.artist).toEqual(mockArtist);
     expect(mockCreateArtistInDb).toHaveBeenCalledWith(
       "Test Artist",
+      "api-key-account-id",
+      undefined,
+    );
+  });
+
+  it("uses account_id override for org API keys", async () => {
+    const mockArtist = {
+      id: "artist-123",
+      account_id: "artist-123",
+      name: "Test Artist",
+      account_info: [{ image: null }],
+      account_socials: [],
+    };
+    mockCreateArtistInDb.mockResolvedValue(mockArtist);
+    mockValidateOverrideAccountId.mockResolvedValue({
+      accountId: "550e8400-e29b-41d4-a716-446655440000",
+    });
+
+    const request = createRequest({
+      name: "Test Artist",
+      account_id: "550e8400-e29b-41d4-a716-446655440000",
+    });
+    const response = await createArtistPostHandler(request);
+
+    expect(mockValidateOverrideAccountId).toHaveBeenCalledWith({
+      apiKey: "test-api-key",
+      targetAccountId: "550e8400-e29b-41d4-a716-446655440000",
+    });
+    expect(mockCreateArtistInDb).toHaveBeenCalledWith(
+      "Test Artist",
       "550e8400-e29b-41d4-a716-446655440000",
       undefined,
     );
+    expect(response.status).toBe(201);
+  });
+
+  it("returns 403 when org API key lacks access to account_id", async () => {
+    mockValidateOverrideAccountId.mockResolvedValue(
+      NextResponse.json(
+        { status: "error", message: "Access denied" },
+        { status: 403 },
+      ),
+    );
+
+    const request = createRequest({
+      name: "Test Artist",
+      account_id: "550e8400-e29b-41d4-a716-446655440000",
+    });
+    const response = await createArtistPostHandler(request);
+
+    expect(response.status).toBe(403);
   });
 
   it("passes organization_id to createArtistInDb", async () => {
@@ -61,7 +120,6 @@ describe("createArtistPostHandler", () => {
 
     const request = createRequest({
       name: "Test Artist",
-      account_id: "550e8400-e29b-41d4-a716-446655440000",
       organization_id: "660e8400-e29b-41d4-a716-446655440001",
     });
 
@@ -69,52 +127,27 @@ describe("createArtistPostHandler", () => {
 
     expect(mockCreateArtistInDb).toHaveBeenCalledWith(
       "Test Artist",
-      "550e8400-e29b-41d4-a716-446655440000",
+      "api-key-account-id",
       "660e8400-e29b-41d4-a716-446655440001",
     );
   });
 
-  it("uses accountId from context when not in body", async () => {
-    const mockArtist = {
-      id: "artist-123",
-      account_id: "artist-123",
-      name: "Test Artist",
-      account_info: [{ image: null }],
-      account_socials: [],
-    };
-    mockCreateArtistInDb.mockResolvedValue(mockArtist);
+  it("returns 401 when API key is missing", async () => {
+    mockGetApiKeyAccountId.mockResolvedValue(
+      NextResponse.json(
+        { status: "error", message: "x-api-key header required" },
+        { status: 401 },
+      ),
+    );
 
     const request = createRequest({ name: "Test Artist" });
-
-    const response = await createArtistPostHandler(
-      request,
-      "context-account-id",
-    );
-    const data = await response.json();
-
-    expect(response.status).toBe(201);
-    expect(mockCreateArtistInDb).toHaveBeenCalledWith(
-      "Test Artist",
-      "context-account-id",
-      undefined,
-    );
-  });
-
-  it("returns 400 when account_id missing and no context", async () => {
-    const request = createRequest({ name: "Test Artist" });
-
     const response = await createArtistPostHandler(request);
-    const data = await response.json();
 
-    expect(response.status).toBe(400);
-    expect(data.error).toBe("account_id is required");
+    expect(response.status).toBe(401);
   });
 
   it("returns 400 when name is missing", async () => {
-    const request = createRequest({
-      account_id: "550e8400-e29b-41d4-a716-446655440000",
-    });
-
+    const request = createRequest({});
     const response = await createArtistPostHandler(request);
 
     expect(response.status).toBe(400);
@@ -123,7 +156,10 @@ describe("createArtistPostHandler", () => {
   it("returns 400 for invalid JSON body", async () => {
     const request = new NextRequest("http://localhost/api/artists", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": "test-api-key",
+      },
       body: "invalid json",
     });
 
@@ -137,11 +173,7 @@ describe("createArtistPostHandler", () => {
   it("returns 500 when artist creation fails", async () => {
     mockCreateArtistInDb.mockResolvedValue(null);
 
-    const request = createRequest({
-      name: "Test Artist",
-      account_id: "550e8400-e29b-41d4-a716-446655440000",
-    });
-
+    const request = createRequest({ name: "Test Artist" });
     const response = await createArtistPostHandler(request);
     const data = await response.json();
 
@@ -152,11 +184,7 @@ describe("createArtistPostHandler", () => {
   it("returns 500 with error message when exception thrown", async () => {
     mockCreateArtistInDb.mockRejectedValue(new Error("Database error"));
 
-    const request = createRequest({
-      name: "Test Artist",
-      account_id: "550e8400-e29b-41d4-a716-446655440000",
-    });
-
+    const request = createRequest({ name: "Test Artist" });
     const response = await createArtistPostHandler(request);
     const data = await response.json();
 
