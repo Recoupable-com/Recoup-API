@@ -61,7 +61,7 @@ export function registerCreateNewArtistTool(server: McpServer): void {
     {
       description:
         "Create a new artist account in the system. " +
-        "Requires authentication via API key (x-api-key header or Authorization: Bearer header). " +
+        "Requires authentication via API key (Authorization: Bearer header). " +
         "The account_id parameter is optional — only provide it when using an organization API key to create artists on behalf of other accounts. " +
         "The active_conversation_id parameter is optional — when omitted, use the active_conversation_id from the system prompt " +
         "to copy the conversation. Never ask the user to provide a room ID. " +
@@ -102,7 +102,7 @@ export function registerCreateNewArtistTool(server: McpServer): void {
 
         if (!resolvedAccountId) {
           return getToolResultError(
-            "Authentication required. Provide an API key via x-api-key header or Authorization: Bearer header, or provide account_id from the system prompt context.",
+            "Authentication required. Provide an API key via Authorization: Bearer header, or provide account_id from the system prompt context.",
           );
         }
 
