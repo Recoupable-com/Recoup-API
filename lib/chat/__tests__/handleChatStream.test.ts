@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextResponse } from "next/server";
 
+import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
+import { validateOverrideAccountId } from "@/lib/accounts/validateOverrideAccountId";
+import { setupChatRequest } from "@/lib/chat/setupChatRequest";
+import { handleChatCompletion } from "@/lib/chat/handleChatCompletion";
+import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
+import { handleChatStream } from "../handleChatStream";
+
 // Mock all dependencies before importing the module under test
 vi.mock("@/lib/auth/getApiKeyAccountId", () => ({
   getApiKeyAccountId: vi.fn(),
@@ -26,28 +33,29 @@ vi.mock("@/lib/chat/setupChatRequest", () => ({
   setupChatRequest: vi.fn(),
 }));
 
+vi.mock("@/lib/chat/handleChatCompletion", () => ({
+  handleChatCompletion: vi.fn(),
+}));
+
 vi.mock("ai", () => ({
   createUIMessageStream: vi.fn(),
   createUIMessageStreamResponse: vi.fn(),
 }));
 
-import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
-import { validateOverrideAccountId } from "@/lib/accounts/validateOverrideAccountId";
-import { setupChatRequest } from "@/lib/chat/setupChatRequest";
-import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
-import { handleChatStream } from "../handleChatStream";
-
 const mockGetApiKeyAccountId = vi.mocked(getApiKeyAccountId);
 const mockValidateOverrideAccountId = vi.mocked(validateOverrideAccountId);
 const mockSetupChatRequest = vi.mocked(setupChatRequest);
+const mockHandleChatCompletion = vi.mocked(handleChatCompletion);
 const mockCreateUIMessageStream = vi.mocked(createUIMessageStream);
 const mockCreateUIMessageStreamResponse = vi.mocked(createUIMessageStreamResponse);
 
 // Helper to create mock NextRequest
-function createMockRequest(
-  body: unknown,
-  headers: Record<string, string> = {},
-): Request {
+/**
+ *
+ * @param body
+ * @param headers
+ */
+function createMockRequest(body: unknown, headers: Record<string, string> = {}): Request {
   return {
     json: () => Promise.resolve(body),
     headers: {
@@ -60,6 +68,8 @@ function createMockRequest(
 describe("handleChatStream", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default mock for handleChatCompletion to return a resolved Promise
+    mockHandleChatCompletion.mockResolvedValue();
   });
 
   afterEach(() => {
@@ -70,10 +80,7 @@ describe("handleChatStream", () => {
     it("returns 400 error when neither messages nor prompt is provided", async () => {
       mockGetApiKeyAccountId.mockResolvedValue("account-123");
 
-      const request = createMockRequest(
-        { roomId: "room-123" },
-        { "x-api-key": "test-key" },
-      );
+      const request = createMockRequest({ roomId: "room-123" }, { "x-api-key": "test-key" });
 
       const result = await handleChatStream(request as any);
 
@@ -124,10 +131,7 @@ describe("handleChatStream", () => {
       const mockResponse = new Response(mockStream);
       mockCreateUIMessageStreamResponse.mockReturnValue(mockResponse);
 
-      const request = createMockRequest(
-        { prompt: "Hello, world!" },
-        { "x-api-key": "valid-key" },
-      );
+      const request = createMockRequest({ prompt: "Hello, world!" }, { "x-api-key": "valid-key" });
 
       const result = await handleChatStream(request as any);
 
@@ -166,10 +170,7 @@ describe("handleChatStream", () => {
       mockCreateUIMessageStreamResponse.mockReturnValue(new Response(mockStream));
 
       const messages = [{ role: "user", content: "Hello" }];
-      const request = createMockRequest(
-        { messages },
-        { "x-api-key": "valid-key" },
-      );
+      const request = createMockRequest({ messages }, { "x-api-key": "valid-key" });
 
       await handleChatStream(request as any);
 
@@ -236,10 +237,7 @@ describe("handleChatStream", () => {
       mockGetApiKeyAccountId.mockResolvedValue("account-123");
       mockSetupChatRequest.mockRejectedValue(new Error("Setup failed"));
 
-      const request = createMockRequest(
-        { prompt: "Hello" },
-        { "x-api-key": "valid-key" },
-      );
+      const request = createMockRequest({ prompt: "Hello" }, { "x-api-key": "valid-key" });
 
       const result = await handleChatStream(request as any);
 
@@ -292,6 +290,184 @@ describe("handleChatStream", () => {
           accountId: "target-account-456",
         }),
       );
+    });
+  });
+
+  describe("chat completion handling", () => {
+    it("calls handleChatCompletion after streaming completes", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("account-123");
+
+      const mockResponseMessages = [
+        {
+          id: "resp-1",
+          role: "assistant",
+          parts: [{ type: "text", text: "Hello!" }],
+        },
+      ];
+
+      const mockAgent = {
+        stream: vi.fn().mockResolvedValue({
+          toUIMessageStream: vi.fn().mockReturnValue(new ReadableStream()),
+          usage: Promise.resolve({ inputTokens: 100, outputTokens: 50 }),
+          responseMessages: mockResponseMessages,
+        }),
+        tools: {},
+      };
+
+      mockSetupChatRequest.mockResolvedValue({
+        agent: mockAgent,
+        model: "gpt-4",
+        instructions: "test",
+        system: "test",
+        messages: [],
+        experimental_generateMessageId: vi.fn(),
+        tools: {},
+        providerOptions: {},
+      } as any);
+
+      // Capture the execute callback and run it
+      let capturedExecute: ((options: { writer: { merge: () => void } }) => Promise<void>) | null =
+        null;
+      mockCreateUIMessageStream.mockImplementation(
+        (options: { execute: typeof capturedExecute }) => {
+          capturedExecute = options.execute;
+          return new ReadableStream();
+        },
+      );
+      mockCreateUIMessageStreamResponse.mockReturnValue(new Response(new ReadableStream()));
+      mockHandleChatCompletion.mockResolvedValue();
+
+      const messages = [{ id: "msg-1", role: "user", parts: [{ type: "text", text: "Hi" }] }];
+      const request = createMockRequest(
+        { messages, roomId: "room-123" },
+        { "x-api-key": "valid-key" },
+      );
+
+      await handleChatStream(request as any);
+
+      // Execute the captured callback to simulate stream completion
+      if (capturedExecute) {
+        await capturedExecute({ writer: { merge: vi.fn() } });
+      }
+
+      expect(mockHandleChatCompletion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages,
+          roomId: "room-123",
+          accountId: "account-123",
+        }),
+        mockResponseMessages,
+      );
+    });
+
+    it("passes artistId to handleChatCompletion when provided", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("account-123");
+
+      const mockResponseMessages = [
+        {
+          id: "resp-1",
+          role: "assistant",
+          parts: [{ type: "text", text: "Hello!" }],
+        },
+      ];
+
+      const mockAgent = {
+        stream: vi.fn().mockResolvedValue({
+          toUIMessageStream: vi.fn().mockReturnValue(new ReadableStream()),
+          usage: Promise.resolve({ inputTokens: 100, outputTokens: 50 }),
+          responseMessages: mockResponseMessages,
+        }),
+        tools: {},
+      };
+
+      mockSetupChatRequest.mockResolvedValue({
+        agent: mockAgent,
+        model: "gpt-4",
+        instructions: "test",
+        system: "test",
+        messages: [],
+        experimental_generateMessageId: vi.fn(),
+        tools: {},
+        providerOptions: {},
+      } as any);
+
+      let capturedExecute: ((options: { writer: { merge: () => void } }) => Promise<void>) | null =
+        null;
+      mockCreateUIMessageStream.mockImplementation(
+        (options: { execute: typeof capturedExecute }) => {
+          capturedExecute = options.execute;
+          return new ReadableStream();
+        },
+      );
+      mockCreateUIMessageStreamResponse.mockReturnValue(new Response(new ReadableStream()));
+      mockHandleChatCompletion.mockResolvedValue();
+
+      const messages = [{ id: "msg-1", role: "user", parts: [{ type: "text", text: "Hi" }] }];
+      const request = createMockRequest(
+        { messages, roomId: "room-123", artistId: "artist-456" },
+        { "x-api-key": "valid-key" },
+      );
+
+      await handleChatStream(request as any);
+
+      if (capturedExecute) {
+        await capturedExecute({ writer: { merge: vi.fn() } });
+      }
+
+      expect(mockHandleChatCompletion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          artistId: "artist-456",
+        }),
+        mockResponseMessages,
+      );
+    });
+
+    it("does not throw when handleChatCompletion fails (graceful handling)", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("account-123");
+
+      const mockAgent = {
+        stream: vi.fn().mockResolvedValue({
+          toUIMessageStream: vi.fn().mockReturnValue(new ReadableStream()),
+          usage: Promise.resolve({ inputTokens: 100, outputTokens: 50 }),
+          responseMessages: [{ id: "resp-1", role: "assistant", parts: [] }],
+        }),
+        tools: {},
+      };
+
+      mockSetupChatRequest.mockResolvedValue({
+        agent: mockAgent,
+        model: "gpt-4",
+        instructions: "test",
+        system: "test",
+        messages: [],
+        experimental_generateMessageId: vi.fn(),
+        tools: {},
+        providerOptions: {},
+      } as any);
+
+      let capturedExecute: ((options: { writer: { merge: () => void } }) => Promise<void>) | null =
+        null;
+      mockCreateUIMessageStream.mockImplementation(
+        (options: { execute: typeof capturedExecute }) => {
+          capturedExecute = options.execute;
+          return new ReadableStream();
+        },
+      );
+      mockCreateUIMessageStreamResponse.mockReturnValue(new Response(new ReadableStream()));
+
+      // Make handleChatCompletion throw an error
+      mockHandleChatCompletion.mockRejectedValue(new Error("Completion handling failed"));
+
+      const request = createMockRequest({ prompt: "Hello" }, { "x-api-key": "valid-key" });
+
+      // Should not throw
+      const result = await handleChatStream(request as any);
+      expect(result).toBeInstanceOf(Response);
+
+      // Execute callback should not throw either
+      if (capturedExecute) {
+        await expect(capturedExecute({ writer: { merge: vi.fn() } })).resolves.toBeUndefined();
+      }
     });
   });
 });
