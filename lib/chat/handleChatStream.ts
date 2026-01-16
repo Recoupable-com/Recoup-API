@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
+import { createUIMessageStream, createUIMessageStreamResponse, type UIMessage } from "ai";
 import { validateChatRequest } from "./validateChatRequest";
 import { setupChatRequest } from "./setupChatRequest";
+import { handleChatCompletion } from "./handleChatCompletion";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import generateUUID from "@/lib/uuid/generateUUID";
 
@@ -30,14 +31,26 @@ export async function handleChatStream(request: NextRequest): Promise<Response> 
     const stream = createUIMessageStream({
       originalMessages: body.messages,
       generateId: generateUUID,
-      execute: async (options) => {
+      execute: async options => {
         const { writer } = options;
         const result = await agent.stream(chatConfig);
         writer.merge(result.toUIMessageStream());
-        // Note: Credit handling and chat completion handling will be added
-        // as part of the handleChatCredits and handleChatCompletion migrations
+
+        // Construct UIMessage from streaming result for handleChatCompletion
+        const text = await result.text;
+        const assistantMessage: UIMessage = {
+          id: generateUUID(),
+          role: "assistant",
+          parts: [{ type: "text", text }],
+        };
+
+        // Handle post-completion tasks (room creation, memory storage, notifications)
+        // Errors are handled gracefully within handleChatCompletion
+        handleChatCompletion(body, [assistantMessage]).catch(() => {
+          // Silently catch - handleChatCompletion handles its own error reporting
+        });
       },
-      onError: (e) => {
+      onError: e => {
         console.error("/api/chat onError:", e);
         return JSON.stringify({
           status: "error",
