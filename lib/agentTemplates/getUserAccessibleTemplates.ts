@@ -1,6 +1,6 @@
 import type { AgentTemplateRow } from "./types";
 import { listAgentTemplatesForUser } from "./listAgentTemplatesForUser";
-import { getSharedTemplatesForUser } from "./getSharedTemplatesForUser";
+import { getSharedTemplatesForAccount } from "./getSharedTemplatesForAccount";
 import { getUserTemplateFavorites } from "./getUserTemplateFavorites";
 
 export async function getUserAccessibleTemplates(userId?: string | null) {
@@ -9,7 +9,7 @@ export async function getUserAccessibleTemplates(userId?: string | null) {
     const ownedAndPublic = await listAgentTemplatesForUser(userId);
 
     // Get shared templates using dedicated utility
-    const sharedTemplates = await getSharedTemplatesForUser(userId);
+    const sharedTemplates = await getSharedTemplatesForAccount(userId);
 
     // Combine templates and avoid duplicates
     const allTemplates = [...ownedAndPublic];

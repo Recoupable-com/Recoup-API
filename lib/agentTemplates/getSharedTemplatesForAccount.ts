@@ -5,8 +5,8 @@ interface SharedTemplateData {
   templates: AgentTemplateRow | AgentTemplateRow[];
 }
 
-export async function getSharedTemplatesForUser(
-  userId: string,
+export async function getSharedTemplatesForAccount(
+  accountId: string,
 ): Promise<AgentTemplateRow[]> {
   const { data, error } = await supabase
     .from("agent_template_shares")
@@ -17,7 +17,7 @@ export async function getSharedTemplatesForUser(
       )
     `,
     )
-    .eq("user_id", userId);
+    .eq("user_id", accountId);
 
   if (error) throw error;
 
