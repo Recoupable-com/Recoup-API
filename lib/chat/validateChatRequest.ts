@@ -6,6 +6,7 @@ import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
 import { getAuthenticatedAccountId } from "@/lib/auth/getAuthenticatedAccountId";
 import { validateOverrideAccountId } from "@/lib/accounts/validateOverrideAccountId";
 import { getMessages } from "@/lib/messages/getMessages";
+import { getApiKeyDetails } from "@/lib/keys/getApiKeyDetails";
 
 export const chatRequestSchema = z
   .object({
@@ -41,6 +42,7 @@ type BaseChatRequestBody = z.infer<typeof chatRequestSchema>;
 
 export type ChatRequestBody = BaseChatRequestBody & {
   accountId: string;
+  orgId: string | null;
 };
 
 /**
@@ -64,7 +66,7 @@ export async function validateChatRequest(
       {
         status: "error",
         message: "Invalid input",
-        errors: validationResult.error.issues.map((err) => ({
+        errors: validationResult.error.issues.map(err => ({
           field: err.path.join("."),
           message: err.message,
         })),
@@ -98,8 +100,9 @@ export async function validateChatRequest(
     );
   }
 
-  // Authenticate and get accountId
+  // Authenticate and get accountId and orgId
   let accountId: string;
+  let orgId: string | null = null;
 
   if (hasApiKey) {
     // Validate API key authentication
@@ -108,6 +111,12 @@ export async function validateChatRequest(
       return accountIdOrError;
     }
     accountId = accountIdOrError;
+
+    // Get org context from API key details
+    const keyDetails = await getApiKeyDetails(apiKey!);
+    if (keyDetails) {
+      orgId = keyDetails.orgId;
+    }
 
     // Handle accountId override for org API keys
     if (validatedBody.accountId) {
@@ -121,7 +130,7 @@ export async function validateChatRequest(
       accountId = overrideResult.accountId;
     }
   } else {
-    // Validate bearer token authentication
+    // Validate bearer token authentication (no org context for JWT auth)
     const accountIdOrError = await getAuthenticatedAccountId(request);
     if (accountIdOrError instanceof NextResponse) {
       return accountIdOrError;
@@ -132,11 +141,9 @@ export async function validateChatRequest(
   // Normalize chat content:
   // - If messages are provided, keep them as-is
   // - If only prompt is provided, convert it into a single user UIMessage
-  const hasMessages =
-    Array.isArray(validatedBody.messages) && validatedBody.messages.length > 0;
+  const hasMessages = Array.isArray(validatedBody.messages) && validatedBody.messages.length > 0;
   const hasPrompt =
-    typeof validatedBody.prompt === "string" &&
-    validatedBody.prompt.trim().length > 0;
+    typeof validatedBody.prompt === "string" && validatedBody.prompt.trim().length > 0;
 
   if (!hasMessages && hasPrompt) {
     validatedBody.messages = getMessages(validatedBody.prompt);
@@ -145,5 +152,6 @@ export async function validateChatRequest(
   return {
     ...validatedBody,
     accountId,
+    orgId,
   } as ChatRequestBody;
 }

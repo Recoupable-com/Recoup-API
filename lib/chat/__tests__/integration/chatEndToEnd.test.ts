@@ -27,6 +27,10 @@ vi.mock("@/lib/accounts/validateOverrideAccountId", () => ({
   validateOverrideAccountId: vi.fn(),
 }));
 
+vi.mock("@/lib/keys/getApiKeyDetails", () => ({
+  getApiKeyDetails: vi.fn(),
+}));
+
 // Mock Supabase dependencies
 vi.mock("@/lib/supabase/account_emails/selectAccountEmails", () => ({
   default: vi.fn(),

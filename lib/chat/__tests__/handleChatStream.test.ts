@@ -14,6 +14,10 @@ vi.mock("@/lib/accounts/validateOverrideAccountId", () => ({
   validateOverrideAccountId: vi.fn(),
 }));
 
+vi.mock("@/lib/keys/getApiKeyDetails", () => ({
+  getApiKeyDetails: vi.fn(),
+}));
+
 vi.mock("@/lib/chat/setupChatRequest", () => ({
   setupChatRequest: vi.fn(),
 }));
