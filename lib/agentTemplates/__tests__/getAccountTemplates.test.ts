@@ -3,7 +3,7 @@ import { getAccountTemplates } from "../getAccountTemplates";
 
 import { listAgentTemplatesForUser } from "../listAgentTemplatesForUser";
 import { getSharedTemplatesForAccount } from "../getSharedTemplatesForAccount";
-import { getUserTemplateFavorites } from "../getUserTemplateFavorites";
+import selectAgentTemplateFavorites from "@/lib/supabase/agent_template_favorites/selectAgentTemplateFavorites";
 
 vi.mock("../listAgentTemplatesForUser", () => ({
   listAgentTemplatesForUser: vi.fn(),
@@ -13,8 +13,8 @@ vi.mock("../getSharedTemplatesForAccount", () => ({
   getSharedTemplatesForAccount: vi.fn(),
 }));
 
-vi.mock("../getUserTemplateFavorites", () => ({
-  getUserTemplateFavorites: vi.fn(),
+vi.mock("@/lib/supabase/agent_template_favorites/selectAgentTemplateFavorites", () => ({
+  default: vi.fn(),
 }));
 
 describe("getAccountTemplates", () => {
@@ -56,7 +56,7 @@ describe("getAccountTemplates", () => {
 
       vi.mocked(listAgentTemplatesForUser).mockResolvedValue(ownedTemplates);
       vi.mocked(getSharedTemplatesForAccount).mockResolvedValue(sharedTemplates);
-      vi.mocked(getUserTemplateFavorites).mockResolvedValue(
+      vi.mocked(selectAgentTemplateFavorites).mockResolvedValue(
         new Set(["template-1"]),
       );
 
@@ -85,7 +85,7 @@ describe("getAccountTemplates", () => {
 
       vi.mocked(listAgentTemplatesForUser).mockResolvedValue([ownedTemplate]);
       vi.mocked(getSharedTemplatesForAccount).mockResolvedValue([ownedTemplate]);
-      vi.mocked(getUserTemplateFavorites).mockResolvedValue(new Set());
+      vi.mocked(selectAgentTemplateFavorites).mockResolvedValue(new Set());
 
       const result = await getAccountTemplates("user-123");
 
@@ -122,7 +122,7 @@ describe("getAccountTemplates", () => {
 
       vi.mocked(listAgentTemplatesForUser).mockResolvedValue(templates);
       vi.mocked(getSharedTemplatesForAccount).mockResolvedValue([]);
-      vi.mocked(getUserTemplateFavorites).mockResolvedValue(
+      vi.mocked(selectAgentTemplateFavorites).mockResolvedValue(
         new Set(["template-1"]),
       );
 
@@ -158,7 +158,7 @@ describe("getAccountTemplates", () => {
       expect(result[0].is_favourite).toBe(false);
       expect(listAgentTemplatesForUser).toHaveBeenCalledWith(null);
       expect(getSharedTemplatesForAccount).not.toHaveBeenCalled();
-      expect(getUserTemplateFavorites).not.toHaveBeenCalled();
+      expect(selectAgentTemplateFavorites).not.toHaveBeenCalled();
     });
 
     it("returns only public templates when userId is undefined", async () => {

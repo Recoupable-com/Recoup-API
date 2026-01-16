@@ -1,7 +1,7 @@
 import type { AgentTemplateRow } from "./types";
 import { listAgentTemplatesForUser } from "./listAgentTemplatesForUser";
 import { getSharedTemplatesForAccount } from "./getSharedTemplatesForAccount";
-import { getUserTemplateFavorites } from "./getUserTemplateFavorites";
+import selectAgentTemplateFavorites from "@/lib/supabase/agent_template_favorites/selectAgentTemplateFavorites";
 
 export async function getAccountTemplates(accountId?: string | null) {
   if (accountId && accountId !== "undefined") {
@@ -23,7 +23,7 @@ export async function getAccountTemplates(accountId?: string | null) {
     });
 
     // Get user's favorite templates
-    const favouriteIds = await getUserTemplateFavorites(accountId);
+    const favouriteIds = await selectAgentTemplateFavorites({ userId: accountId });
 
     // Mark favorites
     return allTemplates.map((template: AgentTemplateRow) => ({
