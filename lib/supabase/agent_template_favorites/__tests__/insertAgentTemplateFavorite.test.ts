@@ -21,9 +21,15 @@ describe("insertAgentTemplateFavorite", () => {
     mockSelect.mockReturnValue({ maybeSingle: mockMaybeSingle });
   });
 
-  it("inserts a favorite and returns success", async () => {
+  // DRY: Updated to verify select('*') is used and full record is returned
+  it("inserts a favorite and returns the full record using select('*')", async () => {
+    const mockRecord = {
+      template_id: "tmpl-1",
+      user_id: "user-1",
+      created_at: "2026-01-16T12:00:00Z",
+    };
     mockMaybeSingle.mockResolvedValue({
-      data: { template_id: "tmpl-1" },
+      data: mockRecord,
       error: null,
     });
 
@@ -37,12 +43,14 @@ describe("insertAgentTemplateFavorite", () => {
       template_id: "tmpl-1",
       user_id: "user-1",
     });
-    expect(mockSelect).toHaveBeenCalledWith("template_id");
+    // DRY: Verify select('*') is called instead of explicit columns
+    expect(mockSelect).toHaveBeenCalledWith("*");
     expect(mockMaybeSingle).toHaveBeenCalled();
-    expect(result).toEqual({ success: true });
+    // DRY: Now returns the full record instead of just { success: true }
+    expect(result).toEqual(mockRecord);
   });
 
-  it("returns success when favorite already exists (duplicate key error)", async () => {
+  it("returns null when favorite already exists (duplicate key error)", async () => {
     mockMaybeSingle.mockResolvedValue({
       data: null,
       error: { code: "23505", message: "duplicate key value violates unique constraint" },
@@ -53,7 +61,8 @@ describe("insertAgentTemplateFavorite", () => {
       userId: "user-1",
     });
 
-    expect(result).toEqual({ success: true });
+    // DRY: Returns null for duplicate entries instead of { success: true }
+    expect(result).toBeNull();
   });
 
   it("throws error when database operation fails with non-duplicate error", async () => {
@@ -80,9 +89,14 @@ describe("insertAgentTemplateFavorite", () => {
     ).rejects.toEqual(mockError);
   });
 
-  it("handles different template and user IDs correctly", async () => {
+  it("returns the inserted record with all fields", async () => {
+    const mockRecord = {
+      template_id: "different-tmpl",
+      user_id: "different-user",
+      created_at: "2026-01-16T14:30:00Z",
+    };
     mockMaybeSingle.mockResolvedValue({
-      data: { template_id: "different-tmpl" },
+      data: mockRecord,
       error: null,
     });
 
@@ -95,6 +109,8 @@ describe("insertAgentTemplateFavorite", () => {
       template_id: "different-tmpl",
       user_id: "different-user",
     });
-    expect(result).toEqual({ success: true });
+    // DRY: Verify full record is returned with all fields
+    expect(result).toEqual(mockRecord);
+    expect(result?.created_at).toBe("2026-01-16T14:30:00Z");
   });
 });
