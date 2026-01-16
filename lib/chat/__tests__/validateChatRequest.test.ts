@@ -15,13 +15,19 @@ vi.mock("@/lib/accounts/validateOverrideAccountId", () => ({
   validateOverrideAccountId: vi.fn(),
 }));
 
+vi.mock("@/lib/keys/getApiKeyDetails", () => ({
+  getApiKeyDetails: vi.fn(),
+}));
+
 import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
 import { getAuthenticatedAccountId } from "@/lib/auth/getAuthenticatedAccountId";
 import { validateOverrideAccountId } from "@/lib/accounts/validateOverrideAccountId";
+import { getApiKeyDetails } from "@/lib/keys/getApiKeyDetails";
 
 const mockGetApiKeyAccountId = vi.mocked(getApiKeyAccountId);
 const mockGetAuthenticatedAccountId = vi.mocked(getAuthenticatedAccountId);
 const mockValidateOverrideAccountId = vi.mocked(validateOverrideAccountId);
+const mockGetApiKeyDetails = vi.mocked(getApiKeyDetails);
 
 // Helper to create mock NextRequest
 function createMockRequest(body: unknown, headers: Record<string, string> = {}): Request {
@@ -194,6 +200,59 @@ describe("validateChatRequest", () => {
       expect(result).toBeInstanceOf(NextResponse);
       const json = await (result as NextResponse).json();
       expect(json.status).toBe("error");
+    });
+
+    it("returns orgId for org API key", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("org-account-123");
+      mockGetApiKeyDetails.mockResolvedValue({
+        accountId: "org-account-123",
+        orgId: "org-account-123",
+      });
+
+      const request = createMockRequest(
+        { prompt: "Hello" },
+        { "x-api-key": "org-api-key" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).accountId).toBe("org-account-123");
+      expect((result as any).orgId).toBe("org-account-123");
+    });
+
+    it("returns null orgId for personal API key", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("personal-account-123");
+      mockGetApiKeyDetails.mockResolvedValue({
+        accountId: "personal-account-123",
+        orgId: null,
+      });
+
+      const request = createMockRequest(
+        { prompt: "Hello" },
+        { "x-api-key": "personal-api-key" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).accountId).toBe("personal-account-123");
+      expect((result as any).orgId).toBeNull();
+    });
+
+    it("returns null orgId for bearer token auth", async () => {
+      mockGetAuthenticatedAccountId.mockResolvedValue("jwt-account-456");
+
+      const request = createMockRequest(
+        { prompt: "Hello" },
+        { authorization: "Bearer valid-jwt-token" },
+      );
+
+      const result = await validateChatRequest(request as any);
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).accountId).toBe("jwt-account-456");
+      expect((result as any).orgId).toBeNull();
     });
   });
 

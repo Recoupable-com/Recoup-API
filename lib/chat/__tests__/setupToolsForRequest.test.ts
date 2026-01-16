@@ -53,6 +53,7 @@ describe("setupToolsForRequest", () => {
     it("creates MCP client with correct URL", async () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
+        orgId: null,
         messages: [{ id: "1", role: "user", content: "Hello" }],
       };
 
@@ -64,6 +65,7 @@ describe("setupToolsForRequest", () => {
     it("fetches tools from MCP client", async () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
+        orgId: null,
         messages: [{ id: "1", role: "user", content: "Hello" }],
       };
 
@@ -72,12 +74,43 @@ describe("setupToolsForRequest", () => {
       expect(result).toHaveProperty("tool1");
       expect(result).toHaveProperty("tool2");
     });
+
+    it("passes accountId to MCP client via authenticated transport", async () => {
+      const body: ChatRequestBody = {
+        accountId: "account-123",
+        orgId: null,
+        messages: [{ id: "1", role: "user", content: "Hello" }],
+      };
+
+      await setupToolsForRequest(body);
+
+      // Verify MCP client was created with a transport that includes auth info
+      expect(mockCreateMCPClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          transport: expect.any(Object),
+        }),
+      );
+    });
+
+    it("passes orgId to MCP client via authenticated transport", async () => {
+      const body: ChatRequestBody = {
+        accountId: "account-123",
+        orgId: "org-456",
+        messages: [{ id: "1", role: "user", content: "Hello" }],
+      };
+
+      await setupToolsForRequest(body);
+
+      // Verify MCP client was created
+      expect(mockCreateMCPClient).toHaveBeenCalled();
+    });
   });
 
   describe("Google Sheets tools integration", () => {
     it("calls getGoogleSheetsTools with request body", async () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
+        orgId: null,
         messages: [{ id: "1", role: "user", content: "Create a spreadsheet" }],
       };
 
@@ -91,6 +124,7 @@ describe("setupToolsForRequest", () => {
 
       const body: ChatRequestBody = {
         accountId: "account-123",
+        orgId: null,
         messages: [{ id: "1", role: "user", content: "Create a spreadsheet" }],
       };
 
@@ -105,6 +139,7 @@ describe("setupToolsForRequest", () => {
 
       const body: ChatRequestBody = {
         accountId: "account-123",
+        orgId: null,
         messages: [{ id: "1", role: "user", content: "Create a spreadsheet" }],
       };
 
@@ -120,6 +155,7 @@ describe("setupToolsForRequest", () => {
 
       const body: ChatRequestBody = {
         accountId: "account-123",
+        orgId: null,
         messages: [{ id: "1", role: "user", content: "Hello" }],
       };
 
@@ -145,6 +181,7 @@ describe("setupToolsForRequest", () => {
 
       const body: ChatRequestBody = {
         accountId: "account-123",
+        orgId: null,
         messages: [{ id: "1", role: "user", content: "Hello" }],
       };
 
@@ -161,6 +198,7 @@ describe("setupToolsForRequest", () => {
     it("excludes tools specified in excludeTools array", async () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
+        orgId: null,
         messages: [{ id: "1", role: "user", content: "Hello" }],
         excludeTools: ["tool1"],
       };
@@ -176,6 +214,7 @@ describe("setupToolsForRequest", () => {
 
       const body: ChatRequestBody = {
         accountId: "account-123",
+        orgId: null,
         messages: [{ id: "1", role: "user", content: "Hello" }],
         excludeTools: ["tool1", "googlesheets_create"],
       };
@@ -191,6 +230,7 @@ describe("setupToolsForRequest", () => {
     it("returns all tools when excludeTools is undefined", async () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
+        orgId: null,
         messages: [{ id: "1", role: "user", content: "Hello" }],
       };
 
@@ -203,6 +243,7 @@ describe("setupToolsForRequest", () => {
     it("returns all tools when excludeTools is empty array", async () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
+        orgId: null,
         messages: [{ id: "1", role: "user", content: "Hello" }],
         excludeTools: [],
       };

@@ -18,7 +18,7 @@ import { AuthenticatedInMemoryTransport } from "@/lib/mcp/AuthenticatedInMemoryT
  * @returns Filtered tool set ready for use
  */
 export async function setupToolsForRequest(body: ChatRequestBody): Promise<ToolSet> {
-  const { excludeTools, accountId } = body;
+  const { excludeTools, accountId, orgId } = body;
 
   // Create in-memory MCP server and client (no HTTP call needed)
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -37,7 +37,7 @@ export async function setupToolsForRequest(body: ChatRequestBody): Promise<ToolS
     clientId: accountId,
     extra: {
       accountId,
-      orgId: null,
+      orgId,
     },
   };
   const authenticatedTransport = new AuthenticatedInMemoryTransport(clientTransport, authInfo);
