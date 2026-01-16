@@ -10,6 +10,22 @@ vi.mock("@modelcontextprotocol/sdk/client/streamableHttp.js", () => ({
   StreamableHTTPClientTransport: vi.fn().mockImplementation(() => ({})),
 }));
 
+vi.mock("@modelcontextprotocol/sdk/server/mcp.js", () => ({
+  McpServer: vi.fn().mockImplementation(() => ({
+    connect: vi.fn(),
+  })),
+}));
+
+vi.mock("@modelcontextprotocol/sdk/inMemory.js", () => ({
+  InMemoryTransport: {
+    createLinkedPair: vi.fn().mockReturnValue([{}, {}]),
+  },
+}));
+
+vi.mock("@/lib/mcp/tools", () => ({
+  registerAllTools: vi.fn(),
+}));
+
 vi.mock("@/lib/agents/googleSheetsAgent", () => ({
   getGoogleSheetsTools: vi.fn(),
 }));

@@ -289,6 +289,7 @@ describe("getGeneralAgent", () => {
         roomId: "room-789",
         artistId: "artist-456",
         accountId: "account-123",
+        orgId: null,
         email: "user@example.com",
         artistInstruction: undefined,
         knowledgeBaseText: undefined,
