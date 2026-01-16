@@ -333,14 +333,6 @@ describe("handleChatGenerate", () => {
     it("calls handleChatCompletion after text generation", async () => {
       mockGetApiKeyAccountId.mockResolvedValue("account-123");
 
-      const mockResponseMessages = [
-        {
-          id: "resp-1",
-          role: "assistant",
-          parts: [{ type: "text", text: "Hello!" }],
-        },
-      ];
-
       mockSetupChatRequest.mockResolvedValue({
         model: "gpt-4",
         instructions: "test",
@@ -355,7 +347,7 @@ describe("handleChatGenerate", () => {
         text: "Hello!",
         finishReason: "stop",
         usage: { promptTokens: 10, completionTokens: 20 },
-        response: { messages: mockResponseMessages, headers: {}, body: null },
+        response: { messages: [], headers: {}, body: null },
       } as any);
 
       mockHandleChatCompletion.mockResolvedValue();
@@ -374,20 +366,17 @@ describe("handleChatGenerate", () => {
           roomId: "room-123",
           accountId: "account-123",
         }),
-        mockResponseMessages,
+        expect.arrayContaining([
+          expect.objectContaining({
+            role: "assistant",
+            parts: [{ type: "text", text: "Hello!" }],
+          }),
+        ]),
       );
     });
 
     it("passes artistId to handleChatCompletion when provided", async () => {
       mockGetApiKeyAccountId.mockResolvedValue("account-123");
-
-      const mockResponseMessages = [
-        {
-          id: "resp-1",
-          role: "assistant",
-          parts: [{ type: "text", text: "Hello!" }],
-        },
-      ];
 
       mockSetupChatRequest.mockResolvedValue({
         model: "gpt-4",
@@ -403,7 +392,7 @@ describe("handleChatGenerate", () => {
         text: "Hello!",
         finishReason: "stop",
         usage: { promptTokens: 10, completionTokens: 20 },
-        response: { messages: mockResponseMessages, headers: {}, body: null },
+        response: { messages: [], headers: {}, body: null },
       } as any);
 
       mockHandleChatCompletion.mockResolvedValue();
@@ -420,7 +409,12 @@ describe("handleChatGenerate", () => {
         expect.objectContaining({
           artistId: "artist-456",
         }),
-        mockResponseMessages,
+        expect.arrayContaining([
+          expect.objectContaining({
+            role: "assistant",
+            parts: [{ type: "text", text: "Hello!" }],
+          }),
+        ]),
       );
     });
 
