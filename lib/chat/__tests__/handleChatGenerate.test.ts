@@ -343,4 +343,169 @@ describe("handleChatGenerate", () => {
       );
     });
   });
+
+  describe("chat completion handling", () => {
+    it("calls handleChatCompletion with body and constructed UIMessage", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("account-123");
+
+      mockSetupChatRequest.mockResolvedValue({
+        model: "gpt-4",
+        instructions: "test",
+        system: "test",
+        messages: [],
+        experimental_generateMessageId: vi.fn(),
+        tools: {},
+        providerOptions: {},
+      } as any);
+
+      mockGenerateText.mockResolvedValue({
+        text: "Hello! How can I help you?",
+        finishReason: "stop",
+        usage: { promptTokens: 10, completionTokens: 20 },
+        response: { messages: [], headers: {}, body: null },
+      } as any);
+
+      const messages = [{ id: "msg-1", role: "user", parts: [{ type: "text", text: "Hi" }] }];
+      const request = createMockRequest(
+        { messages, roomId: "room-123", artistId: "artist-456" },
+        { "x-api-key": "valid-key" },
+      );
+
+      await handleChatGenerate(request as any);
+
+      // Verify handleChatCompletion was called
+      expect(mockHandleChatCompletion).toHaveBeenCalledTimes(1);
+
+      // Verify the body contains the correct fields
+      expect(mockHandleChatCompletion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages,
+          roomId: "room-123",
+          artistId: "artist-456",
+          accountId: "account-123",
+        }),
+        expect.arrayContaining([
+          expect.objectContaining({
+            role: "assistant",
+            parts: expect.arrayContaining([
+              expect.objectContaining({
+                type: "text",
+                text: "Hello! How can I help you?",
+              }),
+            ]),
+          }),
+        ]),
+      );
+    });
+
+    it("constructs UIMessage with correct structure from generateText result", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("account-123");
+
+      mockSetupChatRequest.mockResolvedValue({
+        model: "gpt-4",
+        instructions: "test",
+        system: "test",
+        messages: [],
+        experimental_generateMessageId: vi.fn(),
+        tools: {},
+        providerOptions: {},
+      } as any);
+
+      mockGenerateText.mockResolvedValue({
+        text: "Generated response text",
+        finishReason: "stop",
+        usage: { promptTokens: 10, completionTokens: 20 },
+        response: { messages: [], headers: {}, body: null },
+      } as any);
+
+      const request = createMockRequest(
+        { prompt: "Hello" },
+        { "x-api-key": "valid-key" },
+      );
+
+      await handleChatGenerate(request as any);
+
+      // Get the UIMessage that was passed to handleChatCompletion
+      const [, responseMessages] = mockHandleChatCompletion.mock.calls[0];
+
+      expect(responseMessages).toHaveLength(1);
+      expect(responseMessages[0]).toMatchObject({
+        id: expect.any(String),
+        role: "assistant",
+        parts: [
+          {
+            type: "text",
+            text: "Generated response text",
+          },
+        ],
+      });
+    });
+
+    it("does not throw when handleChatCompletion fails", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("account-123");
+      mockHandleChatCompletion.mockRejectedValue(new Error("Completion failed"));
+
+      mockSetupChatRequest.mockResolvedValue({
+        model: "gpt-4",
+        instructions: "test",
+        system: "test",
+        messages: [],
+        experimental_generateMessageId: vi.fn(),
+        tools: {},
+        providerOptions: {},
+      } as any);
+
+      mockGenerateText.mockResolvedValue({
+        text: "Response",
+        finishReason: "stop",
+        usage: { promptTokens: 10, completionTokens: 20 },
+        response: { messages: [], headers: {}, body: null },
+      } as any);
+
+      const request = createMockRequest(
+        { prompt: "Hello" },
+        { "x-api-key": "valid-key" },
+      );
+
+      // Should not throw even if handleChatCompletion fails
+      const result = await handleChatGenerate(request as any);
+
+      expect(result.status).toBe(200);
+      const json = await result.json();
+      expect(json.text).toBe("Response");
+    });
+
+    it("handles empty text from generateText result", async () => {
+      mockGetApiKeyAccountId.mockResolvedValue("account-123");
+
+      mockSetupChatRequest.mockResolvedValue({
+        model: "gpt-4",
+        instructions: "test",
+        system: "test",
+        messages: [],
+        experimental_generateMessageId: vi.fn(),
+        tools: {},
+        providerOptions: {},
+      } as any);
+
+      mockGenerateText.mockResolvedValue({
+        text: "",
+        finishReason: "stop",
+        usage: { promptTokens: 10, completionTokens: 0 },
+        response: { messages: [], headers: {}, body: null },
+      } as any);
+
+      const request = createMockRequest(
+        { prompt: "Hello" },
+        { "x-api-key": "valid-key" },
+      );
+
+      await handleChatGenerate(request as any);
+
+      // Get the UIMessage that was passed to handleChatCompletion
+      const [, responseMessages] = mockHandleChatCompletion.mock.calls[0];
+
+      expect((responseMessages[0].parts[0] as { text: string }).text).toBe("");
+    });
+  });
 });
