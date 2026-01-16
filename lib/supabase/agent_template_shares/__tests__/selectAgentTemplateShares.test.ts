@@ -36,7 +36,7 @@ describe("selectAgentTemplateShares", () => {
     expect(result).toEqual([]);
   });
 
-  it("returns shares for given template IDs", async () => {
+  it("returns shares for given template IDs using select('*')", async () => {
     const mockShares = [
       { template_id: "tmpl-1", user_id: "user-1", created_at: "2024-01-01T00:00:00Z" },
       { template_id: "tmpl-1", user_id: "user-2", created_at: "2024-01-02T00:00:00Z" },
@@ -49,7 +49,8 @@ describe("selectAgentTemplateShares", () => {
     });
 
     expect(mockFrom).toHaveBeenCalledWith("agent_template_shares");
-    expect(mockSelect).toHaveBeenCalledWith("template_id, user_id, created_at");
+    // DRY: Use select('*') instead of explicit columns
+    expect(mockSelect).toHaveBeenCalledWith("*");
     expect(mockIn).toHaveBeenCalledWith("template_id", ["tmpl-1", "tmpl-2"]);
     expect(result).toEqual(mockShares);
   });
@@ -72,7 +73,7 @@ describe("selectAgentTemplateShares", () => {
   });
 
   describe("userId filtering", () => {
-    it("returns shares for given userId", async () => {
+    it("returns shares for given userId using select('*')", async () => {
       const mockShares = [
         { template_id: "tmpl-1", user_id: "user-1", created_at: "2024-01-01T00:00:00Z" },
         { template_id: "tmpl-2", user_id: "user-1", created_at: "2024-01-03T00:00:00Z" },
@@ -84,7 +85,8 @@ describe("selectAgentTemplateShares", () => {
       });
 
       expect(mockFrom).toHaveBeenCalledWith("agent_template_shares");
-      expect(mockSelect).toHaveBeenCalledWith("template_id, user_id, created_at");
+      // DRY: Use select('*') instead of explicit columns
+      expect(mockSelect).toHaveBeenCalledWith("*");
       expect(mockEq).toHaveBeenCalledWith("user_id", "user-1");
       expect(result).toEqual(mockShares);
     });
@@ -152,13 +154,12 @@ describe("selectAgentTemplateShares", () => {
       });
 
       expect(mockFrom).toHaveBeenCalledWith("agent_template_shares");
-      expect(mockSelect).toHaveBeenCalledWith(
-        expect.stringContaining("templates:agent_templates")
-      );
+      // DRY: Use *, templates:agent_templates(*) for joins
+      expect(mockSelect).toHaveBeenCalledWith("*, templates:agent_templates(*)");
       expect(result).toEqual(mockSharesWithTemplates);
     });
 
-    it("uses standard select when includeTemplates is false", async () => {
+    it("uses select('*') when includeTemplates is false", async () => {
       const mockShares = [
         { template_id: "tmpl-1", user_id: "user-1", created_at: "2024-01-01T00:00:00Z" },
       ];
@@ -169,7 +170,8 @@ describe("selectAgentTemplateShares", () => {
         includeTemplates: false,
       });
 
-      expect(mockSelect).toHaveBeenCalledWith("template_id, user_id, created_at");
+      // DRY: Use select('*') instead of explicit columns
+      expect(mockSelect).toHaveBeenCalledWith("*");
     });
   });
 });

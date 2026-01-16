@@ -1,33 +1,12 @@
 import supabase from "@/lib/supabase/serverClient";
+import type { Tables } from "@/types/database.types";
 
-export interface AgentTemplateShare {
-  template_id: string;
-  user_id: string;
-  created_at: string;
-}
+// DRY: Use database types instead of custom interfaces
+export type AgentTemplateShare = Tables<"agent_template_shares">;
 
-export interface AgentTemplateShareWithTemplate extends AgentTemplateShare {
-  templates: {
-    id: string;
-    title: string;
-    description: string;
-    prompt: string;
-    tags: string[] | null;
-    creator: string | null;
-    is_private: boolean;
-    created_at: string | null;
-    favorites_count: number | null;
-    updated_at: string | null;
-  } | null;
-}
-
-const BASE_SELECT = "template_id, user_id, created_at";
-const TEMPLATE_JOIN_SELECT = `
-  template_id, user_id, created_at,
-  templates:agent_templates(
-    id, title, description, prompt, tags, creator, is_private, created_at, favorites_count, updated_at
-  )
-`;
+export type AgentTemplateShareWithTemplate = AgentTemplateShare & {
+  templates: Tables<"agent_templates"> | null;
+};
 
 /**
  * Select agent template shares by template IDs and/or user ID
@@ -55,7 +34,8 @@ export default async function selectAgentTemplateShares({
     return [];
   }
 
-  const selectFields = includeTemplates ? TEMPLATE_JOIN_SELECT : BASE_SELECT;
+  // DRY: Use select('*') instead of explicit columns
+  const selectFields = includeTemplates ? "*, templates:agent_templates(*)" : "*";
   let query = supabase.from("agent_template_shares").select(selectFields);
 
   if (hasTemplateIds) {
