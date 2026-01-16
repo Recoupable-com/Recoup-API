@@ -3,13 +3,13 @@ import { listAgentTemplatesForUser } from "./listAgentTemplatesForUser";
 import { getSharedTemplatesForAccount } from "./getSharedTemplatesForAccount";
 import { getUserTemplateFavorites } from "./getUserTemplateFavorites";
 
-export async function getUserAccessibleTemplates(userId?: string | null) {
-  if (userId && userId !== "undefined") {
+export async function getAccountTemplates(accountId?: string | null) {
+  if (accountId && accountId !== "undefined") {
     // Get owned and public templates
-    const ownedAndPublic = await listAgentTemplatesForUser(userId);
+    const ownedAndPublic = await listAgentTemplatesForUser(accountId);
 
     // Get shared templates using dedicated utility
-    const sharedTemplates = await getSharedTemplatesForAccount(userId);
+    const sharedTemplates = await getSharedTemplatesForAccount(accountId);
 
     // Combine templates and avoid duplicates
     const allTemplates = [...ownedAndPublic];
@@ -23,7 +23,7 @@ export async function getUserAccessibleTemplates(userId?: string | null) {
     });
 
     // Get user's favorite templates
-    const favouriteIds = await getUserTemplateFavorites(userId);
+    const favouriteIds = await getUserTemplateFavorites(accountId);
 
     // Mark favorites
     return allTemplates.map((template: AgentTemplateRow) => ({

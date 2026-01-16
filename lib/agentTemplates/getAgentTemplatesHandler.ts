@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { getAuthenticatedAccountId } from "@/lib/auth/getAuthenticatedAccountId";
-import { getUserAccessibleTemplates } from "./getUserAccessibleTemplates";
+import { getAccountTemplates } from "./getAccountTemplates";
 import { getSharedEmailsForTemplates } from "./getSharedEmailsForTemplates";
 
 /**
@@ -31,8 +31,8 @@ export async function getAgentTemplatesHandler(
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId") || accountId;
 
-    // Fetch templates accessible to the user
-    const templates = await getUserAccessibleTemplates(userId);
+    // Fetch templates accessible to the account
+    const templates = await getAccountTemplates(userId);
 
     // Get shared emails for private templates
     const privateTemplateIds = templates

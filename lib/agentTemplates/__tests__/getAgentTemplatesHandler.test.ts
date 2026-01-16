@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAgentTemplatesHandler } from "../getAgentTemplatesHandler";
 
 import { getAuthenticatedAccountId } from "@/lib/auth/getAuthenticatedAccountId";
-import { getUserAccessibleTemplates } from "../getUserAccessibleTemplates";
+import { getAccountTemplates } from "../getAccountTemplates";
 import { getSharedEmailsForTemplates } from "../getSharedEmailsForTemplates";
 
 // Mock dependencies
@@ -11,8 +11,8 @@ vi.mock("@/lib/auth/getAuthenticatedAccountId", () => ({
   getAuthenticatedAccountId: vi.fn(),
 }));
 
-vi.mock("../getUserAccessibleTemplates", () => ({
-  getUserAccessibleTemplates: vi.fn(),
+vi.mock("../getAccountTemplates", () => ({
+  getAccountTemplates: vi.fn(),
 }));
 
 vi.mock("../getSharedEmailsForTemplates", () => ({
@@ -127,7 +127,7 @@ describe("getAgentTemplatesHandler", () => {
       }));
 
       vi.mocked(getAuthenticatedAccountId).mockResolvedValue("user-123");
-      vi.mocked(getUserAccessibleTemplates).mockResolvedValue(mockTemplates);
+      vi.mocked(getAccountTemplates).mockResolvedValue(mockTemplates);
       vi.mocked(getSharedEmailsForTemplates).mockResolvedValue({});
 
       const request = createMockBearerRequest("user-123");
@@ -137,7 +137,7 @@ describe("getAgentTemplatesHandler", () => {
       expect(response.status).toBe(200);
       expect(json.status).toBe("success");
       expect(json.templates).toEqual(expectedTemplates);
-      expect(getUserAccessibleTemplates).toHaveBeenCalledWith("user-123");
+      expect(getAccountTemplates).toHaveBeenCalledWith("user-123");
     });
 
     it("includes shared emails for private templates", async () => {
@@ -162,7 +162,7 @@ describe("getAgentTemplatesHandler", () => {
       };
 
       vi.mocked(getAuthenticatedAccountId).mockResolvedValue("user-123");
-      vi.mocked(getUserAccessibleTemplates).mockResolvedValue(mockTemplates);
+      vi.mocked(getAccountTemplates).mockResolvedValue(mockTemplates);
       vi.mocked(getSharedEmailsForTemplates).mockResolvedValue(mockSharedEmails);
 
       const request = createMockBearerRequest("user-123");
@@ -195,7 +195,7 @@ describe("getAgentTemplatesHandler", () => {
       ];
 
       vi.mocked(getAuthenticatedAccountId).mockResolvedValue("user-123");
-      vi.mocked(getUserAccessibleTemplates).mockResolvedValue(mockTemplates);
+      vi.mocked(getAccountTemplates).mockResolvedValue(mockTemplates);
 
       const request = createMockBearerRequest("user-123");
       const response = await getAgentTemplatesHandler(request);
@@ -208,9 +208,9 @@ describe("getAgentTemplatesHandler", () => {
   });
 
   describe("error handling", () => {
-    it("returns 500 when getUserAccessibleTemplates throws", async () => {
+    it("returns 500 when getAccountTemplates throws", async () => {
       vi.mocked(getAuthenticatedAccountId).mockResolvedValue("user-123");
-      vi.mocked(getUserAccessibleTemplates).mockRejectedValue(
+      vi.mocked(getAccountTemplates).mockRejectedValue(
         new Error("Database error"),
       );
 
