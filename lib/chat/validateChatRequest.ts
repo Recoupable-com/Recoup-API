@@ -147,16 +147,21 @@ export async function validateChatRequest(
       organizationId: validatedBody.organizationId,
     });
 
-    if (hasOrgAccess) {
-      // Use the provided organizationId as orgId
-      orgId = validatedBody.organizationId;
-    } else {
-      // User doesn't have access to the specified org - ignore the invalid organizationId
-      // This can happen when users have stale org selections in localStorage
-      console.warn(
-        `[validateChatRequest] Account ${accountId} does not have access to org ${validatedBody.organizationId}, ignoring`,
+    if (!hasOrgAccess) {
+      return NextResponse.json(
+        {
+          status: "error",
+          message: "Access denied to specified organizationId",
+        },
+        {
+          status: 403,
+          headers: getCorsHeaders(),
+        },
       );
     }
+
+    // Use the provided organizationId as orgId
+    orgId = validatedBody.organizationId;
   }
 
   // Normalize chat content:
