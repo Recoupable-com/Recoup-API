@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
-import { getAuthenticatedAccountId } from "@/lib/auth/getAuthenticatedAccountId";
 import { validateOverrideAccountId } from "@/lib/accounts/validateOverrideAccountId";
 import { insertRoom } from "@/lib/supabase/rooms/insertRoom";
 import { generateUUID } from "@/lib/uuid/generateUUID";
@@ -12,53 +11,21 @@ import { generateChatTitle } from "@/lib/chats/generateChatTitle";
 /**
  * Handler for creating a new chat room.
  *
- * Requires authentication via x-api-key header OR Authorization Bearer token.
- * Exactly one authentication mechanism must be provided.
- * The account ID is inferred from the API key or Bearer token, unless an accountId
- * is provided in the request body by an organization API key with access to that account.
+ * Requires authentication via x-api-key header.
+ * The account ID is inferred from the API key, unless an accountId is provided
+ * in the request body by an organization API key with access to that account.
  *
  * @param request - The NextRequest object
  * @returns A NextResponse with the created chat or an error
  */
 export async function createChatHandler(request: NextRequest): Promise<NextResponse> {
   try {
-    // Check which auth mechanism is provided
-    const apiKey = request.headers.get("x-api-key");
-    const authHeader = request.headers.get("authorization");
-    const hasApiKey = !!apiKey;
-    const hasAuth = !!authHeader;
-
-    // Enforce that exactly one auth mechanism is provided
-    if ((hasApiKey && hasAuth) || (!hasApiKey && !hasAuth)) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "Exactly one of x-api-key or Authorization must be provided",
-        },
-        {
-          status: 401,
-          headers: getCorsHeaders(),
-        },
-      );
+    const accountIdOrError = await getApiKeyAccountId(request);
+    if (accountIdOrError instanceof NextResponse) {
+      return accountIdOrError;
     }
 
-    let accountId: string;
-
-    if (hasApiKey) {
-      // API key authentication
-      const accountIdOrError = await getApiKeyAccountId(request);
-      if (accountIdOrError instanceof NextResponse) {
-        return accountIdOrError;
-      }
-      accountId = accountIdOrError;
-    } else {
-      // Bearer token authentication
-      const accountIdOrError = await getAuthenticatedAccountId(request);
-      if (accountIdOrError instanceof NextResponse) {
-        return accountIdOrError;
-      }
-      accountId = accountIdOrError;
-    }
+    let accountId = accountIdOrError;
 
     const body = await safeParseJson(request);
 
