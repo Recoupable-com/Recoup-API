@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
+import { createUIMessageStream, createUIMessageStreamResponse, type UIMessage } from "ai";
 import { validateChatRequest } from "./validateChatRequest";
 import { setupChatRequest } from "./setupChatRequest";
 import { handleChatCompletion } from "./handleChatCompletion";
@@ -36,9 +36,17 @@ export async function handleChatStream(request: NextRequest): Promise<Response> 
         const result = await agent.stream(chatConfig);
         writer.merge(result.toUIMessageStream());
 
+        // Construct UIMessage from streaming result for handleChatCompletion
+        const text = await result.text;
+        const assistantMessage: UIMessage = {
+          id: generateUUID(),
+          role: "assistant",
+          parts: [{ type: "text", text }],
+        };
+
         // Handle post-completion tasks (room creation, memory storage, notifications)
         // Errors are handled gracefully within handleChatCompletion
-        handleChatCompletion(body, result.responseMessages).catch(() => {
+        handleChatCompletion(body, [assistantMessage]).catch(() => {
           // Silently catch - handleChatCompletion handles its own error reporting
         });
       },

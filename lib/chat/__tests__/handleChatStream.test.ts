@@ -297,19 +297,11 @@ describe("handleChatStream", () => {
     it("calls handleChatCompletion after streaming completes", async () => {
       mockGetApiKeyAccountId.mockResolvedValue("account-123");
 
-      const mockResponseMessages = [
-        {
-          id: "resp-1",
-          role: "assistant",
-          parts: [{ type: "text", text: "Hello!" }],
-        },
-      ];
-
       const mockAgent = {
         stream: vi.fn().mockResolvedValue({
           toUIMessageStream: vi.fn().mockReturnValue(new ReadableStream()),
           usage: Promise.resolve({ inputTokens: 100, outputTokens: 50 }),
-          responseMessages: mockResponseMessages,
+          text: Promise.resolve("Hello!"),
         }),
         tools: {},
       };
@@ -356,26 +348,23 @@ describe("handleChatStream", () => {
           roomId: "room-123",
           accountId: "account-123",
         }),
-        mockResponseMessages,
+        expect.arrayContaining([
+          expect.objectContaining({
+            role: "assistant",
+            parts: [{ type: "text", text: "Hello!" }],
+          }),
+        ]),
       );
     });
 
     it("passes artistId to handleChatCompletion when provided", async () => {
       mockGetApiKeyAccountId.mockResolvedValue("account-123");
 
-      const mockResponseMessages = [
-        {
-          id: "resp-1",
-          role: "assistant",
-          parts: [{ type: "text", text: "Hello!" }],
-        },
-      ];
-
       const mockAgent = {
         stream: vi.fn().mockResolvedValue({
           toUIMessageStream: vi.fn().mockReturnValue(new ReadableStream()),
           usage: Promise.resolve({ inputTokens: 100, outputTokens: 50 }),
-          responseMessages: mockResponseMessages,
+          text: Promise.resolve("Hello!"),
         }),
         tools: {},
       };
@@ -418,7 +407,12 @@ describe("handleChatStream", () => {
         expect.objectContaining({
           artistId: "artist-456",
         }),
-        mockResponseMessages,
+        expect.arrayContaining([
+          expect.objectContaining({
+            role: "assistant",
+            parts: [{ type: "text", text: "Hello!" }],
+          }),
+        ]),
       );
     });
 
@@ -429,7 +423,7 @@ describe("handleChatStream", () => {
         stream: vi.fn().mockResolvedValue({
           toUIMessageStream: vi.fn().mockReturnValue(new ReadableStream()),
           usage: Promise.resolve({ inputTokens: 100, outputTokens: 50 }),
-          responseMessages: [{ id: "resp-1", role: "assistant", parts: [] }],
+          text: Promise.resolve("Hello!"),
         }),
         tools: {},
       };
