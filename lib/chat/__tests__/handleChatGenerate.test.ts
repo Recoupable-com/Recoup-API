@@ -1,13 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextResponse } from "next/server";
 
-import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
-import { validateOverrideAccountId } from "@/lib/accounts/validateOverrideAccountId";
-import { setupChatRequest } from "@/lib/chat/setupChatRequest";
-import { handleChatCompletion } from "@/lib/chat/handleChatCompletion";
-import { generateText } from "ai";
-import { handleChatGenerate } from "../handleChatGenerate";
-
 // Mock all dependencies before importing the module under test
 vi.mock("@/lib/auth/getApiKeyAccountId", () => ({
   getApiKeyAccountId: vi.fn(),
@@ -33,27 +26,26 @@ vi.mock("@/lib/chat/setupChatRequest", () => ({
   setupChatRequest: vi.fn(),
 }));
 
-vi.mock("@/lib/chat/handleChatCompletion", () => ({
-  handleChatCompletion: vi.fn(),
-}));
-
 vi.mock("ai", () => ({
   generateText: vi.fn(),
 }));
 
+import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
+import { validateOverrideAccountId } from "@/lib/accounts/validateOverrideAccountId";
+import { setupChatRequest } from "@/lib/chat/setupChatRequest";
+import { generateText } from "ai";
+import { handleChatGenerate } from "../handleChatGenerate";
+
 const mockGetApiKeyAccountId = vi.mocked(getApiKeyAccountId);
 const mockValidateOverrideAccountId = vi.mocked(validateOverrideAccountId);
 const mockSetupChatRequest = vi.mocked(setupChatRequest);
-const mockHandleChatCompletion = vi.mocked(handleChatCompletion);
 const mockGenerateText = vi.mocked(generateText);
 
 // Helper to create mock NextRequest
-/**
- *
- * @param body
- * @param headers
- */
-function createMockRequest(body: unknown, headers: Record<string, string> = {}): Request {
+function createMockRequest(
+  body: unknown,
+  headers: Record<string, string> = {},
+): Request {
   return {
     json: () => Promise.resolve(body),
     headers: {
@@ -66,8 +58,6 @@ function createMockRequest(body: unknown, headers: Record<string, string> = {}):
 describe("handleChatGenerate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default mock for handleChatCompletion to return a resolved Promise
-    mockHandleChatCompletion.mockResolvedValue();
   });
 
   afterEach(() => {
@@ -78,7 +68,10 @@ describe("handleChatGenerate", () => {
     it("returns 400 error when neither messages nor prompt is provided", async () => {
       mockGetApiKeyAccountId.mockResolvedValue("account-123");
 
-      const request = createMockRequest({ roomId: "room-123" }, { "x-api-key": "test-key" });
+      const request = createMockRequest(
+        { roomId: "room-123" },
+        { "x-api-key": "test-key" },
+      );
 
       const result = await handleChatGenerate(request as any);
 
@@ -129,7 +122,10 @@ describe("handleChatGenerate", () => {
         },
       } as any);
 
-      const request = createMockRequest({ prompt: "Hello, world!" }, { "x-api-key": "valid-key" });
+      const request = createMockRequest(
+        { prompt: "Hello, world!" },
+        { "x-api-key": "valid-key" },
+      );
 
       const result = await handleChatGenerate(request as any);
 
@@ -161,7 +157,10 @@ describe("handleChatGenerate", () => {
       } as any);
 
       const messages = [{ role: "user", content: "Hello" }];
-      const request = createMockRequest({ messages }, { "x-api-key": "valid-key" });
+      const request = createMockRequest(
+        { messages },
+        { "x-api-key": "valid-key" },
+      );
 
       await handleChatGenerate(request as any);
 
@@ -238,7 +237,10 @@ describe("handleChatGenerate", () => {
         response: { messages: [], headers: {}, body: null },
       } as any);
 
-      const request = createMockRequest({ prompt: "Hello" }, { "x-api-key": "valid-key" });
+      const request = createMockRequest(
+        { prompt: "Hello" },
+        { "x-api-key": "valid-key" },
+      );
 
       const result = await handleChatGenerate(request as any);
 
@@ -254,7 +256,10 @@ describe("handleChatGenerate", () => {
       mockGetApiKeyAccountId.mockResolvedValue("account-123");
       mockSetupChatRequest.mockRejectedValue(new Error("Setup failed"));
 
-      const request = createMockRequest({ prompt: "Hello" }, { "x-api-key": "valid-key" });
+      const request = createMockRequest(
+        { prompt: "Hello" },
+        { "x-api-key": "valid-key" },
+      );
 
       const result = await handleChatGenerate(request as any);
 
@@ -279,7 +284,10 @@ describe("handleChatGenerate", () => {
 
       mockGenerateText.mockRejectedValue(new Error("Generation failed"));
 
-      const request = createMockRequest({ prompt: "Hello" }, { "x-api-key": "valid-key" });
+      const request = createMockRequest(
+        { prompt: "Hello" },
+        { "x-api-key": "valid-key" },
+      );
 
       const result = await handleChatGenerate(request as any);
 
@@ -326,169 +334,6 @@ describe("handleChatGenerate", () => {
           accountId: "target-account-456",
         }),
       );
-    });
-  });
-
-  describe("chat completion handling", () => {
-    it("calls handleChatCompletion after text generation", async () => {
-      mockGetApiKeyAccountId.mockResolvedValue("account-123");
-
-      mockSetupChatRequest.mockResolvedValue({
-        model: "gpt-4",
-        instructions: "test",
-        system: "test",
-        messages: [],
-        experimental_generateMessageId: vi.fn(),
-        tools: {},
-        providerOptions: {},
-      } as any);
-
-      mockGenerateText.mockResolvedValue({
-        text: "Hello!",
-        finishReason: "stop",
-        usage: { promptTokens: 10, completionTokens: 20 },
-        response: { messages: [], headers: {}, body: null },
-      } as any);
-
-      mockHandleChatCompletion.mockResolvedValue();
-
-      const messages = [{ id: "msg-1", role: "user", parts: [{ type: "text", text: "Hi" }] }];
-      const request = createMockRequest(
-        { messages, roomId: "room-123" },
-        { "x-api-key": "valid-key" },
-      );
-
-      await handleChatGenerate(request as any);
-
-      expect(mockHandleChatCompletion).toHaveBeenCalledWith(
-        expect.objectContaining({
-          messages,
-          roomId: "room-123",
-          accountId: "account-123",
-        }),
-        expect.arrayContaining([
-          expect.objectContaining({
-            role: "assistant",
-            parts: [{ type: "text", text: "Hello!" }],
-          }),
-        ]),
-      );
-    });
-
-    it("passes artistId to handleChatCompletion when provided", async () => {
-      mockGetApiKeyAccountId.mockResolvedValue("account-123");
-
-      mockSetupChatRequest.mockResolvedValue({
-        model: "gpt-4",
-        instructions: "test",
-        system: "test",
-        messages: [],
-        experimental_generateMessageId: vi.fn(),
-        tools: {},
-        providerOptions: {},
-      } as any);
-
-      mockGenerateText.mockResolvedValue({
-        text: "Hello!",
-        finishReason: "stop",
-        usage: { promptTokens: 10, completionTokens: 20 },
-        response: { messages: [], headers: {}, body: null },
-      } as any);
-
-      mockHandleChatCompletion.mockResolvedValue();
-
-      const messages = [{ id: "msg-1", role: "user", parts: [{ type: "text", text: "Hi" }] }];
-      const request = createMockRequest(
-        { messages, roomId: "room-123", artistId: "artist-456" },
-        { "x-api-key": "valid-key" },
-      );
-
-      await handleChatGenerate(request as any);
-
-      expect(mockHandleChatCompletion).toHaveBeenCalledWith(
-        expect.objectContaining({
-          artistId: "artist-456",
-        }),
-        expect.arrayContaining([
-          expect.objectContaining({
-            role: "assistant",
-            parts: [{ type: "text", text: "Hello!" }],
-          }),
-        ]),
-      );
-    });
-
-    it("does not throw when handleChatCompletion fails (graceful handling)", async () => {
-      mockGetApiKeyAccountId.mockResolvedValue("account-123");
-
-      mockSetupChatRequest.mockResolvedValue({
-        model: "gpt-4",
-        instructions: "test",
-        system: "test",
-        messages: [],
-        experimental_generateMessageId: vi.fn(),
-        tools: {},
-        providerOptions: {},
-      } as any);
-
-      mockGenerateText.mockResolvedValue({
-        text: "Hello!",
-        finishReason: "stop",
-        usage: { promptTokens: 10, completionTokens: 20 },
-        response: {
-          messages: [{ id: "resp-1", role: "assistant", parts: [] }],
-          headers: {},
-          body: null,
-        },
-      } as any);
-
-      // Make handleChatCompletion throw an error
-      mockHandleChatCompletion.mockRejectedValue(new Error("Completion handling failed"));
-
-      const request = createMockRequest({ prompt: "Hello" }, { "x-api-key": "valid-key" });
-
-      // Should still return 200 - completion handling failure should not affect response
-      const result = await handleChatGenerate(request as any);
-      expect(result.status).toBe(200);
-    });
-
-    it("calls handleChatCompletion even when validation skips it for missing roomId", async () => {
-      mockGetApiKeyAccountId.mockResolvedValue("account-123");
-
-      const mockResponseMessages = [
-        {
-          id: "resp-1",
-          role: "assistant",
-          parts: [{ type: "text", text: "Hello!" }],
-        },
-      ];
-
-      mockSetupChatRequest.mockResolvedValue({
-        model: "gpt-4",
-        instructions: "test",
-        system: "test",
-        messages: [],
-        experimental_generateMessageId: vi.fn(),
-        tools: {},
-        providerOptions: {},
-      } as any);
-
-      mockGenerateText.mockResolvedValue({
-        text: "Hello!",
-        finishReason: "stop",
-        usage: { promptTokens: 10, completionTokens: 20 },
-        response: { messages: mockResponseMessages, headers: {}, body: null },
-      } as any);
-
-      mockHandleChatCompletion.mockResolvedValue();
-
-      // No roomId provided
-      const request = createMockRequest({ prompt: "Hello" }, { "x-api-key": "valid-key" });
-
-      await handleChatGenerate(request as any);
-
-      // handleChatCompletion should still be called (it handles room creation internally)
-      expect(mockHandleChatCompletion).toHaveBeenCalled();
     });
   });
 });
