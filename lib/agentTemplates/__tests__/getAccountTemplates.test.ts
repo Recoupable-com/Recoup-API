@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getAccountTemplates } from "../getAccountTemplates";
 
-import { listAgentTemplatesForUser } from "../listAgentTemplatesForUser";
 import { getSharedTemplatesForAccount } from "../getSharedTemplatesForAccount";
 import selectAgentTemplateFavorites from "@/lib/supabase/agent_template_favorites/selectAgentTemplateFavorites";
+import selectAgentTemplates from "@/lib/supabase/agent_templates/selectAgentTemplates";
 
-vi.mock("../listAgentTemplatesForUser", () => ({
-  listAgentTemplatesForUser: vi.fn(),
+vi.mock("@/lib/supabase/agent_templates/selectAgentTemplates", () => ({
+  default: vi.fn(),
 }));
 
 vi.mock("../getSharedTemplatesForAccount", () => ({
@@ -54,7 +54,7 @@ describe("getAccountTemplates", () => {
         },
       ];
 
-      vi.mocked(listAgentTemplatesForUser).mockResolvedValue(ownedTemplates);
+      vi.mocked(selectAgentTemplates).mockResolvedValue(ownedTemplates);
       vi.mocked(getSharedTemplatesForAccount).mockResolvedValue(sharedTemplates);
       vi.mocked(selectAgentTemplateFavorites).mockResolvedValue([
         { template_id: "template-1", user_id: "user-123", created_at: null },
@@ -83,7 +83,7 @@ describe("getAccountTemplates", () => {
         favorites_count: 0,
       };
 
-      vi.mocked(listAgentTemplatesForUser).mockResolvedValue([ownedTemplate]);
+      vi.mocked(selectAgentTemplates).mockResolvedValue([ownedTemplate]);
       vi.mocked(getSharedTemplatesForAccount).mockResolvedValue([ownedTemplate]);
       vi.mocked(selectAgentTemplateFavorites).mockResolvedValue([]);
 
@@ -120,7 +120,7 @@ describe("getAccountTemplates", () => {
         },
       ];
 
-      vi.mocked(listAgentTemplatesForUser).mockResolvedValue(templates);
+      vi.mocked(selectAgentTemplates).mockResolvedValue(templates);
       vi.mocked(getSharedTemplatesForAccount).mockResolvedValue([]);
       vi.mocked(selectAgentTemplateFavorites).mockResolvedValue([
         { template_id: "template-1", user_id: "user-123", created_at: null },
@@ -150,13 +150,13 @@ describe("getAccountTemplates", () => {
         },
       ];
 
-      vi.mocked(listAgentTemplatesForUser).mockResolvedValue(publicTemplates);
+      vi.mocked(selectAgentTemplates).mockResolvedValue(publicTemplates);
 
       const result = await getAccountTemplates(null);
 
       expect(result).toHaveLength(1);
       expect(result[0].is_favourite).toBe(false);
-      expect(listAgentTemplatesForUser).toHaveBeenCalledWith(null);
+      expect(selectAgentTemplates).toHaveBeenCalledWith({ userId: null });
       expect(getSharedTemplatesForAccount).not.toHaveBeenCalled();
       expect(selectAgentTemplateFavorites).not.toHaveBeenCalled();
     });
@@ -177,7 +177,7 @@ describe("getAccountTemplates", () => {
         },
       ];
 
-      vi.mocked(listAgentTemplatesForUser).mockResolvedValue(publicTemplates);
+      vi.mocked(selectAgentTemplates).mockResolvedValue(publicTemplates);
 
       const result = await getAccountTemplates(undefined);
 
@@ -201,7 +201,7 @@ describe("getAccountTemplates", () => {
         },
       ];
 
-      vi.mocked(listAgentTemplatesForUser).mockResolvedValue(publicTemplates);
+      vi.mocked(selectAgentTemplates).mockResolvedValue(publicTemplates);
 
       const result = await getAccountTemplates("undefined");
 

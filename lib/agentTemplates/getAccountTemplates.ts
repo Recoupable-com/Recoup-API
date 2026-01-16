@@ -1,12 +1,12 @@
 import type { AgentTemplateRow } from "./types";
-import { listAgentTemplatesForUser } from "./listAgentTemplatesForUser";
 import { getSharedTemplatesForAccount } from "./getSharedTemplatesForAccount";
 import selectAgentTemplateFavorites from "@/lib/supabase/agent_template_favorites/selectAgentTemplateFavorites";
+import selectAgentTemplates from "@/lib/supabase/agent_templates/selectAgentTemplates";
 
 export async function getAccountTemplates(accountId?: string | null) {
   if (accountId && accountId !== "undefined") {
     // Get owned and public templates
-    const ownedAndPublic = await listAgentTemplatesForUser(accountId);
+    const ownedAndPublic = await selectAgentTemplates({ userId: accountId });
 
     // Get shared templates using dedicated utility
     const sharedTemplates = await getSharedTemplatesForAccount(accountId);
@@ -34,7 +34,7 @@ export async function getAccountTemplates(accountId?: string | null) {
   }
 
   // For anonymous users, return public templates only
-  const publicTemplates = await listAgentTemplatesForUser(null);
+  const publicTemplates = await selectAgentTemplates({ userId: null });
   return publicTemplates.map((template: AgentTemplateRow) => ({
     ...template,
     is_favourite: false,
