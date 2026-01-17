@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
+import { handleChatCompletion } from "./handleChatCompletion";
 import { validateChatRequest } from "./validateChatRequest";
 import { setupChatRequest } from "./setupChatRequest";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
@@ -36,6 +37,17 @@ export async function handleChatStream(request: NextRequest): Promise<Response> 
         writer.merge(result.toUIMessageStream());
         // Note: Credit handling and chat completion handling will be added
         // as part of the handleChatCredits and handleChatCompletion migrations
+      },
+      onFinish: async (event) => {
+        if (event.isAborted) {
+          return;
+        }
+        const assistantMessages = event.messages.filter(
+          (message) => message.role === "assistant",
+        );
+        const responseMessages =
+          assistantMessages.length > 0 ? assistantMessages : [event.responseMessage];
+        await handleChatCompletion(body, responseMessages);
       },
       onError: (e) => {
         console.error("/api/chat onError:", e);
