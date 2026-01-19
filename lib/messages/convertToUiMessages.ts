@@ -8,25 +8,6 @@ import isUiMessage from "@/lib/messages/isUiMessage";
 type InputMessage = UIMessage | ModelMessage;
 
 /**
- * Extracts text content from ModelMessage content field.
- *
- * @param content - The content field which can be string or content parts array
- * @returns The extracted text content
- */
-function extractTextContent(content: ModelMessage["content"]): string {
-  if (typeof content === "string") {
-    return content;
-  }
-
-  // Handle content parts array - extract text from text parts
-  const textParts = content
-    .filter((part): part is { type: "text"; text: string } => part.type === "text")
-    .map((part) => part.text);
-
-  return textParts.join("");
-}
-
-/**
  * Converts messages to UIMessage format.
  *
  * Similar to AI SDK's convertToModelMessages, this utility normalizes
@@ -48,12 +29,11 @@ export default function convertToUiMessages(messages: InputMessage[]): UIMessage
 
     // Convert ModelMessage { role, content } format to UIMessage
     const modelMessage = message as ModelMessage;
-    const textContent = extractTextContent(modelMessage.content);
 
     return {
       id: generateUUID(),
       role: modelMessage.role as "user" | "assistant" | "system",
-      parts: [{ type: "text" as const, text: textContent }],
+      parts: [{ type: "text" as const, text: modelMessage.content }],
     };
   });
 }
