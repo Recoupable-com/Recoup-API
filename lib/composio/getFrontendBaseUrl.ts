@@ -1,8 +1,8 @@
 /**
  * Frontend base URL for the test environment.
- * Set this to your test Recoup-Chat deployment domain.
+ * Follows same pattern as API: test-recoup-api -> test-recoup-chat
  */
-const TEST_FRONTEND_URL = "https://recoup-chat-git-test-recoupable.vercel.app";
+const TEST_FRONTEND_URL = "https://test-recoup-chat.vercel.app";
 
 /**
  * Get the base URL for the frontend based on environment.
