@@ -30,17 +30,16 @@ export async function handleChatGenerate(request: NextRequest): Promise<Response
 
     const result = await generateText(chatConfig);
 
-    // Save assistant message to database if roomId is provided
-    if (body.roomId) {
-      try {
-        await saveChatCompletion({
-          text: result.text,
-          roomId: body.roomId,
-        });
-      } catch (error) {
-        // Log error but don't fail the request - message persistence is non-critical
-        console.error("Failed to persist assistant message:", error);
-      }
+    // Save assistant message to database
+    // Note: roomId is always defined after validateChatRequest (auto-created if not provided)
+    try {
+      await saveChatCompletion({
+        text: result.text,
+        roomId: body.roomId,
+      });
+    } catch (error) {
+      // Log error but don't fail the request - message persistence is non-critical
+      console.error("Failed to persist assistant message:", error);
     }
 
     return NextResponse.json(
