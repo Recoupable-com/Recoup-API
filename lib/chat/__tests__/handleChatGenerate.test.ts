@@ -30,22 +30,22 @@ vi.mock("ai", () => ({
   generateText: vi.fn(),
 }));
 
-vi.mock("@/lib/supabase/memories/insertMemories", () => ({
-  default: vi.fn(),
+vi.mock("@/lib/chat/saveChatCompletion", () => ({
+  saveChatCompletion: vi.fn(),
 }));
 
 import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
 import { validateOverrideAccountId } from "@/lib/accounts/validateOverrideAccountId";
 import { setupChatRequest } from "@/lib/chat/setupChatRequest";
 import { generateText } from "ai";
-import insertMemories from "@/lib/supabase/memories/insertMemories";
+import { saveChatCompletion } from "@/lib/chat/saveChatCompletion";
 import { handleChatGenerate } from "../handleChatGenerate";
 
 const mockGetApiKeyAccountId = vi.mocked(getApiKeyAccountId);
 const mockValidateOverrideAccountId = vi.mocked(validateOverrideAccountId);
 const mockSetupChatRequest = vi.mocked(setupChatRequest);
 const mockGenerateText = vi.mocked(generateText);
-const mockInsertMemories = vi.mocked(insertMemories);
+const mockSaveChatCompletion = vi.mocked(saveChatCompletion);
 
 // Helper to create mock NextRequest
 function createMockRequest(
@@ -364,7 +364,7 @@ describe("handleChatGenerate", () => {
         response: { messages: [], headers: {}, body: null },
       } as any);
 
-      mockInsertMemories.mockResolvedValue(null);
+      mockSaveChatCompletion.mockResolvedValue(null);
 
       const request = createMockRequest(
         { prompt: "Hello", roomId: "room-abc-123" },
@@ -373,14 +373,10 @@ describe("handleChatGenerate", () => {
 
       await handleChatGenerate(request as any);
 
-      expect(mockInsertMemories).toHaveBeenCalledWith(
-        expect.objectContaining({
-          room_id: "room-abc-123",
-          content: expect.objectContaining({
-            role: "assistant",
-          }),
-        }),
-      );
+      expect(mockSaveChatCompletion).toHaveBeenCalledWith({
+        text: "Hello! How can I help you?",
+        roomId: "room-abc-123",
+      });
     });
 
     it("does not save message when roomId is not provided", async () => {
@@ -410,10 +406,10 @@ describe("handleChatGenerate", () => {
 
       await handleChatGenerate(request as any);
 
-      expect(mockInsertMemories).not.toHaveBeenCalled();
+      expect(mockSaveChatCompletion).not.toHaveBeenCalled();
     });
 
-    it("includes message text in filtered content", async () => {
+    it("passes correct text to saveChatCompletion", async () => {
       mockGetApiKeyAccountId.mockResolvedValue("account-123");
 
       mockSetupChatRequest.mockResolvedValue({
@@ -433,7 +429,7 @@ describe("handleChatGenerate", () => {
         response: { messages: [], headers: {}, body: null },
       } as any);
 
-      mockInsertMemories.mockResolvedValue(null);
+      mockSaveChatCompletion.mockResolvedValue(null);
 
       const request = createMockRequest(
         { prompt: "Hello", roomId: "room-xyz" },
@@ -442,22 +438,13 @@ describe("handleChatGenerate", () => {
 
       await handleChatGenerate(request as any);
 
-      expect(mockInsertMemories).toHaveBeenCalledWith(
-        expect.objectContaining({
-          content: expect.objectContaining({
-            content: "This is the assistant response text",
-            parts: expect.arrayContaining([
-              expect.objectContaining({
-                type: "text",
-                text: "This is the assistant response text",
-              }),
-            ]),
-          }),
-        }),
-      );
+      expect(mockSaveChatCompletion).toHaveBeenCalledWith({
+        text: "This is the assistant response text",
+        roomId: "room-xyz",
+      });
     });
 
-    it("still returns success response even if insertMemories fails", async () => {
+    it("still returns success response even if saveChatCompletion fails", async () => {
       mockGetApiKeyAccountId.mockResolvedValue("account-123");
 
       mockSetupChatRequest.mockResolvedValue({
@@ -477,7 +464,7 @@ describe("handleChatGenerate", () => {
         response: { messages: [], headers: {}, body: null },
       } as any);
 
-      mockInsertMemories.mockRejectedValue(new Error("Database error"));
+      mockSaveChatCompletion.mockRejectedValue(new Error("Database error"));
 
       const request = createMockRequest(
         { prompt: "Hello", roomId: "room-abc" },

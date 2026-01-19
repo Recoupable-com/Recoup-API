@@ -3,9 +3,7 @@ import { generateText } from "ai";
 import { validateChatRequest } from "./validateChatRequest";
 import { setupChatRequest } from "./setupChatRequest";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
-import { getMessages } from "@/lib/messages/getMessages";
-import filterMessageContentForMemories from "@/lib/messages/filterMessageContentForMemories";
-import insertMemories from "@/lib/supabase/memories/insertMemories";
+import { saveChatCompletion } from "./saveChatCompletion";
 
 /**
  * Handles a non-streaming chat generate request.
@@ -34,12 +32,10 @@ export async function handleChatGenerate(request: NextRequest): Promise<Response
 
     // Save assistant message to database if roomId is provided
     if (body.roomId) {
-      const assistantMessage = getMessages(result.text, "assistant")[0];
       try {
-        await insertMemories({
-          id: assistantMessage.id,
-          room_id: body.roomId,
-          content: filterMessageContentForMemories(assistantMessage),
+        await saveChatCompletion({
+          text: result.text,
+          roomId: body.roomId,
         });
       } catch (error) {
         // Log error but don't fail the request - message persistence is non-critical
