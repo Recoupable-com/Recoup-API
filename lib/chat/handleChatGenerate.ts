@@ -45,6 +45,7 @@ export async function handleChatGenerate(request: NextRequest): Promise<Response
     return NextResponse.json(
       {
         text: result.text,
+        roomId: body.roomId,
         reasoningText: result.reasoningText,
         sources: result.sources,
         finishReason: result.finishReason,
