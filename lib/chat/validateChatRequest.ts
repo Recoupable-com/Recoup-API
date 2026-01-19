@@ -10,7 +10,8 @@ import { getApiKeyDetails } from "@/lib/keys/getApiKeyDetails";
 import { validateOrganizationAccess } from "@/lib/organizations/validateOrganizationAccess";
 import { generateUUID } from "@/lib/uuid/generateUUID";
 import { createNewRoom } from "@/lib/chat/createNewRoom";
-import { saveChatCompletion } from "@/lib/chat/saveChatCompletion";
+import insertMemories from "@/lib/supabase/memories/insertMemories";
+import filterMessageContentForMemories from "@/lib/messages/filterMessageContentForMemories";
 
 export const chatRequestSchema = z
   .object({
@@ -178,42 +179,40 @@ export async function validateChatRequest(
     validatedBody.messages = getMessages(validatedBody.prompt);
   }
 
+  // Convert first message to UIMessage format if needed (messages may come in different formats)
+  const firstMessage = validatedBody.messages[0];
+  let promptMessage;
+  if (firstMessage?.parts) {
+    // Already in UIMessage format
+    promptMessage = firstMessage;
+  } else if (firstMessage?.content) {
+    // Convert simple { role, content } format to UIMessage
+    promptMessage = getMessages(firstMessage.content, firstMessage.role)[0];
+  } else {
+    // Fallback: create a default message
+    promptMessage = getMessages("New conversation")[0];
+  }
+
   // Auto-create roomId if not provided (match /api/emails/inbound behavior)
   let finalRoomId = validatedBody.roomId;
   if (!finalRoomId) {
     finalRoomId = generateUUID();
-    const firstMessage = validatedBody.messages[0];
-
-    // Convert message to UIMessage format if needed (messages may come in different formats)
-    let lastMessage;
-    if (firstMessage?.parts) {
-      // Already in UIMessage format
-      lastMessage = firstMessage;
-    } else if (firstMessage?.content) {
-      // Convert simple { role, content } format to UIMessage
-      lastMessage = getMessages(firstMessage.content, firstMessage.role)[0];
-    } else {
-      // Fallback: create a default message
-      lastMessage = getMessages("New conversation")[0];
-    }
-
     await createNewRoom({
       accountId,
       roomId: finalRoomId,
       artistId: validatedBody.artistId,
-      lastMessage,
+      lastMessage: promptMessage,
     });
-
-    // Persist the user's message to memories (match /api/emails/inbound behavior)
-    const userMessageText = lastMessage.parts?.find((p: { type: string }) => p.type === "text")?.text || "";
-    if (userMessageText) {
-      await saveChatCompletion({
-        text: userMessageText,
-        roomId: finalRoomId,
-        role: "user",
-      });
-    }
   }
+
+  // Persist the user's message to memories (match /api/emails/inbound behavior)
+  // This happens for ALL requests, not just new rooms
+  const memoryId = generateUUID();
+  await insertMemories({
+    id: memoryId,
+    room_id: finalRoomId,
+    content: filterMessageContentForMemories(promptMessage),
+  });
 
   return {
     ...validatedBody,

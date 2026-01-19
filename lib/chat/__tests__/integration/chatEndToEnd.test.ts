@@ -119,6 +119,14 @@ vi.mock("@/lib/chat/saveChatCompletion", () => ({
   saveChatCompletion: vi.fn(),
 }));
 
+vi.mock("@/lib/supabase/memories/insertMemories", () => ({
+  default: vi.fn(),
+}));
+
+vi.mock("@/lib/messages/filterMessageContentForMemories", () => ({
+  default: vi.fn((msg: unknown) => msg),
+}));
+
 // Mock AI SDK
 vi.mock("ai", () => ({
   convertToModelMessages: vi.fn((messages: unknown[]) => messages),

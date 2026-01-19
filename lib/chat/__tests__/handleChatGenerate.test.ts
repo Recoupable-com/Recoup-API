@@ -46,6 +46,14 @@ vi.mock("@/lib/chat/createNewRoom", () => ({
   createNewRoom: vi.fn(),
 }));
 
+vi.mock("@/lib/supabase/memories/insertMemories", () => ({
+  default: vi.fn(),
+}));
+
+vi.mock("@/lib/messages/filterMessageContentForMemories", () => ({
+  default: vi.fn((msg: unknown) => msg),
+}));
+
 import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
 import { validateOverrideAccountId } from "@/lib/accounts/validateOverrideAccountId";
 import { setupChatRequest } from "@/lib/chat/setupChatRequest";
