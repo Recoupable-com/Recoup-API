@@ -16,6 +16,7 @@ import { registerCreateSegmentsTool } from "./registerCreateSegmentsTool";
 import { registerAllYouTubeTools } from "./youtube";
 import { registerTranscribeTools } from "./transcribe";
 import { registerSendEmailTool } from "./registerSendEmailTool";
+import { registerAllComposioTools } from "./composio";
 import { registerAllArtistTools } from "./artists";
 
 /**
@@ -28,6 +29,7 @@ export const registerAllTools = (server: McpServer): void => {
   registerAllArtistTools(server);
   registerAllArtistSocialsTools(server);
   registerAllCatalogTools(server);
+  registerAllComposioTools(server);
   registerAllFileTools(server);
   registerAllImageTools(server);
   registerAllSora2Tools(server);
