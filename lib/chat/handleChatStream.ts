@@ -5,6 +5,7 @@ import { validateChatRequest } from "./validateChatRequest";
 import { setupChatRequest } from "./setupChatRequest";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import generateUUID from "@/lib/uuid/generateUUID";
+import getUiMessageText from "@/lib/messages/getUiMessageText";
 
 /**
  * Handles a streaming chat request.
@@ -48,8 +49,7 @@ export async function handleChatStream(request: NextRequest): Promise<Response> 
             ? assistantMessages[assistantMessages.length - 1]
             : event.responseMessage;
 
-        // Extract text from the assistant message
-        const text = lastAssistantMessage.parts.find(part => part.type === "text")?.text || "";
+        const text = getUiMessageText(lastAssistantMessage);
 
         // Save assistant message to database (matches handleChatGenerate behavior)
         try {

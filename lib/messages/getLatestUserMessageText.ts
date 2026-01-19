@@ -1,4 +1,5 @@
 import { UIMessage } from "ai";
+import getUiMessageText from "./getUiMessageText";
 
 /**
  * Extracts the text content from the most recent user message
@@ -7,7 +8,8 @@ import { UIMessage } from "ai";
  * @returns The text content of the latest user message, or empty string if none found
  */
 export default function getLatestUserMessageText(messages: UIMessage[]): string {
-  const userMessages = messages.filter((msg) => msg.role === "user");
+  const userMessages = messages.filter(msg => msg.role === "user");
   const latestUserMessage = userMessages[userMessages.length - 1];
-  return latestUserMessage?.parts?.find((part) => part.type === "text")?.text || "";
+  if (!latestUserMessage) return "";
+  return getUiMessageText(latestUserMessage);
 }
