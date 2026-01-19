@@ -176,26 +176,29 @@ export async function validateChatRequest(
     validatedBody.messages = getMessages(validatedBody.prompt);
   }
 
-  // Convert first message to UIMessage format if needed (messages may come in different formats)
-  const firstMessage = validatedBody.messages[0];
+  // Get the LAST message (newest) to persist - not the first (oldest/historical)
+  // When clients send conversation history, we only need to persist the new message
+  const lastMessage = validatedBody.messages[validatedBody.messages.length - 1];
   let promptMessage;
-  if (firstMessage?.parts) {
+  if (lastMessage?.parts) {
     // Already in UIMessage format
-    promptMessage = firstMessage;
-  } else if (firstMessage?.content) {
+    promptMessage = lastMessage;
+  } else if (lastMessage?.content) {
     // Convert simple { role, content } format to UIMessage
-    promptMessage = getMessages(firstMessage.content, firstMessage.role)[0];
+    promptMessage = getMessages(lastMessage.content, lastMessage.role)[0];
   } else {
     // Fallback: create a default message
     promptMessage = getMessages("New conversation")[0];
   }
 
   // Setup conversation: auto-create room if needed and persist user message
+  // Use the message's original ID to prevent duplicates with handleChatCompletion's upsert
   const { roomId: finalRoomId } = await setupConversation({
     accountId,
     roomId: validatedBody.roomId,
     promptMessage,
     artistId: validatedBody.artistId,
+    memoryId: promptMessage.id,
   });
 
   return {
