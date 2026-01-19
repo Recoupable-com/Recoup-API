@@ -1,8 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getComposioTools } from "@/lib/composio/toolRouter";
-import { getToolResultSuccess } from "@/lib/mcp/getToolResultSuccess";
-import { getToolResultError } from "@/lib/mcp/getToolResultError";
+import { getCallToolResult } from "@/lib/mcp/getCallToolResult";
 
 /**
  * Registers the "composio" tool on the MCP server.
@@ -26,11 +25,10 @@ export function registerComposioTools(server: McpServer): void {
     async (args) => {
       try {
         const tools = await getComposioTools(args.account_id, args.room_id);
-        return getToolResultSuccess(tools);
+        return getCallToolResult(JSON.stringify(tools));
       } catch (error) {
-        return getToolResultError(
-          error instanceof Error ? error.message : "Failed to get Composio tools"
-        );
+        const message = error instanceof Error ? error.message : "Failed to get Composio tools";
+        return getCallToolResult(JSON.stringify({ error: message }));
       }
     }
   );
