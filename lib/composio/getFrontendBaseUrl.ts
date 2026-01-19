@@ -13,7 +13,7 @@ const TEST_FRONTEND_URL = "https://test-recoup-chat.vercel.app";
  * - Production: Uses the canonical chat.recoupable.com domain
  * - Test branch: Uses the test frontend deployment
  * - Preview (Vercel): Uses VERCEL_URL for deployment-specific URL
- * - Local: Falls back to localhost:3001
+ * - Local: Falls back to localhost:3000 (Recoup-Chat frontend port)
  *
  * @returns The frontend base URL (e.g., "https://chat.recoupable.com")
  */
@@ -35,6 +35,6 @@ export function getFrontendBaseUrl(): string {
     return `https://${process.env.VERCEL_URL}`;
   }
 
-  // Local development fallback
-  return "http://localhost:3001";
+  // Local development fallback - Recoup-Chat runs on port 3000
+  return "http://localhost:3000";
 }
