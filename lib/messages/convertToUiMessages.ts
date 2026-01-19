@@ -1,5 +1,6 @@
 import { UIMessage } from "ai";
 import generateUUID from "@/lib/uuid/generateUUID";
+import isUiMessage from "@/lib/messages/isUiMessage";
 
 /**
  * Message in simple { role, content } format.
@@ -14,16 +15,6 @@ interface SimpleMessage {
  * Input message that can be either UIMessage or simple format.
  */
 type InputMessage = UIMessage | SimpleMessage;
-
-/**
- * Type guard to check if a message is in UIMessage format.
- *
- * @param message - The message to check
- * @returns True if the message has a parts array (UIMessage format)
- */
-function isUiMessage(message: InputMessage): message is UIMessage {
-  return "parts" in message && Array.isArray(message.parts);
-}
 
 /**
  * Converts messages to UIMessage format.
