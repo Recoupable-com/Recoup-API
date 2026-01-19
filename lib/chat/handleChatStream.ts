@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
-import { handleChatCompletion } from "./handleChatCompletion";
+import { saveChatCompletion } from "./saveChatCompletion";
 import { validateChatRequest } from "./validateChatRequest";
 import { setupChatRequest } from "./setupChatRequest";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
@@ -31,25 +31,38 @@ export async function handleChatStream(request: NextRequest): Promise<Response> 
     const stream = createUIMessageStream({
       originalMessages: body.messages,
       generateId: generateUUID,
-      execute: async (options) => {
+      execute: async options => {
         const { writer } = options;
         const result = await agent.stream(chatConfig);
         writer.merge(result.toUIMessageStream());
         // Note: Credit handling and chat completion handling will be added
         // as part of the handleChatCredits and handleChatCompletion migrations
       },
-      onFinish: async (event) => {
+      onFinish: async event => {
         if (event.isAborted) {
           return;
         }
-        const assistantMessages = event.messages.filter(
-          (message) => message.role === "assistant",
-        );
-        const responseMessages =
-          assistantMessages.length > 0 ? assistantMessages : [event.responseMessage];
-        await handleChatCompletion(body, responseMessages);
+        const assistantMessages = event.messages.filter(message => message.role === "assistant");
+        const lastAssistantMessage =
+          assistantMessages.length > 0
+            ? assistantMessages[assistantMessages.length - 1]
+            : event.responseMessage;
+
+        // Extract text from the assistant message
+        const text = lastAssistantMessage.parts.find(part => part.type === "text")?.text || "";
+
+        // Save assistant message to database (matches handleChatGenerate behavior)
+        try {
+          await saveChatCompletion({
+            text,
+            roomId: body.roomId,
+          });
+        } catch (error) {
+          // Log error but don't fail the request - message persistence is non-critical
+          console.error("Failed to persist assistant message:", error);
+        }
       },
-      onError: (e) => {
+      onError: e => {
         console.error("/api/chat onError:", e);
         return JSON.stringify({
           status: "error",
