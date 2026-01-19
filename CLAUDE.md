@@ -145,7 +145,14 @@ export async function selectTableName({
 
 ## Authentication
 
-**Never use `account_id` in request bodies.** Always derive the account ID from the `x-api-key` header using `getApiKeyAccountId()`:
+**Never use `account_id` in request bodies or tool schemas.** Always derive the account ID from authentication:
+
+- **API routes**: Use `x-api-key` header via `getApiKeyAccountId()`
+- **MCP tools**: Use `extra.authInfo` via `resolveAccountId()`
+
+Both API keys and Privy access tokens resolve to an `accountId`. Never accept `account_id` as user input.
+
+### API Routes
 
 ```typescript
 import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
@@ -157,10 +164,23 @@ if (accountIdOrError instanceof NextResponse) {
 const accountId = accountIdOrError;
 ```
 
+### MCP Tools
+
+```typescript
+import { resolveAccountId } from "@/lib/mcp/resolveAccountId";
+import type { McpAuthInfo } from "@/lib/mcp/verifyApiKey";
+
+const authInfo = extra.authInfo as McpAuthInfo | undefined;
+const { accountId, error } = await resolveAccountId({
+  authInfo,
+  accountIdOverride: undefined,
+});
+```
+
 This ensures:
 - Callers cannot impersonate other accounts
 - Authentication is always enforced
-- Account ID is derived from a validated API key
+- Account ID is derived from validated credentials
 
 ## Input Validation
 
