@@ -4,19 +4,7 @@ import { ChatRequestBody } from "./validateChatRequest";
 import { experimental_createMCPClient as createMCPClient } from "@ai-sdk/mcp";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { getGoogleSheetsTools } from "@/lib/agents/googleSheetsAgent";
-
-/**
- * Gets the base URL for the current environment.
- * Uses VERCEL_URL in Vercel deployments, falls back to localhost.
- *
- * @returns The base URL string
- */
-function getBaseUrl(): string {
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-  return "http://localhost:3000";
-}
+import { getBaseUrl } from "@/lib/networking/getBaseUrl";
 
 /**
  * Sets up and filters tools for a chat request.
