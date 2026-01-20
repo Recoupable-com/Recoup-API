@@ -2,12 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ChatRequestBody } from "../validateChatRequest";
 
 // Mock external dependencies
-vi.mock("@ai-sdk/mcp", () => ({
-  experimental_createMCPClient: vi.fn(),
-}));
-
-vi.mock("@modelcontextprotocol/sdk/client/streamableHttp.js", () => ({
-  StreamableHTTPClientTransport: vi.fn().mockImplementation(() => ({})),
+vi.mock("@/lib/mcp/getMcpTools", () => ({
+  getMcpTools: vi.fn(),
 }));
 
 vi.mock("@/lib/agents/googleSheetsAgent", () => ({
@@ -16,13 +12,11 @@ vi.mock("@/lib/agents/googleSheetsAgent", () => ({
 
 // Import after mocks
 import { setupToolsForRequest } from "../setupToolsForRequest";
-import { experimental_createMCPClient } from "@ai-sdk/mcp";
+import { getMcpTools } from "@/lib/mcp/getMcpTools";
 import { getGoogleSheetsTools } from "@/lib/agents/googleSheetsAgent";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
-const mockCreateMCPClient = vi.mocked(experimental_createMCPClient);
+const mockGetMcpTools = vi.mocked(getMcpTools);
 const mockGetGoogleSheetsTools = vi.mocked(getGoogleSheetsTools);
-const mockStreamableHTTPClientTransport = vi.mocked(StreamableHTTPClientTransport);
 
 describe("setupToolsForRequest", () => {
   const mockMcpTools = {
@@ -42,17 +36,15 @@ describe("setupToolsForRequest", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Default mock for MCP client
-    mockCreateMCPClient.mockResolvedValue({
-      tools: vi.fn().mockResolvedValue(mockMcpTools),
-    } as any);
+    // Default mock for MCP tools
+    mockGetMcpTools.mockResolvedValue(mockMcpTools);
 
     // Default mock for Google Sheets tools - returns login tool (not authenticated)
     mockGetGoogleSheetsTools.mockResolvedValue(mockGoogleSheetsLoginTool);
   });
 
   describe("MCP tools integration", () => {
-    it("creates MCP client with HTTP transport", async () => {
+    it("calls getMcpTools with authToken", async () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
         orgId: null,
@@ -62,8 +54,7 @@ describe("setupToolsForRequest", () => {
 
       await setupToolsForRequest(body);
 
-      expect(mockStreamableHTTPClientTransport).toHaveBeenCalled();
-      expect(mockCreateMCPClient).toHaveBeenCalled();
+      expect(mockGetMcpTools).toHaveBeenCalledWith("test-token-123");
     });
 
     it("fetches tools from MCP client", async () => {
@@ -80,27 +71,16 @@ describe("setupToolsForRequest", () => {
       expect(result).toHaveProperty("tool2");
     });
 
-    it("passes authToken to MCP client via HTTP transport", async () => {
+    it("skips MCP tools when authToken is not provided", async () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
         orgId: null,
-        authToken: "test-token-123",
         messages: [{ id: "1", role: "user", content: "Hello" }],
       };
 
       await setupToolsForRequest(body);
 
-      // Verify HTTP transport was created with auth header
-      expect(mockStreamableHTTPClientTransport).toHaveBeenCalledWith(
-        expect.any(URL),
-        expect.objectContaining({
-          requestInit: {
-            headers: {
-              Authorization: "Bearer test-token-123",
-            },
-          },
-        }),
-      );
+      expect(mockGetMcpTools).not.toHaveBeenCalled();
     });
   });
 
@@ -171,11 +151,9 @@ describe("setupToolsForRequest", () => {
     });
 
     it("Google Sheets tools take precedence over MCP tools with same name", async () => {
-      mockCreateMCPClient.mockResolvedValue({
-        tools: vi.fn().mockResolvedValue({
-          googlesheets_create: { description: "MCP version", parameters: {} },
-        }),
-      } as any);
+      mockGetMcpTools.mockResolvedValue({
+        googlesheets_create: { description: "MCP version", parameters: {} },
+      });
 
       mockGetGoogleSheetsTools.mockResolvedValue({
         googlesheets_create: { description: "Composio version", parameters: {} },

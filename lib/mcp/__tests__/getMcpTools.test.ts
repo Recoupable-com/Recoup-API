@@ -4,20 +4,14 @@ vi.mock("@ai-sdk/mcp", () => ({
   experimental_createMCPClient: vi.fn(),
 }));
 
-vi.mock("@modelcontextprotocol/sdk/client/streamableHttp.js", () => ({
-  StreamableHTTPClientTransport: vi.fn().mockImplementation(() => ({})),
-}));
-
 vi.mock("@/lib/networking/getBaseUrl", () => ({
   getBaseUrl: vi.fn().mockReturnValue("https://test.vercel.app"),
 }));
 
 import { getMcpTools } from "../getMcpTools";
 import { experimental_createMCPClient } from "@ai-sdk/mcp";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
 const mockCreateMCPClient = vi.mocked(experimental_createMCPClient);
-const mockStreamableHTTPClientTransport = vi.mocked(StreamableHTTPClientTransport);
 
 describe("getMcpTools", () => {
   const mockTools = {
@@ -33,30 +27,17 @@ describe("getMcpTools", () => {
     } as any);
   });
 
-  it("creates HTTP transport with correct URL", async () => {
-    await getMcpTools("test-token");
-
-    expect(mockStreamableHTTPClientTransport).toHaveBeenCalledWith(
-      expect.any(URL),
-      expect.objectContaining({
-        requestInit: {
-          headers: {
-            Authorization: "Bearer test-token",
-          },
-        },
-      }),
-    );
-
-    const urlArg = mockStreamableHTTPClientTransport.mock.calls[0][0] as URL;
-    expect(urlArg.pathname).toBe("/api/mcp");
-    expect(urlArg.origin).toBe("https://test.vercel.app");
-  });
-
-  it("creates MCP client with transport", async () => {
+  it("creates MCP client with SSE transport config", async () => {
     await getMcpTools("test-token");
 
     expect(mockCreateMCPClient).toHaveBeenCalledWith({
-      transport: expect.any(Object),
+      transport: {
+        type: "sse",
+        url: "https://test.vercel.app/api/mcp",
+        headers: {
+          Authorization: "Bearer test-token",
+        },
+      },
     });
   });
 
@@ -69,15 +50,14 @@ describe("getMcpTools", () => {
   it("passes different auth tokens correctly", async () => {
     await getMcpTools("different-token");
 
-    expect(mockStreamableHTTPClientTransport).toHaveBeenCalledWith(
-      expect.any(URL),
-      expect.objectContaining({
-        requestInit: {
-          headers: {
-            Authorization: "Bearer different-token",
-          },
+    expect(mockCreateMCPClient).toHaveBeenCalledWith({
+      transport: {
+        type: "sse",
+        url: "https://test.vercel.app/api/mcp",
+        headers: {
+          Authorization: "Bearer different-token",
         },
-      }),
-    );
+      },
+    });
   });
 });
