@@ -143,6 +143,45 @@ export async function selectTableName({
 - All API routes should have JSDoc comments
 - Run `pnpm lint` before committing
 
+## Authentication
+
+**Never use `account_id` in request bodies or tool schemas.** Always derive the account ID from authentication:
+
+- **API routes**: Use `x-api-key` header via `getApiKeyAccountId()`
+- **MCP tools**: Use `extra.authInfo` via `resolveAccountId()`
+
+Both API keys and Privy access tokens resolve to an `accountId`. Never accept `account_id` as user input.
+
+### API Routes
+
+```typescript
+import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
+
+const accountIdOrError = await getApiKeyAccountId(request);
+if (accountIdOrError instanceof NextResponse) {
+  return accountIdOrError;
+}
+const accountId = accountIdOrError;
+```
+
+### MCP Tools
+
+```typescript
+import { resolveAccountId } from "@/lib/mcp/resolveAccountId";
+import type { McpAuthInfo } from "@/lib/mcp/verifyApiKey";
+
+const authInfo = extra.authInfo as McpAuthInfo | undefined;
+const { accountId, error } = await resolveAccountId({
+  authInfo,
+  accountIdOverride: undefined,
+});
+```
+
+This ensures:
+- Callers cannot impersonate other accounts
+- Authentication is always enforced
+- Account ID is derived from validated credentials
+
 ## Input Validation
 
 All API endpoints should use a **validate function** for input parsing. Use Zod for schema validation.

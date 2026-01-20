@@ -2,28 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ChatRequestBody } from "../validateChatRequest";
 
 // Mock external dependencies
-vi.mock("@ai-sdk/mcp", () => ({
-  experimental_createMCPClient: vi.fn(),
-}));
-
-vi.mock("@modelcontextprotocol/sdk/client/streamableHttp.js", () => ({
-  StreamableHTTPClientTransport: vi.fn().mockImplementation(() => ({})),
-}));
-
-vi.mock("@modelcontextprotocol/sdk/server/mcp.js", () => ({
-  McpServer: vi.fn().mockImplementation(() => ({
-    connect: vi.fn(),
-  })),
-}));
-
-vi.mock("@modelcontextprotocol/sdk/inMemory.js", () => ({
-  InMemoryTransport: {
-    createLinkedPair: vi.fn().mockReturnValue([{}, {}]),
-  },
-}));
-
-vi.mock("@/lib/mcp/tools", () => ({
-  registerAllTools: vi.fn(),
+vi.mock("@/lib/mcp/getMcpTools", () => ({
+  getMcpTools: vi.fn(),
 }));
 
 vi.mock("@/lib/agents/googleSheetsAgent", () => ({
@@ -32,10 +12,10 @@ vi.mock("@/lib/agents/googleSheetsAgent", () => ({
 
 // Import after mocks
 import { setupToolsForRequest } from "../setupToolsForRequest";
-import { experimental_createMCPClient } from "@ai-sdk/mcp";
+import { getMcpTools } from "@/lib/mcp/getMcpTools";
 import { getGoogleSheetsTools } from "@/lib/agents/googleSheetsAgent";
 
-const mockCreateMCPClient = vi.mocked(experimental_createMCPClient);
+const mockGetMcpTools = vi.mocked(getMcpTools);
 const mockGetGoogleSheetsTools = vi.mocked(getGoogleSheetsTools);
 
 describe("setupToolsForRequest", () => {
@@ -56,32 +36,32 @@ describe("setupToolsForRequest", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Default mock for MCP client
-    mockCreateMCPClient.mockResolvedValue({
-      tools: vi.fn().mockResolvedValue(mockMcpTools),
-    } as any);
+    // Default mock for MCP tools
+    mockGetMcpTools.mockResolvedValue(mockMcpTools);
 
     // Default mock for Google Sheets tools - returns login tool (not authenticated)
     mockGetGoogleSheetsTools.mockResolvedValue(mockGoogleSheetsLoginTool);
   });
 
   describe("MCP tools integration", () => {
-    it("creates MCP client with correct URL", async () => {
+    it("calls getMcpTools with authToken", async () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
         orgId: null,
+        authToken: "test-token-123",
         messages: [{ id: "1", role: "user", content: "Hello" }],
       };
 
       await setupToolsForRequest(body);
 
-      expect(mockCreateMCPClient).toHaveBeenCalled();
+      expect(mockGetMcpTools).toHaveBeenCalledWith("test-token-123");
     });
 
     it("fetches tools from MCP client", async () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
         orgId: null,
+        authToken: "test-token-123",
         messages: [{ id: "1", role: "user", content: "Hello" }],
       };
 
@@ -91,7 +71,7 @@ describe("setupToolsForRequest", () => {
       expect(result).toHaveProperty("tool2");
     });
 
-    it("passes accountId to MCP client via authenticated transport", async () => {
+    it("skips MCP tools when authToken is not provided", async () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
         orgId: null,
@@ -100,25 +80,7 @@ describe("setupToolsForRequest", () => {
 
       await setupToolsForRequest(body);
 
-      // Verify MCP client was created with a transport that includes auth info
-      expect(mockCreateMCPClient).toHaveBeenCalledWith(
-        expect.objectContaining({
-          transport: expect.any(Object),
-        }),
-      );
-    });
-
-    it("passes orgId to MCP client via authenticated transport", async () => {
-      const body: ChatRequestBody = {
-        accountId: "account-123",
-        orgId: "org-456",
-        messages: [{ id: "1", role: "user", content: "Hello" }],
-      };
-
-      await setupToolsForRequest(body);
-
-      // Verify MCP client was created
-      expect(mockCreateMCPClient).toHaveBeenCalled();
+      expect(mockGetMcpTools).not.toHaveBeenCalled();
     });
   });
 
@@ -127,6 +89,7 @@ describe("setupToolsForRequest", () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
         orgId: null,
+        authToken: "test-token-123",
         messages: [{ id: "1", role: "user", content: "Create a spreadsheet" }],
       };
 
@@ -141,6 +104,7 @@ describe("setupToolsForRequest", () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
         orgId: null,
+        authToken: "test-token-123",
         messages: [{ id: "1", role: "user", content: "Create a spreadsheet" }],
       };
 
@@ -156,6 +120,7 @@ describe("setupToolsForRequest", () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
         orgId: null,
+        authToken: "test-token-123",
         messages: [{ id: "1", role: "user", content: "Create a spreadsheet" }],
       };
 
@@ -172,6 +137,7 @@ describe("setupToolsForRequest", () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
         orgId: null,
+        authToken: "test-token-123",
         messages: [{ id: "1", role: "user", content: "Hello" }],
       };
 
@@ -185,11 +151,9 @@ describe("setupToolsForRequest", () => {
     });
 
     it("Google Sheets tools take precedence over MCP tools with same name", async () => {
-      mockCreateMCPClient.mockResolvedValue({
-        tools: vi.fn().mockResolvedValue({
-          googlesheets_create: { description: "MCP version", parameters: {} },
-        }),
-      } as any);
+      mockGetMcpTools.mockResolvedValue({
+        googlesheets_create: { description: "MCP version", parameters: {} },
+      });
 
       mockGetGoogleSheetsTools.mockResolvedValue({
         googlesheets_create: { description: "Composio version", parameters: {} },
@@ -198,6 +162,7 @@ describe("setupToolsForRequest", () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
         orgId: null,
+        authToken: "test-token-123",
         messages: [{ id: "1", role: "user", content: "Hello" }],
       };
 
@@ -215,6 +180,7 @@ describe("setupToolsForRequest", () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
         orgId: null,
+        authToken: "test-token-123",
         messages: [{ id: "1", role: "user", content: "Hello" }],
         excludeTools: ["tool1"],
       };
@@ -231,6 +197,7 @@ describe("setupToolsForRequest", () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
         orgId: null,
+        authToken: "test-token-123",
         messages: [{ id: "1", role: "user", content: "Hello" }],
         excludeTools: ["tool1", "googlesheets_create"],
       };
@@ -247,6 +214,7 @@ describe("setupToolsForRequest", () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
         orgId: null,
+        authToken: "test-token-123",
         messages: [{ id: "1", role: "user", content: "Hello" }],
       };
 
@@ -260,6 +228,7 @@ describe("setupToolsForRequest", () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
         orgId: null,
+        authToken: "test-token-123",
         messages: [{ id: "1", role: "user", content: "Hello" }],
         excludeTools: [],
       };
