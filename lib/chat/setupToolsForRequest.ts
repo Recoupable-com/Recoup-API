@@ -5,19 +5,19 @@ import { experimental_createMCPClient as createMCPClient } from "@ai-sdk/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { registerAllTools } from "@/lib/mcp/tools";
-import { getGoogleSheetsTools } from "@/lib/agents/googleSheetsAgent";
+import { getComposioTools } from "@/lib/composio/toolRouter";
 
 /**
  * Sets up and filters tools for a chat request.
  * Aggregates tools from:
- * - MCP server (in-process via in-memory transport, no HTTP overhead)
- * - Google Sheets (via Composio integration)
+ * - MCP server (in-process via in-memory transport)
+ * - Composio Tool Router (Google Sheets and other connectors)
  *
  * @param body - The chat request body
  * @returns Filtered tool set ready for use
  */
 export async function setupToolsForRequest(body: ChatRequestBody): Promise<ToolSet> {
-  const { excludeTools } = body;
+  const { accountId, roomId, excludeTools } = body;
 
   // Create in-memory MCP server and client (no HTTP call needed)
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -30,15 +30,15 @@ export async function setupToolsForRequest(body: ChatRequestBody): Promise<ToolS
   await server.connect(serverTransport);
 
   const mcpClient = await createMCPClient({ transport: clientTransport });
-  const mcpClientTools = (await mcpClient.tools()) as ToolSet;
+  const mcpTools = (await mcpClient.tools()) as ToolSet;
 
-  // Fetch Google Sheets tools (authenticated tools or login tool)
-  const googleSheetsTools = await getGoogleSheetsTools(body);
+  // Get Composio Tool Router tools (COMPOSIO_MANAGE_CONNECTIONS, etc.)
+  const composioTools = await getComposioTools(accountId, roomId);
 
-  // Merge all tools - Google Sheets tools take precedence over MCP tools
+  // Merge all tools
   const allTools: ToolSet = {
-    ...mcpClientTools,
-    ...googleSheetsTools,
+    ...mcpTools,
+    ...composioTools,
   };
 
   const tools = filterExcludedTools(allTools, excludeTools);

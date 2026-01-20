@@ -5,7 +5,7 @@ import { getConnectors } from "@/lib/composio/connectors";
 import { disconnectConnector } from "@/lib/composio/connectors/disconnectConnector";
 import { validateDisconnectConnectorBody } from "@/lib/composio/connectors/validateDisconnectConnectorBody";
 import { verifyConnectorOwnership } from "@/lib/composio/connectors/verifyConnectorOwnership";
-import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
+import { validateAccountIdHeaders } from "@/lib/accounts/validateAccountIdHeaders";
 
 /**
  * OPTIONS handler for CORS preflight requests.
@@ -22,7 +22,7 @@ export async function OPTIONS() {
  *
  * List all available connectors and their connection status for a user.
  *
- * Authentication: x-api-key header required.
+ * Authentication: x-api-key OR Authorization Bearer token required.
  *
  * @returns List of connectors with connection status
  */
@@ -30,12 +30,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const headers = getCorsHeaders();
 
   try {
-    const accountIdOrError = await getApiKeyAccountId(request);
-    if (accountIdOrError instanceof NextResponse) {
-      return accountIdOrError;
+    const authResult = await validateAccountIdHeaders(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
 
-    const accountId = accountIdOrError;
+    const { accountId } = authResult;
 
     const connectors = await getConnectors(accountId);
 
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
  *
  * Disconnect a connected account from Composio.
  *
- * Authentication: x-api-key header required.
+ * Authentication: x-api-key OR Authorization Bearer token required.
  *
  * Body: { connected_account_id: string }
  */
@@ -68,12 +68,12 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
   const headers = getCorsHeaders();
 
   try {
-    const accountIdOrError = await getApiKeyAccountId(request);
-    if (accountIdOrError instanceof NextResponse) {
-      return accountIdOrError;
+    const authResult = await validateAccountIdHeaders(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
 
-    const accountId = accountIdOrError;
+    const { accountId } = authResult;
     const body = await request.json();
 
     const validated = validateDisconnectConnectorBody(body);
