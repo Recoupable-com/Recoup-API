@@ -21,7 +21,7 @@ export async function getConnectors(userId: string): Promise<ConnectorInfo[]> {
   const session = await composio.create(userId);
   const toolkits = await session.toolkits();
 
-  return toolkits.items.map((toolkit) => ({
+  return toolkits.items.map(toolkit => ({
     slug: toolkit.slug,
     name: toolkit.name,
     isConnected: toolkit.connection?.isActive ?? false,

@@ -24,6 +24,7 @@ export async function OPTIONS() {
  *
  * Authentication: x-api-key header required.
  *
+ * @param request
  * @returns List of connectors with connection status
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -49,8 +50,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       { status: 200, headers },
     );
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to fetch connectors";
+    const message = error instanceof Error ? error.message : "Failed to fetch connectors";
     return NextResponse.json({ error: message }, { status: 500, headers });
   }
 }
@@ -63,6 +63,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
  * Authentication: x-api-key header required.
  *
  * Body: { connected_account_id: string }
+ *
+ * @param request
  */
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   const headers = getCorsHeaders();
@@ -88,7 +90,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     if (!isOwner) {
       return NextResponse.json(
         { error: "Connected account not found or does not belong to this user" },
-        { status: 403, headers }
+        { status: 403, headers },
       );
     }
 
@@ -102,8 +104,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       { status: 200, headers },
     );
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to disconnect connector";
+    const message = error instanceof Error ? error.message : "Failed to disconnect connector";
     return NextResponse.json({ error: message }, { status: 500, headers });
   }
 }

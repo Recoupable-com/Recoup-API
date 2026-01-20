@@ -50,10 +50,7 @@ function isValidTool(tool: unknown): tool is Tool {
  * @param roomId - Optional chat room ID for OAuth redirect
  * @returns ToolSet containing filtered Vercel AI SDK tools
  */
-export async function getComposioTools(
-  userId: string,
-  roomId?: string
-): Promise<ToolSet> {
+export async function getComposioTools(userId: string, roomId?: string): Promise<ToolSet> {
   const session = await createToolRouterSession(userId, roomId);
   const allTools = await session.tools();
 

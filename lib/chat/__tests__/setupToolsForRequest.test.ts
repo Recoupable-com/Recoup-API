@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ChatRequestBody } from "../validateChatRequest";
 
+// Import after mocks
+import { setupToolsForRequest } from "../setupToolsForRequest";
+import { getMcpTools } from "@/lib/mcp/getMcpTools";
+import { getGoogleSheetsTools } from "@/lib/agents/googleSheetsAgent";
+
 // Mock external dependencies
 vi.mock("@/lib/mcp/getMcpTools", () => ({
   getMcpTools: vi.fn(),
@@ -9,11 +14,6 @@ vi.mock("@/lib/mcp/getMcpTools", () => ({
 vi.mock("@/lib/agents/googleSheetsAgent", () => ({
   getGoogleSheetsTools: vi.fn(),
 }));
-
-// Import after mocks
-import { setupToolsForRequest } from "../setupToolsForRequest";
-import { getMcpTools } from "@/lib/mcp/getMcpTools";
-import { getGoogleSheetsTools } from "@/lib/agents/googleSheetsAgent";
 
 const mockGetMcpTools = vi.mocked(getMcpTools);
 const mockGetGoogleSheetsTools = vi.mocked(getGoogleSheetsTools);

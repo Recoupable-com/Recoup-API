@@ -1,24 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ChatRequestBody } from "../validateChatRequest";
 
+import { setupChatRequest } from "../setupChatRequest";
+import getGeneralAgent from "@/lib/agents/generalAgent/getGeneralAgent";
+import { convertToModelMessages } from "ai";
+
 // Mock dependencies
 vi.mock("@/lib/agents/generalAgent/getGeneralAgent", () => ({
   default: vi.fn(),
 }));
 
-vi.mock("ai", async (importOriginal) => {
+vi.mock("ai", async importOriginal => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
-    convertToModelMessages: vi.fn((messages) => messages),
+    convertToModelMessages: vi.fn(messages => messages),
     stepCountIs: actual.stepCountIs,
     ToolLoopAgent: actual.ToolLoopAgent,
   };
 });
-
-import { setupChatRequest } from "../setupChatRequest";
-import getGeneralAgent from "@/lib/agents/generalAgent/getGeneralAgent";
-import { convertToModelMessages } from "ai";
 
 const mockGetGeneralAgent = vi.mocked(getGeneralAgent);
 const mockConvertToModelMessages = vi.mocked(convertToModelMessages);
@@ -39,7 +39,7 @@ describe("setupChatRequest", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetGeneralAgent.mockResolvedValue(mockRoutingDecision as any);
-    mockConvertToModelMessages.mockImplementation((messages) => messages as any);
+    mockConvertToModelMessages.mockImplementation(messages => messages as any);
   });
 
   describe("basic functionality", () => {
@@ -280,7 +280,11 @@ describe("setupChatRequest", () => {
         steps: [
           {
             toolResults: [
-              { toolCallId: "call-1", toolName: "create_new_artist", output: { type: "json", value: {} } },
+              {
+                toolCallId: "call-1",
+                toolName: "create_new_artist",
+                output: { type: "json", value: {} },
+              },
             ],
           },
         ],
@@ -309,7 +313,11 @@ describe("setupChatRequest", () => {
         steps: [
           {
             toolResults: [
-              { toolCallId: "call-1", toolName: "create_new_artist", output: { type: "json", value: {} } },
+              {
+                toolCallId: "call-1",
+                toolName: "create_new_artist",
+                output: { type: "json", value: {} },
+              },
             ],
           },
         ],

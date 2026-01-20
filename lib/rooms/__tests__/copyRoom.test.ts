@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+import { copyRoom } from "../copyRoom";
+
 const mockSelectRoom = vi.fn();
 const mockInsertRoom = vi.fn();
 
@@ -14,8 +16,6 @@ vi.mock("@/lib/supabase/rooms/insertRoom", () => ({
 vi.mock("@/lib/uuid/generateUUID", () => ({
   default: () => "generated-uuid-123",
 }));
-
-import { copyRoom } from "../copyRoom";
 
 describe("copyRoom", () => {
   const mockSourceRoom = {

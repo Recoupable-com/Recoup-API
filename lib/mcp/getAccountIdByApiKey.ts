@@ -8,9 +8,7 @@ import { selectAccountApiKeys } from "@/lib/supabase/account_api_keys/selectAcco
  * @param apiKey - The raw API key to validate.
  * @returns The account ID if valid, or null if invalid.
  */
-export async function getAccountIdByApiKey(
-  apiKey: string,
-): Promise<string | null> {
+export async function getAccountIdByApiKey(apiKey: string): Promise<string | null> {
   const keyHash = hashApiKey(apiKey, PRIVY_PROJECT_SECRET);
   const apiKeys = await selectAccountApiKeys({ keyHash });
 

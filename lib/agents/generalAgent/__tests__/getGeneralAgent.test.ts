@@ -2,6 +2,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ChatRequestBody } from "@/lib/chat/validateChatRequest";
 import { ToolLoopAgent, stepCountIs } from "ai";
 
+// Import after mocks
+import getGeneralAgent from "../getGeneralAgent";
+import selectAccountEmails from "@/lib/supabase/account_emails/selectAccountEmails";
+import { selectAccountInfo } from "@/lib/supabase/account_info/selectAccountInfo";
+import { getAccountWithDetails } from "@/lib/supabase/accounts/getAccountWithDetails";
+import { getKnowledgeBaseText } from "@/lib/files/getKnowledgeBaseText";
+import { setupToolsForRequest } from "@/lib/chat/setupToolsForRequest";
+import { getSystemPrompt } from "@/lib/prompts/getSystemPrompt";
+import { extractImageUrlsFromMessages } from "@/lib/messages/extractImageUrlsFromMessages";
+import { buildSystemPromptWithImages } from "@/lib/chat/buildSystemPromptWithImages";
+
 // Mock all external dependencies
 vi.mock("@/lib/supabase/account_emails/selectAccountEmails", () => ({
   default: vi.fn(),
@@ -34,17 +45,6 @@ vi.mock("@/lib/messages/extractImageUrlsFromMessages", () => ({
 vi.mock("@/lib/chat/buildSystemPromptWithImages", () => ({
   buildSystemPromptWithImages: vi.fn(),
 }));
-
-// Import after mocks
-import getGeneralAgent from "../getGeneralAgent";
-import selectAccountEmails from "@/lib/supabase/account_emails/selectAccountEmails";
-import { selectAccountInfo } from "@/lib/supabase/account_info/selectAccountInfo";
-import { getAccountWithDetails } from "@/lib/supabase/accounts/getAccountWithDetails";
-import { getKnowledgeBaseText } from "@/lib/files/getKnowledgeBaseText";
-import { setupToolsForRequest } from "@/lib/chat/setupToolsForRequest";
-import { getSystemPrompt } from "@/lib/prompts/getSystemPrompt";
-import { extractImageUrlsFromMessages } from "@/lib/messages/extractImageUrlsFromMessages";
-import { buildSystemPromptWithImages } from "@/lib/chat/buildSystemPromptWithImages";
 
 const mockSelectAccountEmails = vi.mocked(selectAccountEmails);
 const mockSelectAccountInfo = vi.mocked(selectAccountInfo);

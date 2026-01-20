@@ -1,6 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextResponse } from "next/server";
 
+import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
+import { validateOverrideAccountId } from "@/lib/accounts/validateOverrideAccountId";
+import { setupChatRequest } from "@/lib/chat/setupChatRequest";
+import { generateText } from "ai";
+import { saveChatCompletion } from "@/lib/chat/saveChatCompletion";
+import { generateUUID } from "@/lib/uuid/generateUUID";
+import { createNewRoom } from "@/lib/chat/createNewRoom";
+import { handleChatGenerate } from "../handleChatGenerate";
+
 // Mock all dependencies before importing the module under test
 vi.mock("@/lib/auth/getApiKeyAccountId", () => ({
   getApiKeyAccountId: vi.fn(),
@@ -54,15 +63,6 @@ vi.mock("@/lib/messages/filterMessageContentForMemories", () => ({
   default: vi.fn((msg: unknown) => msg),
 }));
 
-import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
-import { validateOverrideAccountId } from "@/lib/accounts/validateOverrideAccountId";
-import { setupChatRequest } from "@/lib/chat/setupChatRequest";
-import { generateText } from "ai";
-import { saveChatCompletion } from "@/lib/chat/saveChatCompletion";
-import { generateUUID } from "@/lib/uuid/generateUUID";
-import { createNewRoom } from "@/lib/chat/createNewRoom";
-import { handleChatGenerate } from "../handleChatGenerate";
-
 const mockGetApiKeyAccountId = vi.mocked(getApiKeyAccountId);
 const mockValidateOverrideAccountId = vi.mocked(validateOverrideAccountId);
 const mockSetupChatRequest = vi.mocked(setupChatRequest);
@@ -72,10 +72,12 @@ const mockGenerateUUID = vi.mocked(generateUUID);
 const mockCreateNewRoom = vi.mocked(createNewRoom);
 
 // Helper to create mock NextRequest
-function createMockRequest(
-  body: unknown,
-  headers: Record<string, string> = {},
-): Request {
+/**
+ *
+ * @param body
+ * @param headers
+ */
+function createMockRequest(body: unknown, headers: Record<string, string> = {}): Request {
   return {
     json: () => Promise.resolve(body),
     headers: {
@@ -98,10 +100,7 @@ describe("handleChatGenerate", () => {
     it("returns 400 error when neither messages nor prompt is provided", async () => {
       mockGetApiKeyAccountId.mockResolvedValue("account-123");
 
-      const request = createMockRequest(
-        { roomId: "room-123" },
-        { "x-api-key": "test-key" },
-      );
+      const request = createMockRequest({ roomId: "room-123" }, { "x-api-key": "test-key" });
 
       const result = await handleChatGenerate(request as any);
 
@@ -152,10 +151,7 @@ describe("handleChatGenerate", () => {
         },
       } as any);
 
-      const request = createMockRequest(
-        { prompt: "Hello, world!" },
-        { "x-api-key": "valid-key" },
-      );
+      const request = createMockRequest({ prompt: "Hello, world!" }, { "x-api-key": "valid-key" });
 
       const result = await handleChatGenerate(request as any);
 
@@ -187,10 +183,7 @@ describe("handleChatGenerate", () => {
       } as any);
 
       const messages = [{ role: "user", content: "Hello" }];
-      const request = createMockRequest(
-        { messages },
-        { "x-api-key": "valid-key" },
-      );
+      const request = createMockRequest({ messages }, { "x-api-key": "valid-key" });
 
       await handleChatGenerate(request as any);
 
@@ -267,10 +260,7 @@ describe("handleChatGenerate", () => {
         response: { messages: [], headers: {}, body: null },
       } as any);
 
-      const request = createMockRequest(
-        { prompt: "Hello" },
-        { "x-api-key": "valid-key" },
-      );
+      const request = createMockRequest({ prompt: "Hello" }, { "x-api-key": "valid-key" });
 
       const result = await handleChatGenerate(request as any);
 
@@ -286,10 +276,7 @@ describe("handleChatGenerate", () => {
       mockGetApiKeyAccountId.mockResolvedValue("account-123");
       mockSetupChatRequest.mockRejectedValue(new Error("Setup failed"));
 
-      const request = createMockRequest(
-        { prompt: "Hello" },
-        { "x-api-key": "valid-key" },
-      );
+      const request = createMockRequest({ prompt: "Hello" }, { "x-api-key": "valid-key" });
 
       const result = await handleChatGenerate(request as any);
 
@@ -314,10 +301,7 @@ describe("handleChatGenerate", () => {
 
       mockGenerateText.mockRejectedValue(new Error("Generation failed"));
 
-      const request = createMockRequest(
-        { prompt: "Hello" },
-        { "x-api-key": "valid-key" },
-      );
+      const request = createMockRequest({ prompt: "Hello" }, { "x-api-key": "valid-key" });
 
       const result = await handleChatGenerate(request as any);
 
@@ -427,10 +411,7 @@ describe("handleChatGenerate", () => {
 
       mockSaveChatCompletion.mockResolvedValue(null);
 
-      const request = createMockRequest(
-        { prompt: "Hello" },
-        { "x-api-key": "valid-key" },
-      );
+      const request = createMockRequest({ prompt: "Hello" }, { "x-api-key": "valid-key" });
 
       await handleChatGenerate(request as any);
 
@@ -499,10 +480,7 @@ describe("handleChatGenerate", () => {
 
       mockSaveChatCompletion.mockResolvedValue(null);
 
-      const request = createMockRequest(
-        { prompt: "Hello" },
-        { "x-api-key": "valid-key" },
-      );
+      const request = createMockRequest({ prompt: "Hello" }, { "x-api-key": "valid-key" });
 
       const result = await handleChatGenerate(request as any);
 

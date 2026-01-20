@@ -9,9 +9,7 @@ export const authorizeConnectorBodySchema = z.object({
   callback_url: z.string().url("callback_url must be a valid URL").optional(),
 });
 
-export type AuthorizeConnectorBody = z.infer<
-  typeof authorizeConnectorBodySchema
->;
+export type AuthorizeConnectorBody = z.infer<typeof authorizeConnectorBodySchema>;
 
 /**
  * Validates request body for POST /api/connectors/authorize.
@@ -20,7 +18,7 @@ export type AuthorizeConnectorBody = z.infer<
  * @returns A NextResponse with an error if validation fails, or the validated body if validation passes.
  */
 export function validateAuthorizeConnectorBody(
-  body: unknown
+  body: unknown,
 ): NextResponse | AuthorizeConnectorBody {
   const result = authorizeConnectorBodySchema.safeParse(body);
 
@@ -33,7 +31,7 @@ export function validateAuthorizeConnectorBody(
       {
         status: 400,
         headers: getCorsHeaders(),
-      }
+      },
     );
   }
 

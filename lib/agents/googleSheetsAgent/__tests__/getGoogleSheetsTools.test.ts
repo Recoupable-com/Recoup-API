@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ChatRequestBody } from "@/lib/chat/validateChatRequest";
 
+// Import after mocks
+import getGoogleSheetsTools from "../getGoogleSheetsTools";
+import { getComposioClient } from "@/lib/composio/client";
+import getConnectedAccount from "@/lib/composio/googleSheets/getConnectedAccount";
+import getLatestUserMessageText from "@/lib/messages/getLatestUserMessageText";
+
 // Mock external dependencies
 vi.mock("@/lib/composio/client", () => ({
   getComposioClient: vi.fn(),
@@ -18,12 +24,6 @@ vi.mock("@/lib/messages/getLatestUserMessageText", () => ({
 vi.mock("@/lib/composio/tools/googleSheetsLoginTool", () => ({
   default: { description: "Login to Google Sheets", parameters: {} },
 }));
-
-// Import after mocks
-import getGoogleSheetsTools from "../getGoogleSheetsTools";
-import { getComposioClient } from "@/lib/composio/client";
-import getConnectedAccount from "@/lib/composio/googleSheets/getConnectedAccount";
-import getLatestUserMessageText from "@/lib/messages/getLatestUserMessageText";
 
 const mockGetComposioClient = vi.mocked(getComposioClient);
 const mockGetConnectedAccount = vi.mocked(getConnectedAccount);
@@ -62,10 +62,7 @@ describe("getGoogleSheetsTools", () => {
 
       await getGoogleSheetsTools(body);
 
-      expect(mockGetConnectedAccount).toHaveBeenCalledWith(
-        "account-123",
-        expect.any(Object),
-      );
+      expect(mockGetConnectedAccount).toHaveBeenCalledWith("account-123", expect.any(Object));
     });
 
     it("passes callback URL with encoded latest user message", async () => {

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
-import { getApiKeyDetails } from "@/lib/keys/getApiKeyDetails";
-import { canAccessAccount } from "@/lib/organizations/canAccessAccount";
+import { validateAuthContext } from "@/lib/auth/validateAuthContext";
 import { safeParseJson } from "@/lib/networking/safeParseJson";
 import { z } from "zod";
 
@@ -20,8 +19,12 @@ export type ValidatedCreateArtistRequest = {
 };
 
 /**
- * Validates POST /api/artists request including API key, body parsing, schema validation,
- * and account access authorization.
+ * Validates POST /api/artists request including auth headers, body parsing, schema validation,
+ * account access authorization, and organization access authorization.
+ *
+ * Supports both:
+ * - x-api-key header
+ * - Authorization: Bearer <token> header
  *
  * @param request - The NextRequest object
  * @returns A NextResponse with an error if validation fails, or the validated request data if validation passes.
@@ -29,22 +32,7 @@ export type ValidatedCreateArtistRequest = {
 export async function validateCreateArtistBody(
   request: NextRequest,
 ): Promise<NextResponse | ValidatedCreateArtistRequest> {
-  const apiKey = request.headers.get("x-api-key");
-  if (!apiKey) {
-    return NextResponse.json(
-      { status: "error", error: "x-api-key header required" },
-      { status: 401, headers: getCorsHeaders() },
-    );
-  }
-
-  const keyDetails = await getApiKeyDetails(apiKey);
-  if (!keyDetails) {
-    return NextResponse.json(
-      { status: "error", error: "Invalid API key" },
-      { status: 401, headers: getCorsHeaders() },
-    );
-  }
-
+  // Parse and validate the request body first
   const body = await safeParseJson(request);
   const result = createArtistBodySchema.safeParse(body);
   if (!result.success) {
@@ -59,25 +47,19 @@ export async function validateCreateArtistBody(
     );
   }
 
-  // Use account_id from body if provided (org API keys only), otherwise use API key's account
-  let accountId = keyDetails.accountId;
-  if (result.data.account_id) {
-    const hasAccess = await canAccessAccount({
-      orgId: keyDetails.orgId,
-      targetAccountId: result.data.account_id,
-    });
-    if (!hasAccess) {
-      return NextResponse.json(
-        { status: "error", error: "Access denied to specified account_id" },
-        { status: 403, headers: getCorsHeaders() },
-      );
-    }
-    accountId = result.data.account_id;
+  // Validate auth and authorization using the centralized utility
+  const authContext = await validateAuthContext(request, {
+    accountId: result.data.account_id,
+    organizationId: result.data.organization_id,
+  });
+
+  if (authContext instanceof NextResponse) {
+    return authContext;
   }
 
   return {
     name: result.data.name,
-    accountId,
+    accountId: authContext.accountId,
     organizationId: result.data.organization_id,
   };
 }

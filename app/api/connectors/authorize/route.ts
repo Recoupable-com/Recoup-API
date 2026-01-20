@@ -27,6 +27,7 @@ export async function OPTIONS() {
  * - connector: The connector slug, e.g., "googlesheets" (required)
  * - callback_url: Optional custom callback URL after OAuth
  *
+ * @param request
  * @returns The redirect URL for OAuth authorization
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -60,8 +61,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { status: 200, headers },
     );
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to authorize connector";
+    const message = error instanceof Error ? error.message : "Failed to authorize connector";
     return NextResponse.json({ error: message }, { status: 500, headers });
   }
 }

@@ -27,9 +27,7 @@ export async function disconnectConnector(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(
-      `Failed to disconnect (${response.status}): ${errorText}`,
-    );
+    throw new Error(`Failed to disconnect (${response.status}): ${errorText}`);
   }
 
   return { success: true };

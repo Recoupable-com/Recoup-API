@@ -38,7 +38,7 @@ export async function setupChatRequest(body: ChatRequestBody): Promise<ChatConfi
     messages: convertedMessages,
     experimental_generateMessageId: generateUUID,
     tools,
-    prepareStep: (options) => {
+    prepareStep: options => {
       const next = getPrepareStepResult(options);
       if (next) {
         return { ...options, ...next };

@@ -55,4 +55,3 @@ export async function getArtistsHandler(request: NextRequest): Promise<NextRespo
     );
   }
 }
-

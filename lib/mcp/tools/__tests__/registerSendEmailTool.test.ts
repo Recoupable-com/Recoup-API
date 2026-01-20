@@ -85,7 +85,10 @@ describe("registerSendEmailTool", () => {
   });
 
   it("returns error when sendEmailWithResend returns NextResponse", async () => {
-    const errorResponse = NextResponse.json({ error: { message: "Rate limited" } }, { status: 429 });
+    const errorResponse = NextResponse.json(
+      { error: { message: "Rate limited" } },
+      { status: 429 },
+    );
     mockSendEmailWithResend.mockResolvedValue(errorResponse);
 
     const result = await registeredHandler({

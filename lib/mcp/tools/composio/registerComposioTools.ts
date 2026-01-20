@@ -13,6 +13,10 @@ const composioSchema = z.object({
 
 type ComposioArgs = z.infer<typeof composioSchema>;
 
+/**
+ *
+ * @param server
+ */
 export function registerComposioTools(server: McpServer): void {
   server.registerTool(
     "composio",
@@ -33,6 +37,6 @@ export function registerComposioTools(server: McpServer): void {
 
       const tools = await getComposioTools(accountId, args.room_id);
       return getCallToolResult(JSON.stringify(tools));
-    }
+    },
   );
 }

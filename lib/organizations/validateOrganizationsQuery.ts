@@ -37,4 +37,3 @@ export function validateOrganizationsQuery(
 
   return result.data;
 }
-

@@ -27,8 +27,7 @@ export async function authorizeConnector(
 ): Promise<AuthorizeResult> {
   const composio = getComposioClient();
 
-  const callbackUrl =
-    customCallbackUrl || getCallbackUrl({ destination: "connectors" });
+  const callbackUrl = customCallbackUrl || getCallbackUrl({ destination: "connectors" });
 
   const session = await composio.create(userId, {
     manageConnections: {

@@ -116,7 +116,7 @@ describe("Chat Types", () => {
         messages: [],
         experimental_generateMessageId: () => "test-id",
         tools: {},
-        prepareStep: (options) => options,
+        prepareStep: options => options,
       };
       expect(config.prepareStep).toBeDefined();
     });

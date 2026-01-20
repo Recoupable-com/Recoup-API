@@ -14,7 +14,9 @@ export type DisconnectConnectorBody = z.infer<typeof disconnectConnectorBodySche
  * @param body - The request body
  * @returns A NextResponse with an error if validation fails, or the validated body if validation passes.
  */
-export function validateDisconnectConnectorBody(body: unknown): NextResponse | DisconnectConnectorBody {
+export function validateDisconnectConnectorBody(
+  body: unknown,
+): NextResponse | DisconnectConnectorBody {
   const result = disconnectConnectorBodySchema.safeParse(body);
 
   if (!result.success) {
