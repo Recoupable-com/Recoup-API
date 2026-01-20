@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { authorizeConnector } from "@/lib/composio/connectors";
-import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
+import { validateAccountIdHeaders } from "@/lib/accounts/validateAccountIdHeaders";
 import { validateAuthorizeConnectorBody } from "@/lib/composio/connectors/validateAuthorizeConnectorBody";
 
 /**
@@ -20,8 +20,8 @@ export async function OPTIONS() {
  *
  * Generate an OAuth authorization URL for a specific connector.
  *
- * Authentication: x-api-key header required.
- * The account ID is inferred from the API key.
+ * Authentication: x-api-key OR Authorization Bearer token required.
+ * The account ID is inferred from the auth header.
  *
  * Request body:
  * - connector: The connector slug, e.g., "googlesheets" (required)
@@ -33,12 +33,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const headers = getCorsHeaders();
 
   try {
-    const accountIdOrError = await getApiKeyAccountId(request);
-    if (accountIdOrError instanceof NextResponse) {
-      return accountIdOrError;
+    const authResult = await validateAccountIdHeaders(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
 
-    const accountId = accountIdOrError;
+    const { accountId } = authResult;
     const body = await request.json();
 
     const validated = validateAuthorizeConnectorBody(body);

@@ -15,9 +15,8 @@ const ALLOWED_TOOLS = [
 /**
  * Runtime validation to check if an object is a valid Vercel AI SDK Tool.
  *
- * Why: The Composio SDK's session.tools() returns a ToolSet (Record<string, Tool>)
- * from the configured provider. With VercelProvider, this returns Vercel AI SDK tools.
- * We validate at runtime to ensure type safety before using bracket notation access.
+ * Composio SDK returns tools with { description, inputSchema, execute }
+ * Vercel AI SDK also accepts inputSchema as an alias for parameters.
  *
  * @param tool - The object to validate
  * @returns true if the object has required Tool properties
@@ -29,12 +28,11 @@ function isValidTool(tool: unknown): tool is Tool {
 
   const obj = tool as Record<string, unknown>;
 
-  // Vercel AI SDK Tool requires: description (optional), parameters, execute
-  // The execute function is what makes it callable
+  // Tool needs execute function and either parameters or inputSchema
   const hasExecute = typeof obj.execute === "function";
-  const hasParameters = "parameters" in obj;
+  const hasSchema = "parameters" in obj || "inputSchema" in obj;
 
-  return hasExecute && hasParameters;
+  return hasExecute && hasSchema;
 }
 
 /**
@@ -61,9 +59,7 @@ export async function getComposioTools(
   const filteredTools: ToolSet = {};
 
   for (const toolName of ALLOWED_TOOLS) {
-    // Use Object.prototype.hasOwnProperty to safely check for property existence
-    // This handles both plain objects and class instances safely
-    if (Object.prototype.hasOwnProperty.call(allTools, toolName)) {
+    if (toolName in allTools) {
       const tool = (allTools as Record<string, unknown>)[toolName];
 
       if (isValidTool(tool)) {

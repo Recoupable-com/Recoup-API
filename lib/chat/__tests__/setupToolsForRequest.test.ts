@@ -6,17 +6,17 @@ vi.mock("@/lib/mcp/getMcpTools", () => ({
   getMcpTools: vi.fn(),
 }));
 
-vi.mock("@/lib/agents/googleSheetsAgent", () => ({
-  getGoogleSheetsTools: vi.fn(),
+vi.mock("@/lib/composio/toolRouter", () => ({
+  getComposioTools: vi.fn(),
 }));
 
 // Import after mocks
 import { setupToolsForRequest } from "../setupToolsForRequest";
 import { getMcpTools } from "@/lib/mcp/getMcpTools";
-import { getGoogleSheetsTools } from "@/lib/agents/googleSheetsAgent";
+import { getComposioTools } from "@/lib/composio/toolRouter";
 
 const mockGetMcpTools = vi.mocked(getMcpTools);
-const mockGetGoogleSheetsTools = vi.mocked(getGoogleSheetsTools);
+const mockGetComposioTools = vi.mocked(getComposioTools);
 
 describe("setupToolsForRequest", () => {
   const mockMcpTools = {
@@ -24,13 +24,9 @@ describe("setupToolsForRequest", () => {
     tool2: { description: "Tool 2", parameters: {} },
   };
 
-  const mockGoogleSheetsTools = {
+  const mockComposioTools = {
+    COMPOSIO_MANAGE_CONNECTIONS: { description: "Manage connections", parameters: {} },
     googlesheets_create: { description: "Create sheet", parameters: {} },
-    googlesheets_read: { description: "Read sheet", parameters: {} },
-  };
-
-  const mockGoogleSheetsLoginTool = {
-    google_sheets_login: { description: "Login to Google Sheets", parameters: {} },
   };
 
   beforeEach(() => {
@@ -39,8 +35,8 @@ describe("setupToolsForRequest", () => {
     // Default mock for MCP tools
     mockGetMcpTools.mockResolvedValue(mockMcpTools);
 
-    // Default mock for Google Sheets tools - returns login tool (not authenticated)
-    mockGetGoogleSheetsTools.mockResolvedValue(mockGoogleSheetsLoginTool);
+    // Default mock for Composio tools
+    mockGetComposioTools.mockResolvedValue(mockComposioTools);
   });
 
   describe("MCP tools integration", () => {
@@ -84,23 +80,22 @@ describe("setupToolsForRequest", () => {
     });
   });
 
-  describe("Google Sheets tools integration", () => {
-    it("calls getGoogleSheetsTools with request body", async () => {
+  describe("Composio tools integration", () => {
+    it("calls getComposioTools with accountId and roomId", async () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
         orgId: null,
         authToken: "test-token-123",
+        roomId: "room-456",
         messages: [{ id: "1", role: "user", content: "Create a spreadsheet" }],
       };
 
       await setupToolsForRequest(body);
 
-      expect(mockGetGoogleSheetsTools).toHaveBeenCalledWith(body);
+      expect(mockGetComposioTools).toHaveBeenCalledWith("account-123", "room-456");
     });
 
-    it("includes Google Sheets tools when user is authenticated", async () => {
-      mockGetGoogleSheetsTools.mockResolvedValue(mockGoogleSheetsTools);
-
+    it("includes Composio tools in result", async () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
         orgId: null,
@@ -110,30 +105,13 @@ describe("setupToolsForRequest", () => {
 
       const result = await setupToolsForRequest(body);
 
+      expect(result).toHaveProperty("COMPOSIO_MANAGE_CONNECTIONS");
       expect(result).toHaveProperty("googlesheets_create");
-      expect(result).toHaveProperty("googlesheets_read");
-    });
-
-    it("includes googleSheetsLoginTool when user is not authenticated", async () => {
-      mockGetGoogleSheetsTools.mockResolvedValue(mockGoogleSheetsLoginTool);
-
-      const body: ChatRequestBody = {
-        accountId: "account-123",
-        orgId: null,
-        authToken: "test-token-123",
-        messages: [{ id: "1", role: "user", content: "Create a spreadsheet" }],
-      };
-
-      const result = await setupToolsForRequest(body);
-
-      expect(result).toHaveProperty("google_sheets_login");
     });
   });
 
   describe("tool aggregation", () => {
-    it("merges MCP tools and Google Sheets tools", async () => {
-      mockGetGoogleSheetsTools.mockResolvedValue(mockGoogleSheetsTools);
-
+    it("merges MCP tools and Composio tools", async () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
         orgId: null,
@@ -143,19 +121,19 @@ describe("setupToolsForRequest", () => {
 
       const result = await setupToolsForRequest(body);
 
-      // Should have both MCP and Google Sheets tools
+      // Should have both MCP and Composio tools
       expect(result).toHaveProperty("tool1");
       expect(result).toHaveProperty("tool2");
+      expect(result).toHaveProperty("COMPOSIO_MANAGE_CONNECTIONS");
       expect(result).toHaveProperty("googlesheets_create");
-      expect(result).toHaveProperty("googlesheets_read");
     });
 
-    it("Google Sheets tools take precedence over MCP tools with same name", async () => {
+    it("Composio tools take precedence over MCP tools with same name", async () => {
       mockGetMcpTools.mockResolvedValue({
         googlesheets_create: { description: "MCP version", parameters: {} },
       });
 
-      mockGetGoogleSheetsTools.mockResolvedValue({
+      mockGetComposioTools.mockResolvedValue({
         googlesheets_create: { description: "Composio version", parameters: {} },
       });
 
@@ -168,7 +146,7 @@ describe("setupToolsForRequest", () => {
 
       const result = await setupToolsForRequest(body);
 
-      // Google Sheets (Composio) version should win
+      // Composio version should win
       expect(result.googlesheets_create).toEqual(
         expect.objectContaining({ description: "Composio version" }),
       );
@@ -192,8 +170,6 @@ describe("setupToolsForRequest", () => {
     });
 
     it("excludes multiple tools", async () => {
-      mockGetGoogleSheetsTools.mockResolvedValue(mockGoogleSheetsTools);
-
       const body: ChatRequestBody = {
         accountId: "account-123",
         orgId: null,
@@ -207,7 +183,7 @@ describe("setupToolsForRequest", () => {
       expect(result).not.toHaveProperty("tool1");
       expect(result).not.toHaveProperty("googlesheets_create");
       expect(result).toHaveProperty("tool2");
-      expect(result).toHaveProperty("googlesheets_read");
+      expect(result).toHaveProperty("COMPOSIO_MANAGE_CONNECTIONS");
     });
 
     it("returns all tools when excludeTools is undefined", async () => {
