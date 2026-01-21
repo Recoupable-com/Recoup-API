@@ -1,5 +1,6 @@
 import { getSocialPlatformByLink } from "@/lib/artists/getSocialPlatformByLink";
 import { getUsernameFromProfileUrl } from "@/lib/socials/getUsernameFromProfileUrl";
+import { normalizeProfileUrl } from "@/lib/socials/normalizeProfileUrl";
 import { selectAccountSocials } from "@/lib/supabase/account_socials/selectAccountSocials";
 import { deleteAccountSocial } from "@/lib/supabase/account_socials/deleteAccountSocial";
 import { insertAccountSocial } from "@/lib/supabase/account_socials/insertAccountSocial";
@@ -23,8 +24,13 @@ export async function updateArtistSocials(
 
   // Process each platform type
   const profilePromises = Object.entries(profileUrls).map(async ([type, value]) => {
-    const socials = value ? await selectSocials({ profile_url: value }) : null;
+    const normalizedUrl = normalizeProfileUrl(value);
+
+    const socials = normalizedUrl
+      ? await selectSocials({ profile_url: normalizedUrl })
+      : null;
     const social = socials && socials.length > 0 ? socials[0] : null;
+
     const existingSocial = (accountSocials || []).find(
       (account_social: AccountSocialWithSocial) =>
         getSocialPlatformByLink(account_social.social?.profile_url || "") === type,
@@ -36,7 +42,7 @@ export async function updateArtistSocials(
     }
 
     // Insert new social if URL provided
-    if (value) {
+    if (normalizedUrl) {
       if (social) {
         // Social already exists, check if account_social relationship exists
         const existing = (accountSocials || []).find(
@@ -47,10 +53,11 @@ export async function updateArtistSocials(
         }
       } else {
         // Create new social record
+        const username = getUsernameFromProfileUrl(value);
         const newSocials = await insertSocials([
           {
-            username: getUsernameFromProfileUrl(value),
-            profile_url: value,
+            username,
+            profile_url: normalizedUrl,
           },
         ]);
         if (newSocials.length > 0) {
