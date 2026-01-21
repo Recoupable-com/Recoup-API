@@ -14,7 +14,8 @@ jobs:
     timeout-minutes: 11
     env:
       PRIVY_PROJECT_SECRET: ${{ secrets.PRIVY_PROJECT_SECRET }}
-      COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+      # Note: COMPOSIO_API_KEY intentionally omitted - @composio packages
+      # are incompatible with Braintrust's bundler (createRequire issue)
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
