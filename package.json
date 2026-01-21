@@ -13,7 +13,7 @@
     "lint:check": "eslint . --ext .ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "eval": "braintrust eval --external-packages playwright playwright-core chromium-bidi @browserbasehq/stagehand"
+    "eval": "braintrust eval --external-packages playwright playwright-core chromium-bidi @browserbasehq/stagehand @composio/core @composio/vercel"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.13",
