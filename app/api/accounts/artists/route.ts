@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
+import { safeParseJson } from "@/lib/networking/safeParseJson";
 import { validateAddArtistBody, type AddArtistBody } from "@/lib/accounts/validateAddArtistBody";
 import { addArtistToAccountHandler } from "@/lib/accounts/addArtistToAccountHandler";
 
@@ -13,7 +14,7 @@ import { addArtistToAccountHandler } from "@/lib/accounts/addArtistToAccountHand
  * @returns NextResponse with success status or error
  */
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  const body = await safeParseJson(req);
 
   const validated = validateAddArtistBody(body);
   if (validated instanceof NextResponse) {

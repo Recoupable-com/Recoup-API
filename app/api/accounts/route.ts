@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
+import { safeParseJson } from "@/lib/networking/safeParseJson";
 import {
   validateCreateAccountBody,
   type CreateAccountBody,
@@ -22,7 +23,7 @@ import { updateAccountHandler } from "@/lib/accounts/updateAccountHandler";
  * @returns Account data
  */
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  const body = await safeParseJson(req);
 
   const validated = validateCreateAccountBody(body);
   if (validated instanceof NextResponse) {
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
  * @returns NextResponse with updated account data or error
  */
 export async function PATCH(req: NextRequest) {
-  const body = await req.json();
+  const body = await safeParseJson(req);
 
   const validated = validateUpdateAccountBody(body);
   if (validated instanceof NextResponse) {
