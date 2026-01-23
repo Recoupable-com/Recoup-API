@@ -2,11 +2,12 @@ import { Sandbox } from "@vercel/sandbox";
 
 /**
  * Response from creating a sandbox.
+ * Uses Sandbox class types from @vercel/sandbox SDK.
  */
 export interface SandboxCreatedResponse {
-  sandboxId: string;
-  status: "pending" | "running" | "stopping" | "stopped" | "failed" | "snapshotting";
-  timeout: number;
+  sandboxId: Sandbox["sandboxId"];
+  status: Sandbox["status"];
+  timeout: Sandbox["timeout"];
   createdAt: string;
 }
 
