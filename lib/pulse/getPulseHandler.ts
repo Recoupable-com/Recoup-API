@@ -25,7 +25,11 @@ export async function getPulseHandler(request: NextRequest): Promise<NextRespons
   return NextResponse.json(
     {
       status: "success",
-      pulse: pulseAccount ?? { id: null, account_id: accountId, active: false },
+      pulse: {
+        id: pulseAccount?.id ?? null,
+        account_id: pulseAccount?.account_id ?? accountId,
+        active: pulseAccount?.active ?? false,
+      },
     },
     {
       status: 200,
