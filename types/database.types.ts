@@ -2205,6 +2205,32 @@ export type Database = {
         };
         Relationships: [];
       };
+      pulse_accounts: {
+        Row: {
+          id: string;
+          account_id: string;
+          active: boolean;
+        };
+        Insert: {
+          id?: string;
+          account_id: string;
+          active?: boolean;
+        };
+        Update: {
+          id?: string;
+          account_id?: string;
+          active?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pulse_accounts_account_id_fkey";
+            columns: ["account_id"];
+            isOneToOne: true;
+            referencedRelation: "accounts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       presave: {
         Row: {
           accessToken: string | null;
