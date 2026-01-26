@@ -1,21 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getPulseHandler } from "../getPulseHandler";
 
-vi.mock("@/lib/auth/getApiKeyAccountId", () => ({
-  getApiKeyAccountId: vi.fn(),
-}));
-
-vi.mock("@/lib/accounts/validateOverrideAccountId", () => ({
-  validateOverrideAccountId: vi.fn(),
+vi.mock("../validateGetPulseRequest", () => ({
+  validateGetPulseRequest: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/pulse_accounts/selectPulseAccount", () => ({
   selectPulseAccount: vi.fn(),
 }));
 
-import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
-import { validateOverrideAccountId } from "@/lib/accounts/validateOverrideAccountId";
+import { validateGetPulseRequest } from "../validateGetPulseRequest";
 import { selectPulseAccount } from "@/lib/supabase/pulse_accounts/selectPulseAccount";
 
 /**
@@ -34,28 +29,13 @@ describe("getPulseHandler", () => {
     vi.clearAllMocks();
   });
 
-  describe("authentication", () => {
-    it("returns 401 when API key is missing", async () => {
-      const { NextResponse } = await import("next/server");
-      vi.mocked(getApiKeyAccountId).mockResolvedValue(
+  describe("validation failure", () => {
+    it("returns validation error response when validation fails", async () => {
+      vi.mocked(validateGetPulseRequest).mockResolvedValue(
         NextResponse.json({ status: "error", message: "x-api-key header required" }, { status: 401 }),
       );
 
       const request = createMockRequest("https://api.example.com/api/pulse");
-      const response = await getPulseHandler(request);
-
-      expect(response.status).toBe(401);
-    });
-
-    it("returns 401 when API key is invalid", async () => {
-      const { NextResponse } = await import("next/server");
-      vi.mocked(getApiKeyAccountId).mockResolvedValue(
-        NextResponse.json({ status: "error", message: "Unauthorized" }, { status: 401 }),
-      );
-
-      const request = createMockRequest("https://api.example.com/api/pulse", {
-        "x-api-key": "invalid-key",
-      });
       const response = await getPulseHandler(request);
 
       expect(response.status).toBe(401);
@@ -65,7 +45,7 @@ describe("getPulseHandler", () => {
   describe("successful responses", () => {
     it("returns pulse with active: false when no record exists", async () => {
       const accountId = "account-123";
-      vi.mocked(getApiKeyAccountId).mockResolvedValue(accountId);
+      vi.mocked(validateGetPulseRequest).mockResolvedValue({ accountId });
       vi.mocked(selectPulseAccount).mockResolvedValue(null);
 
       const request = createMockRequest("https://api.example.com/api/pulse", {
@@ -88,7 +68,7 @@ describe("getPulseHandler", () => {
     it("returns pulse with active: true when record exists", async () => {
       const accountId = "account-123";
       const pulseId = "pulse-456";
-      vi.mocked(getApiKeyAccountId).mockResolvedValue(accountId);
+      vi.mocked(validateGetPulseRequest).mockResolvedValue({ accountId });
       vi.mocked(selectPulseAccount).mockResolvedValue({
         id: pulseId,
         account_id: accountId,
@@ -115,7 +95,7 @@ describe("getPulseHandler", () => {
     it("returns pulse with active: false when record has active: false", async () => {
       const accountId = "account-123";
       const pulseId = "pulse-456";
-      vi.mocked(getApiKeyAccountId).mockResolvedValue(accountId);
+      vi.mocked(validateGetPulseRequest).mockResolvedValue({ accountId });
       vi.mocked(selectPulseAccount).mockResolvedValue({
         id: pulseId,
         account_id: accountId,
@@ -131,57 +111,20 @@ describe("getPulseHandler", () => {
       expect(response.status).toBe(200);
       expect(body.pulse.active).toBe(false);
     });
-  });
 
-  describe("account_id override for org API keys", () => {
-    it("uses target account_id when provided and authorized", async () => {
-      const orgAccountId = "org-123";
-      const targetAccountId = "target-account-456";
-      const pulseId = "pulse-789";
+    it("uses accountId from validation result", async () => {
+      const accountId = "validated-account-123";
+      vi.mocked(validateGetPulseRequest).mockResolvedValue({ accountId });
+      vi.mocked(selectPulseAccount).mockResolvedValue(null);
 
-      vi.mocked(getApiKeyAccountId).mockResolvedValue(orgAccountId);
-      vi.mocked(validateOverrideAccountId).mockResolvedValue({ accountId: targetAccountId });
-      vi.mocked(selectPulseAccount).mockResolvedValue({
-        id: pulseId,
-        account_id: targetAccountId,
-        active: true,
+      const request = createMockRequest("https://api.example.com/api/pulse", {
+        "x-api-key": "valid-key",
       });
-
-      const request = createMockRequest(
-        `https://api.example.com/api/pulse?account_id=${targetAccountId}`,
-        { "x-api-key": "org-api-key" },
-      );
       const response = await getPulseHandler(request);
       const body = await response.json();
 
-      expect(validateOverrideAccountId).toHaveBeenCalledWith({
-        apiKey: "org-api-key",
-        targetAccountId,
-      });
-      expect(selectPulseAccount).toHaveBeenCalledWith(targetAccountId);
-      expect(body.pulse.account_id).toBe(targetAccountId);
-    });
-
-    it("returns 403 when org does not have access to target account", async () => {
-      const { NextResponse } = await import("next/server");
-      const orgAccountId = "org-123";
-      const targetAccountId = "unauthorized-account-456";
-
-      vi.mocked(getApiKeyAccountId).mockResolvedValue(orgAccountId);
-      vi.mocked(validateOverrideAccountId).mockResolvedValue(
-        NextResponse.json(
-          { status: "error", message: "Access denied to specified accountId" },
-          { status: 403 },
-        ),
-      );
-
-      const request = createMockRequest(
-        `https://api.example.com/api/pulse?account_id=${targetAccountId}`,
-        { "x-api-key": "org-api-key" },
-      );
-      const response = await getPulseHandler(request);
-
-      expect(response.status).toBe(403);
+      expect(selectPulseAccount).toHaveBeenCalledWith(accountId);
+      expect(body.pulse.account_id).toBe(accountId);
     });
   });
 });

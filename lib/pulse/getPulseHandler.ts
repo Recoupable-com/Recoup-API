@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
-import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
-import { validateOverrideAccountId } from "@/lib/accounts/validateOverrideAccountId";
+import { validateGetPulseRequest } from "./validateGetPulseRequest";
 import { selectPulseAccount } from "@/lib/supabase/pulse_accounts/selectPulseAccount";
 
 /**
@@ -15,26 +14,11 @@ import { selectPulseAccount } from "@/lib/supabase/pulse_accounts/selectPulseAcc
  * @returns A NextResponse with the pulse account status.
  */
 export async function getPulseHandler(request: NextRequest): Promise<NextResponse> {
-  const accountIdOrError = await getApiKeyAccountId(request);
-  if (accountIdOrError instanceof NextResponse) {
-    return accountIdOrError;
+  const validated = await validateGetPulseRequest(request);
+  if (validated instanceof NextResponse) {
+    return validated;
   }
-  let accountId = accountIdOrError;
-
-  const { searchParams } = new URL(request.url);
-  const targetAccountId = searchParams.get("account_id");
-
-  if (targetAccountId) {
-    const apiKey = request.headers.get("x-api-key");
-    const overrideResult = await validateOverrideAccountId({
-      apiKey,
-      targetAccountId,
-    });
-    if (overrideResult instanceof NextResponse) {
-      return overrideResult;
-    }
-    accountId = overrideResult.accountId;
-  }
+  const { accountId } = validated;
 
   const pulseAccount = await selectPulseAccount(accountId);
 
