@@ -64,7 +64,7 @@ describe("registerGetPulseTool", () => {
     expect(mockServer.registerTool).toHaveBeenCalledWith(
       "get_pulse",
       expect.objectContaining({
-        description: expect.stringContaining("Get the pulse status"),
+        description: "Get the pulse status for an account.",
       }),
       expect.any(Function),
     );

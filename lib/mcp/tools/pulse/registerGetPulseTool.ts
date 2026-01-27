@@ -9,13 +9,7 @@ import { getToolResultSuccess } from "@/lib/mcp/getToolResultSuccess";
 import { getToolResultError } from "@/lib/mcp/getToolResultError";
 
 const getPulseSchema = z.object({
-  account_id: z
-    .string()
-    .optional()
-    .describe(
-      "The account ID to get pulse status for. Only required for organization API keys querying on behalf of other accounts. " +
-        "If not provided, the account ID will be resolved from the authenticated API key.",
-    ),
+  account_id: z.string().optional().describe("The account ID to get pulse status for."),
 });
 
 export type GetPulseArgs = z.infer<typeof getPulseSchema>;
@@ -30,10 +24,7 @@ export function registerGetPulseTool(server: McpServer): void {
   server.registerTool(
     "get_pulse",
     {
-      description:
-        "Get the pulse status for an account. " +
-        "Requires authentication via API key (Authorization: Bearer header). " +
-        "The account_id parameter is optional — only provide it when using an organization API key to query on behalf of other accounts.",
+      description: "Get the pulse status for an account.",
       inputSchema: getPulseSchema,
     },
     async (args: GetPulseArgs, extra: RequestHandlerExtra<ServerRequest, ServerNotification>) => {

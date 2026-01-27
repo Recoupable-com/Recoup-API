@@ -64,7 +64,7 @@ describe("registerUpdatePulseTool", () => {
     expect(mockServer.registerTool).toHaveBeenCalledWith(
       "update_pulse",
       expect.objectContaining({
-        description: expect.stringContaining("Update the pulse status"),
+        description: "Update the pulse status for an account.",
       }),
       expect.any(Function),
     );
