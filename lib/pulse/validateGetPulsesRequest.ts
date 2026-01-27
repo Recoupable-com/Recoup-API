@@ -1,9 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
-import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
-import { getAuthenticatedAccountId } from "@/lib/auth/getAuthenticatedAccountId";
-import { getApiKeyDetails } from "@/lib/keys/getApiKeyDetails";
+import { validateAuthContext } from "@/lib/auth/validateAuthContext";
 import { getAccountOrganizations } from "@/lib/supabase/account_organization_ids/getAccountOrganizations";
 import { RECOUP_ORG_ID } from "@/lib/const";
 import { z } from "zod";
@@ -41,20 +39,7 @@ export type GetPulsesRequestResult = {
 export async function validateGetPulsesRequest(
   request: NextRequest,
 ): Promise<NextResponse | GetPulsesRequestResult> {
-  const apiKey = request.headers.get("x-api-key");
-  const authHeader = request.headers.get("authorization");
-  const hasApiKey = !!apiKey;
-  const hasAuth = !!authHeader;
-
-  // Enforce exactly one auth mechanism
-  if ((hasApiKey && hasAuth) || (!hasApiKey && !hasAuth)) {
-    return NextResponse.json(
-      { status: "error", error: "Exactly one of x-api-key or Authorization must be provided" },
-      { status: 401, headers: getCorsHeaders() },
-    );
-  }
-
-  // Parse query parameters
+  // Parse query parameters first
   const { searchParams } = new URL(request.url);
   const queryParams = {
     account_id: searchParams.get("account_id") ?? undefined,
@@ -75,30 +60,13 @@ export async function validateGetPulsesRequest(
 
   const { account_id: targetAccountId, active } = queryResult.data;
 
-  let accountId: string;
-  let orgId: string | null = null;
-
-  if (hasApiKey) {
-    // Validate API key authentication
-    const accountIdOrError = await getApiKeyAccountId(request);
-    if (accountIdOrError instanceof NextResponse) {
-      return accountIdOrError;
-    }
-    accountId = accountIdOrError;
-
-    // Get org context from API key details
-    const keyDetails = await getApiKeyDetails(apiKey!);
-    if (keyDetails) {
-      orgId = keyDetails.orgId;
-    }
-  } else {
-    // Validate bearer token authentication
-    const accountIdOrError = await getAuthenticatedAccountId(request);
-    if (accountIdOrError instanceof NextResponse) {
-      return accountIdOrError;
-    }
-    accountId = accountIdOrError;
+  // Use validateAuthContext for authentication
+  const authResult = await validateAuthContext(request);
+  if (authResult instanceof NextResponse) {
+    return authResult;
   }
+
+  const { accountId, orgId } = authResult;
 
   // Check if this is the Recoup admin org key
   if (orgId === RECOUP_ORG_ID) {

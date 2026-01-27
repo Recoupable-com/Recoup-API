@@ -3,16 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateGetPulsesRequest } from "../validateGetPulsesRequest";
 
 // Mock dependencies
-vi.mock("@/lib/auth/getApiKeyAccountId", () => ({
-  getApiKeyAccountId: vi.fn(),
-}));
-
-vi.mock("@/lib/auth/getAuthenticatedAccountId", () => ({
-  getAuthenticatedAccountId: vi.fn(),
-}));
-
-vi.mock("@/lib/keys/getApiKeyDetails", () => ({
-  getApiKeyDetails: vi.fn(),
+vi.mock("@/lib/auth/validateAuthContext", () => ({
+  validateAuthContext: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/account_organization_ids/getAccountOrganizations", () => ({
@@ -27,8 +19,7 @@ vi.mock("@/lib/const", () => ({
   RECOUP_ORG_ID: "recoup-org-id",
 }));
 
-import { getApiKeyAccountId } from "@/lib/auth/getApiKeyAccountId";
-import { getApiKeyDetails } from "@/lib/keys/getApiKeyDetails";
+import { validateAuthContext } from "@/lib/auth/validateAuthContext";
 import { getAccountOrganizations } from "@/lib/supabase/account_organization_ids/getAccountOrganizations";
 
 describe("validateGetPulsesRequest", () => {
@@ -36,7 +27,11 @@ describe("validateGetPulsesRequest", () => {
     vi.clearAllMocks();
   });
 
-  it("should return error if no auth provided", async () => {
+  it("should return error if auth fails", async () => {
+    vi.mocked(validateAuthContext).mockResolvedValue(
+      NextResponse.json({ status: "error", error: "Unauthorized" }, { status: 401 }),
+    );
+
     const request = new NextRequest("http://localhost/api/pulses");
     const result = await validateGetPulsesRequest(request);
 
@@ -47,10 +42,10 @@ describe("validateGetPulsesRequest", () => {
 
   it("should return single account ID for personal key", async () => {
     const mockAccountId = "personal-account-123";
-    vi.mocked(getApiKeyAccountId).mockResolvedValue(mockAccountId);
-    vi.mocked(getApiKeyDetails).mockResolvedValue({
+    vi.mocked(validateAuthContext).mockResolvedValue({
       accountId: mockAccountId,
       orgId: null, // Personal key
+      authToken: "test-token",
     });
 
     const request = new NextRequest("http://localhost/api/pulses", {
@@ -67,10 +62,10 @@ describe("validateGetPulsesRequest", () => {
 
   it("should return all org account IDs for org key", async () => {
     const mockOrgId = "org-123";
-    vi.mocked(getApiKeyAccountId).mockResolvedValue(mockOrgId);
-    vi.mocked(getApiKeyDetails).mockResolvedValue({
+    vi.mocked(validateAuthContext).mockResolvedValue({
       accountId: mockOrgId,
       orgId: mockOrgId,
+      authToken: "test-token",
     });
     vi.mocked(getAccountOrganizations).mockResolvedValue([
       { account_id: "member-1", organization_id: mockOrgId, organization: null },
@@ -91,10 +86,10 @@ describe("validateGetPulsesRequest", () => {
 
   it("should return null accountIds for Recoup admin key", async () => {
     const recoupOrgId = "recoup-org-id";
-    vi.mocked(getApiKeyAccountId).mockResolvedValue(recoupOrgId);
-    vi.mocked(getApiKeyDetails).mockResolvedValue({
+    vi.mocked(validateAuthContext).mockResolvedValue({
       accountId: recoupOrgId,
       orgId: recoupOrgId,
+      authToken: "test-token",
     });
 
     const request = new NextRequest("http://localhost/api/pulses", {
@@ -111,10 +106,10 @@ describe("validateGetPulsesRequest", () => {
 
   it("should parse active query parameter correctly", async () => {
     const mockAccountId = "account-123";
-    vi.mocked(getApiKeyAccountId).mockResolvedValue(mockAccountId);
-    vi.mocked(getApiKeyDetails).mockResolvedValue({
+    vi.mocked(validateAuthContext).mockResolvedValue({
       accountId: mockAccountId,
       orgId: null,
+      authToken: "test-token",
     });
 
     const request = new NextRequest("http://localhost/api/pulses?active=true", {
@@ -128,11 +123,10 @@ describe("validateGetPulsesRequest", () => {
   });
 
   it("should reject invalid active query parameter", async () => {
-    const mockAccountId = "account-123";
-    vi.mocked(getApiKeyAccountId).mockResolvedValue(mockAccountId);
-    vi.mocked(getApiKeyDetails).mockResolvedValue({
-      accountId: mockAccountId,
+    vi.mocked(validateAuthContext).mockResolvedValue({
+      accountId: "account-123",
       orgId: null,
+      authToken: "test-token",
     });
 
     const request = new NextRequest("http://localhost/api/pulses?active=invalid", {
@@ -148,10 +142,10 @@ describe("validateGetPulsesRequest", () => {
   it("should reject personal key trying to filter by account_id", async () => {
     const mockAccountId = "a1111111-1111-4111-8111-111111111111";
     const otherAccountId = "b2222222-2222-4222-8222-222222222222";
-    vi.mocked(getApiKeyAccountId).mockResolvedValue(mockAccountId);
-    vi.mocked(getApiKeyDetails).mockResolvedValue({
+    vi.mocked(validateAuthContext).mockResolvedValue({
       accountId: mockAccountId,
       orgId: null, // Personal key
+      authToken: "test-token",
     });
 
     const request = new NextRequest(
@@ -171,10 +165,10 @@ describe("validateGetPulsesRequest", () => {
     const mockOrgId = "c3333333-3333-4333-8333-333333333333";
     const targetAccountId = "d4444444-4444-4444-8444-444444444444";
     const member2Id = "e5555555-5555-4555-8555-555555555555";
-    vi.mocked(getApiKeyAccountId).mockResolvedValue(mockOrgId);
-    vi.mocked(getApiKeyDetails).mockResolvedValue({
+    vi.mocked(validateAuthContext).mockResolvedValue({
       accountId: mockOrgId,
       orgId: mockOrgId,
+      authToken: "test-token",
     });
     vi.mocked(getAccountOrganizations).mockResolvedValue([
       { account_id: targetAccountId, organization_id: mockOrgId, organization: null },
@@ -198,10 +192,10 @@ describe("validateGetPulsesRequest", () => {
     const mockOrgId = "f6666666-6666-4666-8666-666666666666";
     const memberId = "a7777777-7777-4777-8777-777777777777";
     const notInOrgId = "b8888888-8888-4888-8888-888888888888";
-    vi.mocked(getApiKeyAccountId).mockResolvedValue(mockOrgId);
-    vi.mocked(getApiKeyDetails).mockResolvedValue({
+    vi.mocked(validateAuthContext).mockResolvedValue({
       accountId: mockOrgId,
       orgId: mockOrgId,
+      authToken: "test-token",
     });
     vi.mocked(getAccountOrganizations).mockResolvedValue([
       { account_id: memberId, organization_id: mockOrgId, organization: null },
