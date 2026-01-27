@@ -139,6 +139,7 @@ describe("registerGetPulsesTool", () => {
       targetAccountId: "target-account-789",
     });
     expect(mockSelectPulseAccounts).toHaveBeenCalledWith({ accountIds: ["target-account-789"] });
+    expect(mockSelectPulseAccounts).toHaveBeenCalledTimes(1);
   });
 
   it("returns error when org auth lacks access to account_id", async () => {
@@ -153,7 +154,7 @@ describe("registerGetPulsesTool", () => {
       content: [
         {
           type: "text",
-          text: expect.stringContaining("Access denied"),
+          text: expect.stringContaining("account_id is not a member of this organization"),
         },
       ],
     });
