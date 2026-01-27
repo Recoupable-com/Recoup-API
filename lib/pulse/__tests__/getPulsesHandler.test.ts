@@ -77,7 +77,7 @@ describe("getPulsesHandler", () => {
 
   it("should return ALL pulse records for Recoup admin key", async () => {
     vi.mocked(validateGetPulsesRequest).mockResolvedValue({
-      accountIds: null, // null indicates Recoup admin
+      accountIds: undefined, // undefined indicates Recoup admin (return all)
       active: undefined,
     });
 

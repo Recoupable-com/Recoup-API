@@ -89,7 +89,7 @@ describe("validateGetPulsesRequest", () => {
     expect(validResult.accountIds).toContain(mockOrgId);
   });
 
-  it("should return null accountIds for Recoup admin key", async () => {
+  it("should return undefined accountIds for Recoup admin key", async () => {
     const recoupOrgId = "recoup-org-id";
     vi.mocked(validateAuthContext).mockResolvedValue({
       accountId: recoupOrgId,
@@ -104,7 +104,7 @@ describe("validateGetPulsesRequest", () => {
 
     expect(result).not.toBeInstanceOf(NextResponse);
     expect(result).toEqual({
-      accountIds: null,
+      accountIds: undefined,
       active: undefined,
     });
   });

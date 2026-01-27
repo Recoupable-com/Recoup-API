@@ -28,17 +28,14 @@ export async function getPulsesHandler(request: NextRequest): Promise<NextRespon
   }
   const { accountIds, active } = validated;
 
-  // Single call to selectPulseAccounts - pass accountIds only if not null
-  const existingPulses = await selectPulseAccounts({
-    ...(accountIds !== null && { accountIds }),
-    active,
-  });
+  // Pass validated params directly to selectPulseAccounts
+  const existingPulses = await selectPulseAccounts({ accountIds, active });
 
   // Build the result array
   let pulses: PulseRecord[];
 
-  if (accountIds === null || active !== undefined) {
-    // Admin (null) or filtering by active: return only existing records
+  if (accountIds === undefined || active !== undefined) {
+    // Admin (undefined accountIds) or filtering by active: return only existing records
     pulses = existingPulses.map(p => ({
       id: p.id,
       account_id: p.account_id,

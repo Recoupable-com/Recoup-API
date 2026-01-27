@@ -4,6 +4,7 @@ import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { validateAuthContext } from "@/lib/auth/validateAuthContext";
 import { getAccountOrganizations } from "@/lib/supabase/account_organization_ids/getAccountOrganizations";
 import { canAccessAccount } from "@/lib/organizations/canAccessAccount";
+import type { SelectPulseAccountsParams } from "@/lib/supabase/pulse_accounts/selectPulseAccounts";
 import { RECOUP_ORG_ID } from "@/lib/const";
 import { z } from "zod";
 
@@ -15,20 +16,13 @@ const getPulsesQuerySchema = z.object({
     .optional(),
 });
 
-export type GetPulsesRequestResult = {
-  /** Account IDs to query pulses for. If null, return ALL pulse records (Recoup admin). */
-  accountIds: string[] | null;
-  /** Optional filter by active status */
-  active?: boolean;
-};
-
 /**
  * Validates GET /api/pulses request.
  * Handles authentication via x-api-key or Authorization bearer token.
  *
  * For personal keys: Returns a single account ID (the key owner's account)
  * For org keys: Returns all account IDs within the organization (can be filtered by account_id)
- * For Recoup admin key: Returns null to indicate ALL pulse records should be returned
+ * For Recoup admin key: Returns undefined accountIds to indicate ALL pulse records should be returned
  *
  * Query parameters:
  * - account_id: For org API keys, filter to a specific account within the organization
@@ -39,7 +33,7 @@ export type GetPulsesRequestResult = {
  */
 export async function validateGetPulsesRequest(
   request: NextRequest,
-): Promise<NextResponse | GetPulsesRequestResult> {
+): Promise<NextResponse | SelectPulseAccountsParams> {
   // Parse query parameters first
   const { searchParams } = new URL(request.url);
   const queryParams = {
@@ -89,8 +83,8 @@ export async function validateGetPulsesRequest(
 
   // No account_id filter - determine what to return based on key type
   if (orgId === RECOUP_ORG_ID) {
-    // Recoup admin: return null to indicate ALL records
-    return { accountIds: null, active };
+    // Recoup admin: return undefined accountIds to indicate ALL records
+    return { active };
   }
 
   if (orgId) {
