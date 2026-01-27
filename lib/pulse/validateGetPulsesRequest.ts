@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { validateAuthContext } from "@/lib/auth/validateAuthContext";
 import { getAccountOrganizations } from "@/lib/supabase/account_organization_ids/getAccountOrganizations";
+import { canAccessAccount } from "@/lib/organizations/canAccessAccount";
 import { RECOUP_ORG_ID } from "@/lib/const";
 import { z } from "zod";
 
@@ -68,53 +69,43 @@ export async function validateGetPulsesRequest(
 
   const { accountId, orgId } = authResult;
 
-  // Check if this is the Recoup admin org key
-  if (orgId === RECOUP_ORG_ID) {
-    // Recoup admin key can see ALL pulse records
-    // If account_id is provided, filter to that specific account
-    if (targetAccountId) {
-      return { accountIds: [targetAccountId], active };
+  // Handle account_id filter if provided
+  if (targetAccountId) {
+    // Use canAccessAccount to validate access (handles RECOUP_ORG_ID and org membership)
+    const hasAccess = await canAccessAccount({ orgId, targetAccountId });
+    if (!hasAccess) {
+      return NextResponse.json(
+        {
+          status: "error",
+          error: orgId
+            ? "account_id is not a member of this organization"
+            : "Personal API keys cannot filter by account_id",
+        },
+        { status: 403, headers: getCorsHeaders() },
+      );
     }
-    // Return null to indicate ALL records should be returned
-    return { accountIds: null, active };
+    return { accountIds: [targetAccountId], active };
   }
 
-  // Determine which account IDs to return based on key type
-  let accountIds: string[];
+  // No account_id filter - determine what to return based on key type
+  if (orgId === RECOUP_ORG_ID) {
+    // Recoup admin: return null to indicate ALL records
+    return { accountIds: null, active };
+  }
 
   if (orgId) {
     // Org key: Get all members of the organization
     const members = await getAccountOrganizations({ organizationId: orgId });
-    accountIds = members.map(m => m.account_id);
+    const accountIds = members.map(m => m.account_id);
 
     // Also include the org account itself
     if (!accountIds.includes(orgId)) {
       accountIds.push(orgId);
     }
 
-    // If account_id filter is provided, validate it's in the org and filter to just that account
-    if (targetAccountId) {
-      if (!accountIds.includes(targetAccountId)) {
-        return NextResponse.json(
-          { status: "error", error: "account_id is not a member of this organization" },
-          { status: 403, headers: getCorsHeaders() },
-        );
-      }
-      accountIds = [targetAccountId];
-    }
-  } else {
-    // Personal key: Only return the key owner's account
-    if (targetAccountId && targetAccountId !== accountId) {
-      return NextResponse.json(
-        {
-          status: "error",
-          error: "Personal API keys cannot filter by account_id",
-        },
-        { status: 403, headers: getCorsHeaders() },
-      );
-    }
-    accountIds = [accountId];
+    return { accountIds, active };
   }
 
-  return { accountIds, active };
+  // Personal key: Only return the key owner's account
+  return { accountIds: [accountId], active };
 }
