@@ -27,7 +27,6 @@ describe("getPulsesHandler", () => {
     const mockAccountId = "account-123";
     vi.mocked(validateGetPulsesRequest).mockResolvedValue({
       accountIds: [mockAccountId],
-      active: undefined,
     });
 
     vi.mocked(selectPulseAccounts).mockResolvedValue([
@@ -39,25 +38,19 @@ describe("getPulsesHandler", () => {
     const data = await response.json();
 
     expect(data.status).toBe("success");
-    expect(data.pulses).toBeInstanceOf(Array);
     expect(data.pulses).toHaveLength(1);
-    expect(data.pulses[0]).toEqual({
-      id: "pulse-1",
-      account_id: mockAccountId,
-      active: true,
-    });
+    expect(selectPulseAccounts).toHaveBeenCalledWith({ accountIds: [mockAccountId] });
   });
 
-  it("should return array of pulses for org key with multiple accounts", async () => {
-    const mockAccountIds = ["account-1", "account-2", "account-3"];
+  it("should return pulses for org key using orgId filter", async () => {
+    const mockOrgId = "org-123";
     vi.mocked(validateGetPulsesRequest).mockResolvedValue({
-      accountIds: mockAccountIds,
-      active: undefined,
+      orgId: mockOrgId,
     });
 
     vi.mocked(selectPulseAccounts).mockResolvedValue([
-      { id: "pulse-1", account_id: "account-1", active: true },
-      { id: "pulse-2", account_id: "account-2", active: false },
+      { id: "pulse-1", account_id: "member-1", active: true },
+      { id: "pulse-2", account_id: "member-2", active: false },
     ]);
 
     const request = new NextRequest("http://localhost/api/pulses");
@@ -65,21 +58,12 @@ describe("getPulsesHandler", () => {
     const data = await response.json();
 
     expect(data.status).toBe("success");
-    expect(data.pulses).toBeInstanceOf(Array);
-    expect(data.pulses).toHaveLength(3);
-    // Account-3 should have default values since no pulse record exists
-    expect(data.pulses.find((p: { account_id: string }) => p.account_id === "account-3")).toEqual({
-      id: null,
-      account_id: "account-3",
-      active: false,
-    });
+    expect(data.pulses).toHaveLength(2);
+    expect(selectPulseAccounts).toHaveBeenCalledWith({ orgId: mockOrgId });
   });
 
   it("should return ALL pulse records for Recoup admin key", async () => {
-    vi.mocked(validateGetPulsesRequest).mockResolvedValue({
-      accountIds: undefined, // undefined indicates Recoup admin (return all)
-      active: undefined,
-    });
+    vi.mocked(validateGetPulsesRequest).mockResolvedValue({});
 
     vi.mocked(selectPulseAccounts).mockResolvedValue([
       { id: "pulse-1", account_id: "account-1", active: true },
@@ -92,9 +76,8 @@ describe("getPulsesHandler", () => {
     const data = await response.json();
 
     expect(data.status).toBe("success");
-    expect(data.pulses).toBeInstanceOf(Array);
     expect(data.pulses).toHaveLength(3);
-    expect(selectPulseAccounts).toHaveBeenCalledWith({ active: undefined });
+    expect(selectPulseAccounts).toHaveBeenCalledWith({});
   });
 
   it("should filter by active status when provided", async () => {
@@ -119,36 +102,27 @@ describe("getPulsesHandler", () => {
     });
   });
 
-  it("should return default pulse for accounts without records when no active filter", async () => {
+  it("should return empty array when no pulse records exist", async () => {
     vi.mocked(validateGetPulsesRequest).mockResolvedValue({
       accountIds: ["account-1"],
-      active: undefined,
     });
 
-    vi.mocked(selectPulseAccounts).mockResolvedValue([]); // No pulse records
+    vi.mocked(selectPulseAccounts).mockResolvedValue([]);
 
     const request = new NextRequest("http://localhost/api/pulses");
     const response = await getPulsesHandler(request);
     const data = await response.json();
 
     expect(data.status).toBe("success");
-    expect(data.pulses).toHaveLength(1);
-    expect(data.pulses[0]).toEqual({
-      id: null,
-      account_id: "account-1",
-      active: false,
-    });
+    expect(data.pulses).toHaveLength(0);
   });
 
   it("should only call selectPulseAccounts once", async () => {
     vi.mocked(validateGetPulsesRequest).mockResolvedValue({
-      accountIds: ["account-1", "account-2"],
-      active: undefined,
+      accountIds: ["account-1"],
     });
 
-    vi.mocked(selectPulseAccounts).mockResolvedValue([
-      { id: "pulse-1", account_id: "account-1", active: true },
-    ]);
+    vi.mocked(selectPulseAccounts).mockResolvedValue([]);
 
     const request = new NextRequest("http://localhost/api/pulses");
     await getPulsesHandler(request);

@@ -87,4 +87,37 @@ describe("selectPulseAccounts", () => {
 
     expect(result).toEqual([]);
   });
+
+  it("filters by orgId using join with account_organization_ids", async () => {
+    const mockInnerJoin = vi.fn();
+    mockSelect.mockReturnValue({ in: mockIn, eq: mockEq, innerJoin: mockInnerJoin });
+
+    const pulses = [
+      { id: "pulse-1", account_id: "member-1", active: true },
+      { id: "pulse-2", account_id: "member-2", active: false },
+    ];
+    mockEq.mockResolvedValue({ data: pulses, error: null });
+
+    const result = await selectPulseAccounts({ orgId: "org-123" });
+
+    expect(mockFrom).toHaveBeenCalledWith("pulse_accounts");
+    expect(mockSelect).toHaveBeenCalledWith("*, account_organization_ids!inner(organization_id)");
+    expect(mockEq).toHaveBeenCalledWith("account_organization_ids.organization_id", "org-123");
+    expect(result).toEqual(pulses);
+  });
+
+  it("combines orgId and active filters", async () => {
+    const mockChainedEq = vi.fn();
+    mockEq.mockReturnValue({ eq: mockChainedEq });
+
+    const pulses = [{ id: "pulse-1", account_id: "member-1", active: true }];
+    mockChainedEq.mockResolvedValue({ data: pulses, error: null });
+
+    const result = await selectPulseAccounts({ orgId: "org-123", active: true });
+
+    expect(mockSelect).toHaveBeenCalledWith("*, account_organization_ids!inner(organization_id)");
+    expect(mockEq).toHaveBeenCalledWith("account_organization_ids.organization_id", "org-123");
+    expect(mockChainedEq).toHaveBeenCalledWith("active", true);
+    expect(result).toEqual(pulses);
+  });
 });

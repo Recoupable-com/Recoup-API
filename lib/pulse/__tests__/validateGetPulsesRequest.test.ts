@@ -7,10 +7,6 @@ vi.mock("@/lib/auth/validateAuthContext", () => ({
   validateAuthContext: vi.fn(),
 }));
 
-vi.mock("@/lib/supabase/account_organization_ids/getAccountOrganizations", () => ({
-  getAccountOrganizations: vi.fn(),
-}));
-
 vi.mock("@/lib/organizations/canAccessAccount", () => ({
   canAccessAccount: vi.fn(),
 }));
@@ -24,7 +20,6 @@ vi.mock("@/lib/const", () => ({
 }));
 
 import { validateAuthContext } from "@/lib/auth/validateAuthContext";
-import { getAccountOrganizations } from "@/lib/supabase/account_organization_ids/getAccountOrganizations";
 import { canAccessAccount } from "@/lib/organizations/canAccessAccount";
 
 describe("validateGetPulsesRequest", () => {
@@ -65,17 +60,13 @@ describe("validateGetPulsesRequest", () => {
     });
   });
 
-  it("should return all org account IDs for org key", async () => {
+  it("should return orgId for org key", async () => {
     const mockOrgId = "org-123";
     vi.mocked(validateAuthContext).mockResolvedValue({
       accountId: mockOrgId,
       orgId: mockOrgId,
       authToken: "test-token",
     });
-    vi.mocked(getAccountOrganizations).mockResolvedValue([
-      { account_id: "member-1", organization_id: mockOrgId, organization: null },
-      { account_id: "member-2", organization_id: mockOrgId, organization: null },
-    ]);
 
     const request = new NextRequest("http://localhost/api/pulses", {
       headers: { "x-api-key": "test-api-key" },
@@ -83,10 +74,10 @@ describe("validateGetPulsesRequest", () => {
     const result = await validateGetPulsesRequest(request);
 
     expect(result).not.toBeInstanceOf(NextResponse);
-    const validResult = result as { accountIds: string[]; active?: boolean };
-    expect(validResult.accountIds).toContain("member-1");
-    expect(validResult.accountIds).toContain("member-2");
-    expect(validResult.accountIds).toContain(mockOrgId);
+    expect(result).toEqual({
+      orgId: mockOrgId,
+      active: undefined,
+    });
   });
 
   it("should return undefined accountIds for Recoup admin key", async () => {

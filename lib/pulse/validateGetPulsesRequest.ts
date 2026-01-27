@@ -2,7 +2,6 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { validateAuthContext } from "@/lib/auth/validateAuthContext";
-import { getAccountOrganizations } from "@/lib/supabase/account_organization_ids/getAccountOrganizations";
 import { canAccessAccount } from "@/lib/organizations/canAccessAccount";
 import type { SelectPulseAccountsParams } from "@/lib/supabase/pulse_accounts/selectPulseAccounts";
 import { RECOUP_ORG_ID } from "@/lib/const";
@@ -20,16 +19,16 @@ const getPulsesQuerySchema = z.object({
  * Validates GET /api/pulses request.
  * Handles authentication via x-api-key or Authorization bearer token.
  *
- * For personal keys: Returns a single account ID (the key owner's account)
- * For org keys: Returns all account IDs within the organization (can be filtered by account_id)
- * For Recoup admin key: Returns undefined accountIds to indicate ALL pulse records should be returned
+ * For personal keys: Returns accountIds with the key owner's account
+ * For org keys: Returns orgId for filtering by org membership in database
+ * For Recoup admin key: Returns empty params to indicate ALL pulse records
  *
  * Query parameters:
- * - account_id: For org API keys, filter to a specific account within the organization
+ * - account_id: Filter to a specific account (validated against org membership)
  * - active: Filter by active status (true/false). If undefined, returns all.
  *
  * @param request - The NextRequest object
- * @returns A NextResponse with an error if validation fails, or the validated result
+ * @returns A NextResponse with an error if validation fails, or SelectPulseAccountsParams
  */
 export async function validateGetPulsesRequest(
   request: NextRequest,
@@ -83,21 +82,13 @@ export async function validateGetPulsesRequest(
 
   // No account_id filter - determine what to return based on key type
   if (orgId === RECOUP_ORG_ID) {
-    // Recoup admin: return undefined accountIds to indicate ALL records
+    // Recoup admin: return undefined to indicate ALL records
     return { active };
   }
 
   if (orgId) {
-    // Org key: Get all members of the organization
-    const members = await getAccountOrganizations({ organizationId: orgId });
-    const accountIds = members.map(m => m.account_id);
-
-    // Also include the org account itself
-    if (!accountIds.includes(orgId)) {
-      accountIds.push(orgId);
-    }
-
-    return { accountIds, active };
+    // Org key: return orgId for filtering by org membership in database
+    return { orgId, active };
   }
 
   // Personal key: Only return the key owner's account
