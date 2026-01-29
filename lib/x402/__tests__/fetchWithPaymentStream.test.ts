@@ -86,7 +86,7 @@ describe("fetchWithPaymentStream", () => {
     });
   });
 
-  it("loads the account wallet", async () => {
+  it("loads the account wallet with correct price", async () => {
     const mockFetch = vi.fn().mockResolvedValue(new Response("test"));
     mockWrapFetchWithPayment.mockReturnValue(mockFetch);
     mockGetAccount.mockResolvedValue({
@@ -95,7 +95,7 @@ describe("fetchWithPaymentStream", () => {
 
     await fetchWithPaymentStream("https://example.com/api", "account-123", { data: "test" });
 
-    expect(mockLoadAccount).toHaveBeenCalledWith("0xWalletAddress123");
+    expect(mockLoadAccount).toHaveBeenCalledWith("0xWalletAddress123", CHAT_PRICE);
   });
 
   it("makes POST request with JSON body", async () => {
@@ -131,6 +131,9 @@ describe("fetchWithPaymentStream", () => {
   it("uses custom price when provided", async () => {
     const mockFetch = vi.fn().mockResolvedValue(new Response("test"));
     mockWrapFetchWithPayment.mockReturnValue(mockFetch);
+    mockGetAccount.mockResolvedValue({
+      address: "0xCustomAddress",
+    } as any);
 
     await fetchWithPaymentStream(
       "https://example.com/api",
@@ -140,6 +143,7 @@ describe("fetchWithPaymentStream", () => {
     );
 
     expect(mockGetCreditsForPrice).toHaveBeenCalledWith("0.05");
+    expect(mockLoadAccount).toHaveBeenCalledWith("0xCustomAddress", "0.05");
   });
 
   it("throws error if account retrieval fails", async () => {

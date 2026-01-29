@@ -32,7 +32,7 @@ export async function fetchWithPaymentStream(
   const account = await getAccount(accountId);
   const creditsToDeduct = getCreditsForPrice(price);
   await deductCredits({ accountId, creditsToDeduct });
-  await loadAccount(account.address);
+  await loadAccount(account.address, price);
   const fetchWithPaymentWrapper = wrapFetchWithPayment(
     fetch,
     toAccount(account),
