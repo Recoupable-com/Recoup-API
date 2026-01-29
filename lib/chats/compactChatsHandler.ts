@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
-import { validateAuthContext } from "@/lib/auth/validateAuthContext";
-import { safeParseJson } from "@/lib/networking/safeParseJson";
-import { validateCompactChatsBody } from "./validateCompactChatsBody";
+import { validateCompactChatsRequest } from "./validateCompactChatsRequest";
 import { compactChat, CompactChatResult } from "./compactChat";
 import selectRoom from "@/lib/supabase/rooms/selectRoom";
 import { canAccessAccount } from "@/lib/organizations/canAccessAccount";
@@ -18,22 +16,13 @@ import { canAccessAccount } from "@/lib/organizations/canAccessAccount";
  */
 export async function compactChatsHandler(request: NextRequest): Promise<NextResponse> {
   try {
-    // Parse and validate request body
-    const body = await safeParseJson(request);
-    const validated = validateCompactChatsBody(body);
+    // Validate request (body parsing, schema validation, and authentication)
+    const validated = await validateCompactChatsRequest(request);
     if (validated instanceof NextResponse) {
       return validated;
     }
 
-    const { chatId: chatIds, prompt } = validated;
-
-    // Authenticate the request
-    const authResult = await validateAuthContext(request);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
-
-    const { accountId, orgId } = authResult;
+    const { chatIds, prompt, accountId, orgId } = validated;
 
     // Process all chats in parallel using Promise.all for performance
     const processResults = await Promise.all(
