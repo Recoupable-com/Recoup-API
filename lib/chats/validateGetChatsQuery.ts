@@ -3,8 +3,10 @@ import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { z } from "zod";
 
 const getChatsQuerySchema = z.object({
-  account_id: z.string().uuid("account_id must be a valid UUID"),
-  artist_account_id: z.string().uuid("artist_account_id must be a valid UUID").optional(),
+  account_id: z
+    .string({ message: "account_id is required" })
+    .uuid("account_id must be a valid UUID"),
+  artist_account_id: z.uuid({ message: "artist_account_id must be a valid UUID" }).optional(),
 });
 
 export type GetChatsQuery = z.infer<typeof getChatsQuerySchema>;
@@ -28,6 +30,7 @@ export function validateGetChatsQuery(searchParams: URLSearchParams): NextRespon
     return NextResponse.json(
       {
         status: "error",
+        missing_fields: firstError.path,
         error: firstError.message,
       },
       {

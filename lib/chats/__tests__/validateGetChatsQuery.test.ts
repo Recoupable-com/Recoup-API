@@ -84,7 +84,7 @@ describe("validateGetChatsQuery", () => {
   });
 
   describe("error response format", () => {
-    it("returns proper error format for missing account_id", async () => {
+    it("returns helpful error message for missing account_id", async () => {
       const searchParams = new URLSearchParams({});
 
       const result = validateGetChatsQuery(searchParams);
@@ -93,7 +93,37 @@ describe("validateGetChatsQuery", () => {
       if (result instanceof NextResponse) {
         const json = await result.json();
         expect(json.status).toBe("error");
-        expect(json.error).toBeDefined();
+        expect(json.missing_fields).toEqual(["account_id"]);
+        expect(json.error).toBe("account_id is required");
+      }
+    });
+
+    it("returns helpful error message for invalid account_id UUID", async () => {
+      const searchParams = new URLSearchParams({ account_id: "not-a-uuid" });
+
+      const result = validateGetChatsQuery(searchParams);
+
+      expect(result).toBeInstanceOf(NextResponse);
+      if (result instanceof NextResponse) {
+        const json = await result.json();
+        expect(json.status).toBe("error");
+        expect(json.error).toBe("account_id must be a valid UUID");
+      }
+    });
+
+    it("returns helpful error message for invalid artist_account_id UUID", async () => {
+      const searchParams = new URLSearchParams({
+        account_id: "123e4567-e89b-12d3-a456-426614174000",
+        artist_account_id: "not-a-uuid",
+      });
+
+      const result = validateGetChatsQuery(searchParams);
+
+      expect(result).toBeInstanceOf(NextResponse);
+      if (result instanceof NextResponse) {
+        const json = await result.json();
+        expect(json.status).toBe("error");
+        expect(json.error).toBe("artist_account_id must be a valid UUID");
       }
     });
   });
