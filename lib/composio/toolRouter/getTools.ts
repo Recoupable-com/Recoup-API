@@ -1,4 +1,6 @@
 import { createToolRouterSession } from "./createSession";
+import { getComposioClient } from "../client";
+import { ALLOWED_ARTIST_CONNECTORS } from "../artistConnectors/ALLOWED_ARTIST_CONNECTORS";
 import type { Tool, ToolSet } from "ai";
 
 /**
@@ -36,6 +38,42 @@ function isValidTool(tool: unknown): tool is Tool {
 }
 
 /**
+ * Query Composio for an artist's connected accounts.
+ *
+ * Uses artistId as the Composio entity to get their connections.
+ * Only returns connections for ALLOWED_ARTIST_CONNECTORS (e.g., tiktok).
+ *
+ * @param artistId - The artist ID (Composio entity)
+ * @returns Map of toolkit slug to connected account ID
+ */
+async function getArtistConnectionsFromComposio(
+  artistId: string
+): Promise<Record<string, string>> {
+  const composio = await getComposioClient();
+
+  // Create session with artistId as entity
+  // Spread to create mutable array (ALLOWED_ARTIST_CONNECTORS is readonly)
+  const session = await composio.create(artistId, {
+    toolkits: [...ALLOWED_ARTIST_CONNECTORS],
+  });
+
+  // Get toolkits and extract connected account IDs
+  const toolkits = await session.toolkits();
+  const connections: Record<string, string> = {};
+
+  for (const toolkit of toolkits.items) {
+    const connectedAccountId = toolkit.connection?.connectedAccount?.id;
+    // Cast to readonly string[] for .includes() type compatibility
+    const allowedConnectors = ALLOWED_ARTIST_CONNECTORS as readonly string[];
+    if (connectedAccountId && allowedConnectors.includes(toolkit.slug)) {
+      connections[toolkit.slug] = connectedAccountId;
+    }
+  }
+
+  return connections;
+}
+
+/**
  * Get Composio Tool Router tools for a user.
  *
  * Returns a filtered subset of meta-tools:
@@ -44,16 +82,21 @@ function isValidTool(tool: unknown): tool is Tool {
  * - COMPOSIO_GET_TOOL_SCHEMAS - Get parameter schemas
  * - COMPOSIO_MULTI_EXECUTE_TOOL - Execute actions
  *
+ * If artistId is provided, queries Composio for the artist's connections
+ * and passes them to the session via connectedAccounts override.
+ *
  * Gracefully returns empty ToolSet when:
  * - COMPOSIO_API_KEY is not set
  * - @composio packages fail to load (bundler incompatibility)
  *
  * @param userId - Unique identifier for the user (accountId)
+ * @param artistId - Optional artist ID to use artist-specific Composio connections
  * @param roomId - Optional chat room ID for OAuth redirect
  * @returns ToolSet containing filtered Vercel AI SDK tools
  */
 export async function getComposioTools(
   userId: string,
+  artistId?: string,
   roomId?: string
 ): Promise<ToolSet> {
   // Skip Composio if API key is not configured
@@ -62,7 +105,17 @@ export async function getComposioTools(
   }
 
   try {
-    const session = await createToolRouterSession(userId, roomId);
+    // Fetch artist-specific connections from Composio if artistId is provided
+    let artistConnections: Record<string, string> | undefined;
+    if (artistId) {
+      artistConnections = await getArtistConnectionsFromComposio(artistId);
+      // Only pass if there are actual connections
+      if (Object.keys(artistConnections).length === 0) {
+        artistConnections = undefined;
+      }
+    }
+
+    const session = await createToolRouterSession(userId, roomId, artistConnections);
     const allTools = await session.tools();
 
     // Filter to only allowed tools with runtime validation
