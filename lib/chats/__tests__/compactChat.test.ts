@@ -2,23 +2,24 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { compactChat } from "../compactChat";
 
 const mockSelectMemories = vi.fn();
-const mockGenerateText = vi.fn();
+const mockCreateCompactAgent = vi.fn();
+const mockAgentGenerate = vi.fn();
 
 vi.mock("@/lib/supabase/memories/selectMemories", () => ({
   default: (...args: unknown[]) => mockSelectMemories(...args),
 }));
 
-vi.mock("@/lib/ai/generateText", () => ({
-  default: (...args: unknown[]) => mockGenerateText(...args),
-}));
-
-vi.mock("@/lib/const", () => ({
-  LIGHTWEIGHT_MODEL: "test-model",
+vi.mock("@/lib/agents/CompactAgent", () => ({
+  createCompactAgent: (...args: unknown[]) => mockCreateCompactAgent(...args),
 }));
 
 describe("compactChat", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default mock for agent
+    mockCreateCompactAgent.mockReturnValue({
+      generate: mockAgentGenerate,
+    });
   });
 
   it("returns empty compacted string when no memories exist", async () => {
@@ -30,7 +31,7 @@ describe("compactChat", () => {
       chatId: "chat-123",
       compacted: "",
     });
-    expect(mockGenerateText).not.toHaveBeenCalled();
+    expect(mockCreateCompactAgent).not.toHaveBeenCalled();
   });
 
   it("returns empty compacted string when memories is null", async () => {
@@ -42,10 +43,10 @@ describe("compactChat", () => {
       chatId: "chat-123",
       compacted: "",
     });
-    expect(mockGenerateText).not.toHaveBeenCalled();
+    expect(mockCreateCompactAgent).not.toHaveBeenCalled();
   });
 
-  it("generates summary from chat memories", async () => {
+  it("generates summary from chat memories using agent", async () => {
     const mockMemories = [
       {
         id: "mem-1",
@@ -62,15 +63,14 @@ describe("compactChat", () => {
     ];
 
     mockSelectMemories.mockResolvedValue(mockMemories);
-    mockGenerateText.mockResolvedValue({ text: "A brief greeting exchange." });
+    mockAgentGenerate.mockResolvedValue({ text: "A brief greeting exchange." });
 
     const result = await compactChat("chat-123");
 
     expect(mockSelectMemories).toHaveBeenCalledWith("chat-123", { ascending: true });
-    expect(mockGenerateText).toHaveBeenCalledWith({
-      system: expect.stringContaining("conversation summarizer"),
+    expect(mockCreateCompactAgent).toHaveBeenCalledWith(undefined);
+    expect(mockAgentGenerate).toHaveBeenCalledWith({
       prompt: expect.stringContaining("user: Hello, how are you?"),
-      model: "test-model",
     });
     expect(result).toEqual({
       chatId: "chat-123",
@@ -89,15 +89,14 @@ describe("compactChat", () => {
     ];
 
     mockSelectMemories.mockResolvedValue(mockMemories);
-    mockGenerateText.mockResolvedValue({ text: "Custom summary." });
+    mockAgentGenerate.mockResolvedValue({ text: "Custom summary." });
 
     const customPrompt = "Focus only on action items";
     const result = await compactChat("chat-123", customPrompt);
 
-    expect(mockGenerateText).toHaveBeenCalledWith({
-      system: customPrompt,
+    expect(mockCreateCompactAgent).toHaveBeenCalledWith(customPrompt);
+    expect(mockAgentGenerate).toHaveBeenCalledWith({
       prompt: expect.stringContaining("user: Test message"),
-      model: "test-model",
     });
     expect(result?.compacted).toBe("Custom summary.");
   });
@@ -113,11 +112,11 @@ describe("compactChat", () => {
     ];
 
     mockSelectMemories.mockResolvedValue(mockMemories);
-    mockGenerateText.mockResolvedValue({ text: "Summary of complex content." });
+    mockAgentGenerate.mockResolvedValue({ text: "Summary of complex content." });
 
     const result = await compactChat("chat-123");
 
-    expect(mockGenerateText).toHaveBeenCalled();
+    expect(mockAgentGenerate).toHaveBeenCalled();
     expect(result?.compacted).toBe("Summary of complex content.");
   });
 });
