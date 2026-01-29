@@ -33,8 +33,9 @@ export async function getArtistConnectors(
   const composio = await getComposioClient();
 
   // Create session with artistId as entity to check their connections
+  // Spread to create mutable array (ALLOWED_ARTIST_CONNECTORS is readonly)
   const session = await composio.create(artistId, {
-    toolkits: ALLOWED_ARTIST_CONNECTORS,
+    toolkits: [...ALLOWED_ARTIST_CONNECTORS],
   });
 
   // Get all toolkits and their connection status

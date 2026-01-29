@@ -52,8 +52,9 @@ async function getArtistConnectionsFromComposio(
   const composio = await getComposioClient();
 
   // Create session with artistId as entity
+  // Spread to create mutable array (ALLOWED_ARTIST_CONNECTORS is readonly)
   const session = await composio.create(artistId, {
-    toolkits: ALLOWED_ARTIST_CONNECTORS,
+    toolkits: [...ALLOWED_ARTIST_CONNECTORS],
   });
 
   // Get toolkits and extract connected account IDs
@@ -62,7 +63,9 @@ async function getArtistConnectionsFromComposio(
 
   for (const toolkit of toolkits.items) {
     const connectedAccountId = toolkit.connection?.connectedAccount?.id;
-    if (connectedAccountId && ALLOWED_ARTIST_CONNECTORS.includes(toolkit.slug)) {
+    // Cast to readonly string[] for .includes() type compatibility
+    const allowedConnectors = ALLOWED_ARTIST_CONNECTORS as readonly string[];
+    if (connectedAccountId && allowedConnectors.includes(toolkit.slug)) {
       connections[toolkit.slug] = connectedAccountId;
     }
   }
