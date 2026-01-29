@@ -5,7 +5,7 @@ import { getCallbackUrl } from "../getCallbackUrl";
  * Toolkits available in Tool Router sessions.
  * Add more toolkits here as we expand Composio integration.
  */
-const ENABLED_TOOLKITS = ["googlesheets", "googledrive", "googledocs"];
+const ENABLED_TOOLKITS = ["googlesheets", "googledrive", "googledocs", "tiktok"];
 
 /**
  * Create a Composio Tool Router session for a user.
