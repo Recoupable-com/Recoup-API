@@ -1,5 +1,6 @@
 import { createToolRouterSession } from "./createSession";
 import type { Tool, ToolSet } from "ai";
+import { selectArtistComposioConnections } from "@/lib/supabase/artist_composio_connections/selectArtistComposioConnections";
 
 /**
  * Tools we want to expose from Composio Tool Router.
@@ -49,14 +50,14 @@ function isValidTool(tool: unknown): tool is Tool {
  * - @composio packages fail to load (bundler incompatibility)
  *
  * @param userId - Unique identifier for the user (accountId)
+ * @param artistId - Optional artist ID to use artist-specific Composio connections
  * @param roomId - Optional chat room ID for OAuth redirect
- * @param artistConnections - Optional mapping of toolkit slug to connected account ID for artist-specific connections
  * @returns ToolSet containing filtered Vercel AI SDK tools
  */
 export async function getComposioTools(
   userId: string,
+  artistId?: string,
   roomId?: string,
-  artistConnections?: Record<string, string>
 ): Promise<ToolSet> {
   // Skip Composio if API key is not configured
   if (!process.env.COMPOSIO_API_KEY) {
@@ -64,6 +65,22 @@ export async function getComposioTools(
   }
 
   try {
+    // Fetch artist-specific Composio connections if artistId is provided
+    let artistConnections: Record<string, string> | undefined;
+    if (artistId) {
+      const connections = await selectArtistComposioConnections(artistId);
+      if (connections.length > 0) {
+        // Transform to { toolkit_slug: connected_account_id } format
+        artistConnections = connections.reduce(
+          (acc, conn) => {
+            acc[conn.toolkit_slug] = conn.connected_account_id;
+            return acc;
+          },
+          {} as Record<string, string>,
+        );
+      }
+    }
+
     const session = await createToolRouterSession(userId, roomId, artistConnections);
     const allTools = await session.tools();
 
