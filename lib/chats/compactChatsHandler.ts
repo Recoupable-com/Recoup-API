@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { validateCompactChatsRequest } from "./validateCompactChatsRequest";
-import { compactChat, CompactChatResult } from "./compactChat";
-import selectRoom from "@/lib/supabase/rooms/selectRoom";
-import { canAccessAccount } from "@/lib/organizations/canAccessAccount";
+import { processCompactChatRequest } from "./processCompactChatRequest";
+import type { CompactChatResult } from "./compactChat";
 
 /**
  * Handler for compacting chat conversations into summarized versions.
@@ -26,30 +25,9 @@ export async function compactChatsHandler(request: NextRequest): Promise<NextRes
 
     // Process all chats in parallel using Promise.all for performance
     const processResults = await Promise.all(
-      chatIds.map(async chatId => {
-        // Verify the chat exists
-        const room = await selectRoom(chatId);
-        if (!room) {
-          return { type: "notFound" as const, chatId };
-        }
-
-        // Verify user has access to the chat
-        const roomAccountId = room.account_id;
-        if (roomAccountId && roomAccountId !== accountId) {
-          // Check if org key has access to this account
-          const hasAccess = await canAccessAccount({
-            orgId,
-            targetAccountId: roomAccountId,
-          });
-          if (!hasAccess) {
-            return { type: "notFound" as const, chatId };
-          }
-        }
-
-        // Compact the chat
-        const compactResult = await compactChat(chatId, prompt);
-        return { type: "success" as const, result: compactResult };
-      }),
+      chatIds.map(chatId =>
+        processCompactChatRequest({ chatId, prompt, accountId, orgId }),
+      ),
     );
 
     // Separate results and not-found IDs
