@@ -3,14 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getChatsHandler } from "../getChatsHandler";
 
 import { validateAuthContext } from "@/lib/auth/validateAuthContext";
-import { selectRoomsByAccountId } from "@/lib/supabase/rooms/selectRoomsByAccountId";
+import { selectRooms } from "@/lib/supabase/rooms/selectRooms";
 
 vi.mock("@/lib/auth/validateAuthContext", () => ({
   validateAuthContext: vi.fn(),
 }));
 
-vi.mock("@/lib/supabase/rooms/selectRoomsByAccountId", () => ({
-  selectRoomsByAccountId: vi.fn(),
+vi.mock("@/lib/supabase/rooms/selectRooms", () => ({
+  selectRooms: vi.fn(),
 }));
 
 vi.mock("@/lib/networking/getCorsHeaders", () => ({
@@ -50,7 +50,7 @@ describe("getChatsHandler", () => {
 
       expect(response.status).toBe(401);
       expect(json.status).toBe("error");
-      expect(selectRoomsByAccountId).not.toHaveBeenCalled();
+      expect(selectRooms).not.toHaveBeenCalled();
     });
   });
 
@@ -68,7 +68,7 @@ describe("getChatsHandler", () => {
 
       expect(response.status).toBe(400);
       expect(json.status).toBe("error");
-      expect(selectRoomsByAccountId).not.toHaveBeenCalled();
+      expect(selectRooms).not.toHaveBeenCalled();
     });
 
     it("returns 400 when account_id is invalid UUID", async () => {
@@ -84,7 +84,7 @@ describe("getChatsHandler", () => {
 
       expect(response.status).toBe(400);
       expect(json.status).toBe("error");
-      expect(selectRoomsByAccountId).not.toHaveBeenCalled();
+      expect(selectRooms).not.toHaveBeenCalled();
     });
   });
 
@@ -113,7 +113,7 @@ describe("getChatsHandler", () => {
         orgId: null,
         authToken: "test-token",
       });
-      vi.mocked(selectRoomsByAccountId).mockResolvedValue(mockChats);
+      vi.mocked(selectRooms).mockResolvedValue(mockChats);
 
       const request = createMockRequest(`http://localhost/api/chats?account_id=${accountId}`);
       const response = await getChatsHandler(request);
@@ -122,7 +122,7 @@ describe("getChatsHandler", () => {
       expect(response.status).toBe(200);
       expect(json.status).toBe("success");
       expect(json.chats).toEqual(mockChats);
-      expect(selectRoomsByAccountId).toHaveBeenCalledWith({
+      expect(selectRooms).toHaveBeenCalledWith({
         accountId,
         artistId: undefined,
       });
@@ -146,7 +146,7 @@ describe("getChatsHandler", () => {
         orgId: null,
         authToken: "test-token",
       });
-      vi.mocked(selectRoomsByAccountId).mockResolvedValue(mockChats);
+      vi.mocked(selectRooms).mockResolvedValue(mockChats);
 
       const request = createMockRequest(
         `http://localhost/api/chats?account_id=${accountId}&artist_account_id=${artistId}`,
@@ -157,7 +157,7 @@ describe("getChatsHandler", () => {
       expect(response.status).toBe(200);
       expect(json.status).toBe("success");
       expect(json.chats).toEqual(mockChats);
-      expect(selectRoomsByAccountId).toHaveBeenCalledWith({
+      expect(selectRooms).toHaveBeenCalledWith({
         accountId,
         artistId,
       });
@@ -171,7 +171,7 @@ describe("getChatsHandler", () => {
         orgId: null,
         authToken: "test-token",
       });
-      vi.mocked(selectRoomsByAccountId).mockResolvedValue([]);
+      vi.mocked(selectRooms).mockResolvedValue([]);
 
       const request = createMockRequest(`http://localhost/api/chats?account_id=${accountId}`);
       const response = await getChatsHandler(request);
@@ -184,7 +184,7 @@ describe("getChatsHandler", () => {
   });
 
   describe("error handling", () => {
-    it("returns 500 when selectRoomsByAccountId returns null", async () => {
+    it("returns 500 when selectRooms returns null", async () => {
       const accountId = "123e4567-e89b-12d3-a456-426614174000";
 
       vi.mocked(validateAuthContext).mockResolvedValue({
@@ -192,7 +192,7 @@ describe("getChatsHandler", () => {
         orgId: null,
         authToken: "test-token",
       });
-      vi.mocked(selectRoomsByAccountId).mockResolvedValue(null);
+      vi.mocked(selectRooms).mockResolvedValue(null);
 
       const request = createMockRequest(`http://localhost/api/chats?account_id=${accountId}`);
       const response = await getChatsHandler(request);
@@ -211,7 +211,7 @@ describe("getChatsHandler", () => {
         orgId: null,
         authToken: "test-token",
       });
-      vi.mocked(selectRoomsByAccountId).mockRejectedValue(new Error("Database error"));
+      vi.mocked(selectRooms).mockRejectedValue(new Error("Database error"));
 
       const request = createMockRequest(`http://localhost/api/chats?account_id=${accountId}`);
       const response = await getChatsHandler(request);

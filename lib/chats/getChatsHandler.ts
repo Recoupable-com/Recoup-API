@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { validateAuthContext } from "@/lib/auth/validateAuthContext";
 import { validateGetChatsQuery } from "@/lib/chats/validateGetChatsQuery";
-import { selectRoomsByAccountId } from "@/lib/supabase/rooms/selectRoomsByAccountId";
+import { selectRooms } from "@/lib/supabase/rooms/selectRooms";
 
 /**
  * Handler for retrieving chats.
@@ -30,7 +30,7 @@ export async function getChatsHandler(request: NextRequest): Promise<NextRespons
 
     const { account_id, artist_account_id } = validatedQuery;
 
-    const chats = await selectRoomsByAccountId({
+    const chats = await selectRooms({
       accountId: account_id,
       artistId: artist_account_id,
     });
