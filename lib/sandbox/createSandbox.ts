@@ -1,4 +1,5 @@
 import { Sandbox } from "@vercel/sandbox";
+import { installClaudeCode } from "./installClaudeCode";
 import { runClaudeCodePrompt } from "./runClaudeCodePrompt";
 
 /**
@@ -23,6 +24,7 @@ export interface SandboxResponse {
 export async function createSandbox(prompt: string): Promise<SandboxResponse> {
   const sandbox = await Sandbox.create();
 
+  await installClaudeCode(sandbox);
   await runClaudeCodePrompt(sandbox, prompt);
 
   return {

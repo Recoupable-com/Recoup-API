@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Sandbox } from "@vercel/sandbox";
+import { installClaudeCode } from "../installClaudeCode";
 import { runClaudeCodePrompt } from "../runClaudeCodePrompt";
 import { createSandbox } from "../createSandbox";
 
@@ -7,6 +8,10 @@ vi.mock("@vercel/sandbox", () => ({
   Sandbox: {
     create: vi.fn(),
   },
+}));
+
+vi.mock("../installClaudeCode", () => ({
+  installClaudeCode: vi.fn(),
 }));
 
 vi.mock("../runClaudeCodePrompt", () => ({
@@ -26,6 +31,7 @@ describe("createSandbox", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(Sandbox.create).mockResolvedValue(mockSandboxInstance as never);
+    vi.mocked(installClaudeCode).mockResolvedValue(undefined);
     vi.mocked(runClaudeCodePrompt).mockResolvedValue(undefined);
   });
 
@@ -54,10 +60,15 @@ describe("createSandbox", () => {
     });
   });
 
-  describe("prompt execution", () => {
+  describe("sandbox setup", () => {
     it("creates sandbox with Sandbox.create", async () => {
       await createSandbox("test prompt");
       expect(Sandbox.create).toHaveBeenCalled();
+    });
+
+    it("installs Claude Code CLI and SDK", async () => {
+      await createSandbox("test prompt");
+      expect(installClaudeCode).toHaveBeenCalledWith(mockSandboxInstance);
     });
 
     it("executes prompt using runClaudeCodePrompt", async () => {
