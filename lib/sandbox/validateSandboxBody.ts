@@ -1,20 +1,29 @@
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
+import { validateAuthContext, type AuthContext } from "@/lib/auth/validateAuthContext";
+import { safeParseJson } from "@/lib/networking/safeParseJson";
 import { z } from "zod";
 
 export const sandboxBodySchema = z.object({
   prompt: z.string({ message: "prompt is required" }).min(1, "prompt cannot be empty"),
 });
 
-export type SandboxBody = z.infer<typeof sandboxBodySchema>;
+export type SandboxBody = z.infer<typeof sandboxBodySchema> & AuthContext;
 
 /**
- * Validates request body for POST /api/sandbox.
+ * Validates auth and request body for POST /api/sandbox.
  *
- * @param body - The request body
- * @returns A NextResponse with an error if validation fails, or the validated body if validation passes.
+ * @param request - The NextRequest object
+ * @returns A NextResponse with an error if validation fails, or the validated body with auth context.
  */
-export function validateSandboxBody(body: unknown): NextResponse | SandboxBody {
+export async function validateSandboxBody(request: NextRequest): Promise<NextResponse | SandboxBody> {
+  const authResult = await validateAuthContext(request);
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
+
+  const body = await safeParseJson(request);
   const result = sandboxBodySchema.safeParse(body);
 
   if (!result.success) {
@@ -32,5 +41,8 @@ export function validateSandboxBody(body: unknown): NextResponse | SandboxBody {
     );
   }
 
-  return result.data;
+  return {
+    ...authResult,
+    ...result.data,
+  };
 }

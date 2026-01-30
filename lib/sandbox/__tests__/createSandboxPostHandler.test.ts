@@ -3,11 +3,11 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { createSandboxPostHandler } from "../createSandboxPostHandler";
-import { validateAuthContext } from "@/lib/auth/validateAuthContext";
+import { validateSandboxBody } from "@/lib/sandbox/validateSandboxBody";
 import { createSandbox } from "@/lib/sandbox/createSandbox";
 
-vi.mock("@/lib/auth/validateAuthContext", () => ({
-  validateAuthContext: vi.fn(),
+vi.mock("@/lib/sandbox/validateSandboxBody", () => ({
+  validateSandboxBody: vi.fn(),
 }));
 
 vi.mock("@/lib/sandbox/createSandbox", () => ({
@@ -17,12 +17,10 @@ vi.mock("@/lib/sandbox/createSandbox", () => ({
 /**
  * Creates a mock NextRequest for testing.
  *
- * @param body - The request body to return from json()
  * @returns A mock NextRequest object
  */
-function createMockRequest(body: unknown): NextRequest {
+function createMockRequest(): NextRequest {
   return {
-    json: () => Promise.resolve(body),
     headers: new Headers({ "x-api-key": "test-key" }),
   } as unknown as NextRequest;
 }
@@ -32,54 +30,23 @@ describe("createSandboxPostHandler", () => {
     vi.clearAllMocks();
   });
 
-  it("returns 401 when auth fails", async () => {
-    vi.mocked(validateAuthContext).mockResolvedValue(
+  it("returns error response when validation fails", async () => {
+    vi.mocked(validateSandboxBody).mockResolvedValue(
       NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
     );
 
-    const request = createMockRequest({ script: "test" });
+    const request = createMockRequest();
     const response = await createSandboxPostHandler(request);
 
     expect(response.status).toBe(401);
   });
 
-  it("returns 400 when body is invalid JSON", async () => {
-    vi.mocked(validateAuthContext).mockResolvedValue({
-      accountId: "acc_123",
-      orgId: null,
-      authToken: "token",
-    });
-
-    const request = {
-      json: () => Promise.reject(new Error("Invalid JSON")),
-      headers: new Headers({ "x-api-key": "test-key" }),
-    } as unknown as NextRequest;
-
-    const response = await createSandboxPostHandler(request);
-
-    expect(response.status).toBe(400);
-    const json = await response.json();
-    expect(json.error).toBe("Invalid JSON body");
-  });
-
-  it("returns 400 when prompt is missing", async () => {
-    vi.mocked(validateAuthContext).mockResolvedValue({
-      accountId: "acc_123",
-      orgId: null,
-      authToken: "token",
-    });
-
-    const request = createMockRequest({});
-    const response = await createSandboxPostHandler(request);
-
-    expect(response.status).toBe(400);
-  });
-
   it("returns 200 with sandbox result on success", async () => {
-    vi.mocked(validateAuthContext).mockResolvedValue({
+    vi.mocked(validateSandboxBody).mockResolvedValue({
       accountId: "acc_123",
       orgId: null,
       authToken: "token",
+      prompt: "tell me hello",
     });
     vi.mocked(createSandbox).mockResolvedValue({
       sandboxId: "sbx_123",
@@ -88,7 +55,7 @@ describe("createSandboxPostHandler", () => {
       createdAt: "2024-01-01T00:00:00.000Z",
     });
 
-    const request = createMockRequest({ prompt: "tell me hello" });
+    const request = createMockRequest();
     const response = await createSandboxPostHandler(request);
 
     expect(response.status).toBe(200);
@@ -99,14 +66,15 @@ describe("createSandboxPostHandler", () => {
   });
 
   it("returns 400 when createSandbox throws", async () => {
-    vi.mocked(validateAuthContext).mockResolvedValue({
+    vi.mocked(validateSandboxBody).mockResolvedValue({
       accountId: "acc_123",
       orgId: null,
       authToken: "token",
+      prompt: "tell me hello",
     });
     vi.mocked(createSandbox).mockRejectedValue(new Error("Sandbox creation failed"));
 
-    const request = createMockRequest({ prompt: "tell me hello" });
+    const request = createMockRequest();
     const response = await createSandboxPostHandler(request);
 
     expect(response.status).toBe(400);

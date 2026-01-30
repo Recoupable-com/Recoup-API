@@ -1,35 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
-import { validateAuthContext } from "@/lib/auth/validateAuthContext";
 import { createSandbox } from "@/lib/sandbox/createSandbox";
 import { validateSandboxBody } from "@/lib/sandbox/validateSandboxBody";
 
 /**
  * Handler for POST /api/sandbox.
  *
- * Creates a Vercel Sandbox with Claude's Agent SDK pre-installed and executes a script.
+ * Creates a Vercel Sandbox with Claude's Agent SDK pre-installed and executes a prompt.
  * Requires authentication via x-api-key header or Authorization Bearer token.
  *
  * @param request - The request object
- * @returns A NextResponse with sandbox execution result or error
+ * @returns A NextResponse with sandbox creation result or error
  */
 export async function createSandboxPostHandler(request: NextRequest): Promise<NextResponse> {
-  const authResult = await validateAuthContext(request);
-  if (authResult instanceof NextResponse) {
-    return authResult;
-  }
-
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { status: "error", error: "Invalid JSON body" },
-      { status: 400, headers: getCorsHeaders() },
-    );
-  }
-
-  const validated = validateSandboxBody(body);
+  const validated = await validateSandboxBody(request);
   if (validated instanceof NextResponse) {
     return validated;
   }
