@@ -5,6 +5,9 @@ import { Sandbox } from "@vercel/sandbox";
 
 const mockSandbox = {
   sandboxId: "sbx_test123",
+  status: "running",
+  timeout: 600000,
+  createdAt: new Date("2024-01-01T00:00:00Z"),
   runCommand: vi.fn(),
   writeFiles: vi.fn(),
   stop: vi.fn(),
@@ -90,13 +93,14 @@ describe("createSandbox", () => {
     );
   });
 
-  it("returns sandbox result with sandboxId, output, and exitCode", async () => {
-    const result = await createSandbox("console.log('test')");
+  it("returns sandbox created response", async () => {
+    const result = await createSandbox("echo hello");
 
     expect(result).toEqual({
       sandboxId: "sbx_test123",
-      output: "",
-      exitCode: 0,
+      status: "running",
+      timeout: 600000,
+      createdAt: "2024-01-01T00:00:00.000Z",
     });
   });
 
@@ -113,9 +117,9 @@ describe("createSandbox", () => {
       .mockResolvedValueOnce({ exitCode: 0 }) // verify
       .mockResolvedValueOnce({ exitCode: 1 }); // script fails
 
-    const result = await createSandbox("console.log('test')");
+    const result = await createSandbox("echo hello");
 
-    expect(result.exitCode).toBe(1);
+    expect(result.sandboxId).toBe("sbx_test123");
     expect(mockSandbox.stop).toHaveBeenCalled();
   });
 

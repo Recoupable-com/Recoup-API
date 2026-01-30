@@ -28,12 +28,10 @@ export async function OPTIONS() {
  * - script: The shell script to execute (required)
  *
  * Response body:
- * - status: 'success' or 'error'
- * - data: {
- *     sandboxId: string,
- *     output: string,
- *     exitCode: number
- *   }
+ * - sandboxId: string
+ * - status: string
+ * - timeout: number
+ * - createdAt: string
  *
  * @param request - The request object
  * @returns A NextResponse with the sandbox execution result or error

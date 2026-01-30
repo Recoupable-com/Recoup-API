@@ -1,20 +1,21 @@
 import ms from "ms";
 import { Sandbox } from "@vercel/sandbox";
 
-export interface SandboxResult {
-  sandboxId: string;
-  output: string;
-  exitCode: number;
+export interface SandboxCreatedResponse {
+  sandboxId: Sandbox["sandboxId"];
+  status: Sandbox["status"];
+  timeout: Sandbox["timeout"];
+  createdAt: string;
 }
 
 /**
  * Creates a Vercel Sandbox, installs Claude Code CLI and Anthropic SDK, then executes a shell script.
  *
  * @param script - The shell script to execute
- * @returns The sandbox execution result
+ * @returns The sandbox creation response
  * @throws Error if sandbox creation or dependency installation fails
  */
-export async function createSandbox(script: string): Promise<SandboxResult> {
+export async function createSandbox(script: string): Promise<SandboxCreatedResponse> {
   const sandbox = await Sandbox.create({
     resources: { vcpus: 4 },
     timeout: ms("10m"),
@@ -100,8 +101,9 @@ console.log('SDK is ready to use');
     console.log(`✓ Script executed`);
     return {
       sandboxId: sandbox.sandboxId,
-      output: "",
-      exitCode: runScript.exitCode,
+      status: sandbox.status,
+      timeout: sandbox.timeout,
+      createdAt: sandbox.createdAt.toISOString(),
     };
   } finally {
     await sandbox.stop();

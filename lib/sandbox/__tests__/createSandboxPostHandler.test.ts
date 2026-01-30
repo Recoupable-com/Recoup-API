@@ -83,41 +83,22 @@ describe("createSandboxPostHandler", () => {
     });
     vi.mocked(createSandbox).mockResolvedValue({
       sandboxId: "sbx_123",
-      output: "",
-      exitCode: 0,
+      status: "running",
+      timeout: 600000,
+      createdAt: "2024-01-01T00:00:00.000Z",
     });
 
-    const request = createMockRequest({ script: "console.log('Hello World')" });
+    const request = createMockRequest({ script: "echo hello" });
     const response = await createSandboxPostHandler(request);
 
     expect(response.status).toBe(200);
     const json = await response.json();
-    expect(json.status).toBe("success");
-    expect(json.data.sandboxId).toBe("sbx_123");
-    expect(json.data.exitCode).toBe(0);
+    expect(json.sandboxId).toBe("sbx_123");
+    expect(json.status).toBe("running");
+    expect(json.timeout).toBe(600000);
   });
 
-  it("returns 500 when script execution fails", async () => {
-    vi.mocked(validateAuthContext).mockResolvedValue({
-      accountId: "acc_123",
-      orgId: null,
-      authToken: "token",
-    });
-    vi.mocked(createSandbox).mockResolvedValue({
-      sandboxId: "sbx_123",
-      output: "",
-      exitCode: 1,
-    });
-
-    const request = createMockRequest({ script: "throw new Error('fail')" });
-    const response = await createSandboxPostHandler(request);
-
-    expect(response.status).toBe(500);
-    const json = await response.json();
-    expect(json.status).toBe("error");
-  });
-
-  it("returns 500 when createSandbox throws", async () => {
+  it("returns 400 when createSandbox throws", async () => {
     vi.mocked(validateAuthContext).mockResolvedValue({
       accountId: "acc_123",
       orgId: null,
@@ -125,10 +106,10 @@ describe("createSandboxPostHandler", () => {
     });
     vi.mocked(createSandbox).mockRejectedValue(new Error("Sandbox creation failed"));
 
-    const request = createMockRequest({ script: "console.log('test')" });
+    const request = createMockRequest({ script: "echo hello" });
     const response = await createSandboxPostHandler(request);
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
     const json = await response.json();
     expect(json.error).toBe("Sandbox creation failed");
   });
