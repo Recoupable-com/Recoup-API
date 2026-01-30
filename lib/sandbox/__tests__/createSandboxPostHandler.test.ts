@@ -32,7 +32,7 @@ describe("createSandboxPostHandler", () => {
 
   it("returns error response when validation fails", async () => {
     vi.mocked(validateSandboxBody).mockResolvedValue(
-      NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+      NextResponse.json({ status: "error", error: "Unauthorized" }, { status: 401 }),
     );
 
     const request = createMockRequest();
@@ -41,7 +41,7 @@ describe("createSandboxPostHandler", () => {
     expect(response.status).toBe(401);
   });
 
-  it("returns 200 with sandbox result on success", async () => {
+  it("returns 200 with sandboxes array on success", async () => {
     vi.mocked(validateSandboxBody).mockResolvedValue({
       accountId: "acc_123",
       orgId: null,
@@ -50,7 +50,7 @@ describe("createSandboxPostHandler", () => {
     });
     vi.mocked(createSandbox).mockResolvedValue({
       sandboxId: "sbx_123",
-      status: "running",
+      sandboxStatus: "running",
       timeout: 600000,
       createdAt: "2024-01-01T00:00:00.000Z",
     });
@@ -60,12 +60,20 @@ describe("createSandboxPostHandler", () => {
 
     expect(response.status).toBe(200);
     const json = await response.json();
-    expect(json.sandboxId).toBe("sbx_123");
-    expect(json.status).toBe("running");
-    expect(json.timeout).toBe(600000);
+    expect(json).toEqual({
+      status: "success",
+      sandboxes: [
+        {
+          sandboxId: "sbx_123",
+          sandboxStatus: "running",
+          timeout: 600000,
+          createdAt: "2024-01-01T00:00:00.000Z",
+        },
+      ],
+    });
   });
 
-  it("returns 400 when createSandbox throws", async () => {
+  it("returns 400 with error status when createSandbox throws", async () => {
     vi.mocked(validateSandboxBody).mockResolvedValue({
       accountId: "acc_123",
       orgId: null,
@@ -79,6 +87,9 @@ describe("createSandboxPostHandler", () => {
 
     expect(response.status).toBe(400);
     const json = await response.json();
-    expect(json.error).toBe("Sandbox creation failed");
+    expect(json).toEqual({
+      status: "error",
+      error: "Sandbox creation failed",
+    });
   });
 });

@@ -17,7 +17,9 @@ export type SandboxBody = z.infer<typeof sandboxBodySchema> & AuthContext;
  * @param request - The NextRequest object
  * @returns A NextResponse with an error if validation fails, or the validated body with auth context.
  */
-export async function validateSandboxBody(request: NextRequest): Promise<NextResponse | SandboxBody> {
+export async function validateSandboxBody(
+  request: NextRequest,
+): Promise<NextResponse | SandboxBody> {
   const authResult = await validateAuthContext(request);
   if (authResult instanceof NextResponse) {
     return authResult;

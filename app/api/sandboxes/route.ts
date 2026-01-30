@@ -16,25 +16,28 @@ export async function OPTIONS() {
 }
 
 /**
- * POST /api/sandbox
+ * POST /api/sandboxes
  *
- * Executes a script in a Vercel Sandbox with Claude's Agent SDK pre-installed.
+ * Creates a new ephemeral sandbox environment.
  * Sandboxes are isolated Linux microVMs that can be used to evaluate
- * AI agent output safely or execute reproducible tasks with the Anthropic SDK.
+ * account-generated code, run AI agent output safely, or execute reproducible tasks.
+ * The sandbox will automatically stop after the timeout period.
  *
  * Authentication: x-api-key header or Authorization Bearer token required.
  *
  * Request body:
- * - prompt: The prompt to send to Claude (required)
+ * - prompt: string (required, min length 1) - The prompt to send to Claude Code
  *
- * Response body:
- * - sandboxId: string
- * - status: string
- * - timeout: number
- * - createdAt: string
+ * Response (200):
+ * - status: "success"
+ * - sandboxes: [{ sandboxId, sandboxStatus, timeout, createdAt }]
+ *
+ * Error (400/401):
+ * - status: "error"
+ * - error: string
  *
  * @param request - The request object
- * @returns A NextResponse with the sandbox execution result or error
+ * @returns A NextResponse with the sandbox creation result or error
  */
 export async function POST(request: NextRequest): Promise<Response> {
   return createSandboxPostHandler(request);

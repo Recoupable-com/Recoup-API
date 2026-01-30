@@ -48,8 +48,6 @@ describe("installClaudeCode", () => {
       .mockResolvedValueOnce({ exitCode: 0 } as never)
       .mockResolvedValueOnce({ exitCode: 1 } as never);
 
-    await expect(installClaudeCode(mockSandbox)).rejects.toThrow(
-      "Failed to install Anthropic SDK",
-    );
+    await expect(installClaudeCode(mockSandbox)).rejects.toThrow("Failed to install Anthropic SDK");
   });
 });

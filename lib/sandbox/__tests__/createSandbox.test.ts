@@ -81,12 +81,12 @@ describe("createSandbox", () => {
     );
   });
 
-  it("returns sandbox created response", async () => {
+  it("returns sandbox created response with sandboxStatus", async () => {
     const result = await createSandbox("tell me hello");
 
     expect(result).toEqual({
       sandboxId: "sbx_test123",
-      status: "running",
+      sandboxStatus: "running",
       timeout: 600000,
       createdAt: "2024-01-01T00:00:00.000Z",
     });

@@ -4,7 +4,7 @@ import { installClaudeCode } from "./installClaudeCode";
 
 export interface SandboxCreatedResponse {
   sandboxId: Sandbox["sandboxId"];
-  status: Sandbox["status"];
+  sandboxStatus: Sandbox["status"];
   timeout: Sandbox["timeout"];
   createdAt: string;
 }
@@ -46,7 +46,7 @@ export async function createSandbox(prompt: string): Promise<SandboxCreatedRespo
 
     return {
       sandboxId: sandbox.sandboxId,
-      status: sandbox.status,
+      sandboxStatus: sandbox.status,
       timeout: sandbox.timeout,
       createdAt: sandbox.createdAt.toISOString(),
     };

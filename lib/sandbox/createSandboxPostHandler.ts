@@ -5,7 +5,7 @@ import { createSandbox } from "@/lib/sandbox/createSandbox";
 import { validateSandboxBody } from "@/lib/sandbox/validateSandboxBody";
 
 /**
- * Handler for POST /api/sandbox.
+ * Handler for POST /api/sandboxes.
  *
  * Creates a Vercel Sandbox with Claude's Agent SDK pre-installed and executes a prompt.
  * Requires authentication via x-api-key header or Authorization Bearer token.
@@ -22,9 +22,15 @@ export async function createSandboxPostHandler(request: NextRequest): Promise<Ne
   try {
     const result = await createSandbox(validated.prompt);
 
-    return NextResponse.json(result, { status: 200, headers: getCorsHeaders() });
+    return NextResponse.json(
+      { status: "success", sandboxes: [result] },
+      { status: 200, headers: getCorsHeaders() },
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create sandbox";
-    return NextResponse.json({ error: message }, { status: 400, headers: getCorsHeaders() });
+    return NextResponse.json(
+      { status: "error", error: message },
+      { status: 400, headers: getCorsHeaders() },
+    );
   }
 }
