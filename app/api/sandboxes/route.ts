@@ -15,19 +15,20 @@ export async function OPTIONS() {
 }
 
 /**
- * POST /api/sandbox
+ * POST /api/sandboxes
  *
  * Creates a new ephemeral sandbox environment.
  * Sandboxes are isolated Linux microVMs that can be used to evaluate
  * account-generated code, run AI agent output safely, or execute reproducible tasks.
+ * The sandbox will automatically stop after the timeout period.
  *
  * Request:
- * - No request body required
+ * - Body: { prompt: string } - The prompt to send to Claude Code in the sandbox (required, min length 1)
  * - Authentication via x-api-key header
  *
  * Response:
- * - 200: { sandboxId: string, status: string, timeout: number, createdAt: string }
- * - 400: { error: "Failed to create sandbox" }
+ * - 200: { status: "success", sandboxes: [{ sandboxId: string, sandboxStatus: string, timeout: number, createdAt: string }] }
+ * - 400: { status: "error", error: string }
  * - 401: { status: "error", error: "x-api-key header required" or "Invalid API key" }
  *
  * @param request - The request object
