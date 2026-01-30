@@ -1,4 +1,5 @@
 import { Writable } from "stream";
+import ms from "ms";
 import { Sandbox } from "@vercel/sandbox";
 
 export interface SandboxResult {
@@ -23,30 +24,43 @@ function createCollectorStream(chunks: string[]): Writable {
 }
 
 /**
- * Creates a Vercel Sandbox, installs Claude's Agent SDK, and executes a script.
+ * Creates a Vercel Sandbox, installs Claude Code CLI and Anthropic SDK, then executes a script.
  *
  * @param script - The JavaScript/TypeScript script to execute
  * @returns The sandbox execution result
- * @throws Error if sandbox creation or script execution fails
+ * @throws Error if sandbox creation or dependency installation fails
  */
 export async function createSandbox(script: string): Promise<SandboxResult> {
   const sandbox = await Sandbox.create({
     resources: { vcpus: 4 },
-    timeout: 5 * 60 * 1000,
+    timeout: ms("10m"),
     runtime: "node22",
   });
 
   try {
-    const installOutput: string[] = [];
+    const cliOutput: string[] = [];
+    const installCLI = await sandbox.runCommand({
+      cmd: "npm",
+      args: ["install", "-g", "@anthropic-ai/claude-code"],
+      stdout: createCollectorStream(cliOutput),
+      stderr: createCollectorStream(cliOutput),
+      sudo: true,
+    });
+
+    if (installCLI.exitCode !== 0) {
+      throw new Error(`Failed to install Claude Code CLI: ${cliOutput.join("")}`);
+    }
+
+    const sdkOutput: string[] = [];
     const installSDK = await sandbox.runCommand({
       cmd: "npm",
       args: ["install", "@anthropic-ai/sdk"],
-      stdout: createCollectorStream(installOutput),
-      stderr: createCollectorStream(installOutput),
+      stdout: createCollectorStream(sdkOutput),
+      stderr: createCollectorStream(sdkOutput),
     });
 
     if (installSDK.exitCode !== 0) {
-      throw new Error(`Failed to install Anthropic SDK: ${installOutput.join("")}`);
+      throw new Error(`Failed to install Anthropic SDK: ${sdkOutput.join("")}`);
     }
 
     await sandbox.writeFiles([
