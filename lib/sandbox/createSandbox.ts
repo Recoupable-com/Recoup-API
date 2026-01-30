@@ -70,6 +70,34 @@ export async function createSandbox(script: string): Promise<SandboxResult> {
     }
     console.log(`✓ Anthropic SDK installed`);
 
+    console.log(`Verifying SDK connection...`);
+    const verifyScript = `
+import Anthropic from '@anthropic-ai/sdk';
+console.log('SDK imported successfully');
+console.log('Anthropic SDK version:', Anthropic.VERSION);
+console.log('SDK is ready to use');
+`;
+    await sandbox.writeFiles([
+      {
+        path: "/vercel/sandbox/verify.mjs",
+        content: Buffer.from(verifyScript),
+      },
+    ]);
+
+    const verifyOutput: string[] = [];
+    const verifyRun = await sandbox.runCommand({
+      cmd: "node",
+      args: ["verify.mjs"],
+      stdout: createCollectorStream(verifyOutput),
+      stderr: createCollectorStream(verifyOutput),
+    });
+
+    if (verifyRun.exitCode !== 0) {
+      console.log("SDK verification failed");
+      throw new Error(`Failed to verify Anthropic SDK: ${verifyOutput.join("")}`);
+    }
+    console.log(`✓ Anthropic SDK is properly connected`);
+
     console.log(`Executing script...`);
     await sandbox.writeFiles([
       {
