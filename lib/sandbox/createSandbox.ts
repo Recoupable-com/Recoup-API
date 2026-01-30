@@ -1,5 +1,6 @@
 import ms from "ms";
 import { Sandbox } from "@vercel/sandbox";
+import { installClaudeCode } from "./installClaudeCode";
 
 export interface SandboxCreatedResponse {
   sandboxId: Sandbox["sandboxId"];
@@ -23,17 +24,7 @@ export async function createSandbox(prompt: string): Promise<SandboxCreatedRespo
   });
 
   try {
-    const installCLI = await sandbox.runCommand({
-      cmd: "npm",
-      args: ["install", "-g", "@anthropic-ai/claude-code"],
-      stderr: process.stderr,
-      stdout: process.stdout,
-      sudo: true,
-    });
-
-    if (installCLI.exitCode !== 0) {
-      throw new Error("Failed to install Claude Code CLI");
-    }
+    await installClaudeCode(sandbox);
 
     const installSDK = await sandbox.runCommand({
       cmd: "npm",
