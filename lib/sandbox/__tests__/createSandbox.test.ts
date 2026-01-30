@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createSandbox } from "../createSandbox";
 import { Sandbox } from "@vercel/sandbox";
 import { installClaudeCode } from "../installClaudeCode";
+import { runClaudeCode } from "../runClaudeCode";
 
 const mockSandbox = {
   sandboxId: "sbx_test123",
@@ -31,10 +32,15 @@ vi.mock("../installClaudeCode", () => ({
   installClaudeCode: vi.fn(),
 }));
 
+vi.mock("../runClaudeCode", () => ({
+  runClaudeCode: vi.fn(),
+}));
+
 describe("createSandbox", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(installClaudeCode).mockResolvedValue(undefined);
+    vi.mocked(runClaudeCode).mockResolvedValue(undefined);
     mockSandbox.runCommand.mockResolvedValue({ exitCode: 0 });
     mockSandbox.writeFiles.mockResolvedValue(undefined);
     mockSandbox.stop.mockResolvedValue(undefined);
@@ -56,29 +62,11 @@ describe("createSandbox", () => {
     expect(installClaudeCode).toHaveBeenCalledWith(mockSandbox);
   });
 
-  it("writes script to sandbox filesystem with claude command", async () => {
+  it("calls runClaudeCode with sandbox and prompt", async () => {
     const prompt = "tell me hello";
     await createSandbox(prompt);
 
-    expect(mockSandbox.writeFiles).toHaveBeenCalledWith([
-      {
-        path: "/vercel/sandbox/ralph-once.sh",
-        content: Buffer.from(`claude --permission-mode acceptEdits --model opus '${prompt}'`),
-      },
-    ]);
-  });
-
-  it("executes script with ANTHROPIC_API_KEY env var", async () => {
-    process.env.ANTHROPIC_API_KEY = "test-key";
-    await createSandbox("tell me hello");
-
-    expect(mockSandbox.runCommand).toHaveBeenCalledWith(
-      expect.objectContaining({
-        cmd: "sh",
-        args: ["ralph-once.sh"],
-        env: { ANTHROPIC_API_KEY: "test-key" },
-      }),
-    );
+    expect(runClaudeCode).toHaveBeenCalledWith(mockSandbox, prompt);
   });
 
   it("returns sandbox created response with sandboxStatus", async () => {
@@ -98,12 +86,10 @@ describe("createSandbox", () => {
     expect(mockSandbox.stop).toHaveBeenCalled();
   });
 
-  it("stops sandbox even if script execution fails", async () => {
-    mockSandbox.runCommand.mockResolvedValueOnce({ exitCode: 1 });
+  it("stops sandbox if runClaudeCode fails", async () => {
+    vi.mocked(runClaudeCode).mockRejectedValue(new Error("Failed to run claude code"));
 
-    const result = await createSandbox("tell me hello");
-
-    expect(result.sandboxId).toBe("sbx_test123");
+    await expect(createSandbox("tell me hello")).rejects.toThrow("Failed to run claude code");
     expect(mockSandbox.stop).toHaveBeenCalled();
   });
 

@@ -1,6 +1,7 @@
 import ms from "ms";
 import { Sandbox } from "@vercel/sandbox";
 import { installClaudeCode } from "./installClaudeCode";
+import { runClaudeCode } from "./runClaudeCode";
 
 export interface SandboxCreatedResponse {
   sandboxId: Sandbox["sandboxId"];
@@ -25,24 +26,7 @@ export async function createSandbox(prompt: string): Promise<SandboxCreatedRespo
 
   try {
     await installClaudeCode(sandbox);
-
-    const script = `claude --permission-mode acceptEdits --model opus '${prompt}'`;
-    await sandbox.writeFiles([
-      {
-        path: "/vercel/sandbox/ralph-once.sh",
-        content: Buffer.from(script),
-      },
-    ]);
-
-    await sandbox.runCommand({
-      cmd: "sh",
-      args: ["ralph-once.sh"],
-      stdout: process.stdout,
-      stderr: process.stderr,
-      env: {
-        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || "",
-      },
-    });
+    await runClaudeCode(sandbox, prompt);
 
     return {
       sandboxId: sandbox.sandboxId,
