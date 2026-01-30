@@ -46,28 +46,6 @@ export async function createSandbox(prompt: string): Promise<SandboxCreatedRespo
       throw new Error("Failed to install Anthropic SDK");
     }
 
-    const verifyScript = `
-import Anthropic from '@anthropic-ai/sdk';
-const client = new Anthropic();
-`;
-    await sandbox.writeFiles([
-      {
-        path: "/vercel/sandbox/verify.mjs",
-        content: Buffer.from(verifyScript),
-      },
-    ]);
-
-    const verifyRun = await sandbox.runCommand({
-      cmd: "node",
-      args: ["verify.mjs"],
-      stderr: process.stderr,
-      stdout: process.stdout,
-    });
-
-    if (verifyRun.exitCode !== 0) {
-      throw new Error("Failed to verify Anthropic SDK");
-    }
-
     const script = `claude --permission-mode acceptEdits --model opus '${prompt}'`;
     await sandbox.writeFiles([
       {

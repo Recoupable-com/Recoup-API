@@ -114,7 +114,6 @@ describe("createSandbox", () => {
     mockSandbox.runCommand
       .mockResolvedValueOnce({ exitCode: 0 }) // CLI install
       .mockResolvedValueOnce({ exitCode: 0 }) // SDK install
-      .mockResolvedValueOnce({ exitCode: 0 }) // verify
       .mockResolvedValueOnce({ exitCode: 1 }); // script fails
 
     const result = await createSandbox("echo hello");
