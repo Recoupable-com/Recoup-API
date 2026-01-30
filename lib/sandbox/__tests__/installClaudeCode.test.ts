@@ -9,11 +9,10 @@ describe("installClaudeCode", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(mockSandbox.runCommand).mockResolvedValue({ exitCode: 0 } as never);
   });
 
   it("installs Claude Code CLI globally with sudo", async () => {
-    vi.mocked(mockSandbox.runCommand).mockResolvedValue({ exitCode: 0 } as never);
-
     await installClaudeCode(mockSandbox);
 
     expect(mockSandbox.runCommand).toHaveBeenCalledWith({
@@ -25,11 +24,32 @@ describe("installClaudeCode", () => {
     });
   });
 
-  it("throws error if installation fails", async () => {
+  it("installs Anthropic SDK", async () => {
+    await installClaudeCode(mockSandbox);
+
+    expect(mockSandbox.runCommand).toHaveBeenCalledWith({
+      cmd: "npm",
+      args: ["install", "@anthropic-ai/sdk"],
+      stderr: process.stderr,
+      stdout: process.stdout,
+    });
+  });
+
+  it("throws error if CLI installation fails", async () => {
     vi.mocked(mockSandbox.runCommand).mockResolvedValue({ exitCode: 1 } as never);
 
     await expect(installClaudeCode(mockSandbox)).rejects.toThrow(
       "Failed to install Claude Code CLI",
+    );
+  });
+
+  it("throws error if SDK installation fails", async () => {
+    vi.mocked(mockSandbox.runCommand)
+      .mockResolvedValueOnce({ exitCode: 0 } as never)
+      .mockResolvedValueOnce({ exitCode: 1 } as never);
+
+    await expect(installClaudeCode(mockSandbox)).rejects.toThrow(
+      "Failed to install Anthropic SDK",
     );
   });
 });

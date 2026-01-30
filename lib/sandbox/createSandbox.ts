@@ -26,17 +26,6 @@ export async function createSandbox(prompt: string): Promise<SandboxCreatedRespo
   try {
     await installClaudeCode(sandbox);
 
-    const installSDK = await sandbox.runCommand({
-      cmd: "npm",
-      args: ["install", "@anthropic-ai/sdk"],
-      stderr: process.stderr,
-      stdout: process.stdout,
-    });
-
-    if (installSDK.exitCode !== 0) {
-      throw new Error("Failed to install Anthropic SDK");
-    }
-
     const script = `claude --permission-mode acceptEdits --model opus '${prompt}'`;
     await sandbox.writeFiles([
       {

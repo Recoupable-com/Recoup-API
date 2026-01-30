@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { createSandbox } from "../createSandbox";
 import { Sandbox } from "@vercel/sandbox";
+import { installClaudeCode } from "../installClaudeCode";
 
 const mockSandbox = {
   sandboxId: "sbx_test123",
@@ -26,17 +27,21 @@ vi.mock("ms", () => ({
   }),
 }));
 
+vi.mock("../installClaudeCode", () => ({
+  installClaudeCode: vi.fn(),
+}));
+
 describe("createSandbox", () => {
   beforeEach(() => {
-    vi.spyOn(console, "log").mockImplementation(() => {});
     vi.clearAllMocks();
+    vi.mocked(installClaudeCode).mockResolvedValue(undefined);
     mockSandbox.runCommand.mockResolvedValue({ exitCode: 0 });
     mockSandbox.writeFiles.mockResolvedValue(undefined);
     mockSandbox.stop.mockResolvedValue(undefined);
   });
 
   it("creates sandbox with correct configuration", async () => {
-    await createSandbox("console.log('test')");
+    await createSandbox("tell me hello");
 
     expect(Sandbox.create).toHaveBeenCalledWith({
       resources: { vcpus: 4 },
@@ -45,27 +50,10 @@ describe("createSandbox", () => {
     });
   });
 
-  it("installs Claude Code CLI globally with sudo", async () => {
-    await createSandbox("console.log('test')");
+  it("calls installClaudeCode", async () => {
+    await createSandbox("tell me hello");
 
-    expect(mockSandbox.runCommand).toHaveBeenCalledWith(
-      expect.objectContaining({
-        cmd: "npm",
-        args: ["install", "-g", "@anthropic-ai/claude-code"],
-        sudo: true,
-      }),
-    );
-  });
-
-  it("installs Anthropic SDK", async () => {
-    await createSandbox("console.log('test')");
-
-    expect(mockSandbox.runCommand).toHaveBeenCalledWith(
-      expect.objectContaining({
-        cmd: "npm",
-        args: ["install", "@anthropic-ai/sdk"],
-      }),
-    );
+    expect(installClaudeCode).toHaveBeenCalledWith(mockSandbox);
   });
 
   it("writes script to sandbox filesystem with claude command", async () => {
@@ -82,7 +70,7 @@ describe("createSandbox", () => {
 
   it("executes script with ANTHROPIC_API_KEY env var", async () => {
     process.env.ANTHROPIC_API_KEY = "test-key";
-    await createSandbox("echo hello");
+    await createSandbox("tell me hello");
 
     expect(mockSandbox.runCommand).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -94,7 +82,7 @@ describe("createSandbox", () => {
   });
 
   it("returns sandbox created response", async () => {
-    const result = await createSandbox("echo hello");
+    const result = await createSandbox("tell me hello");
 
     expect(result).toEqual({
       sandboxId: "sbx_test123",
@@ -105,40 +93,24 @@ describe("createSandbox", () => {
   });
 
   it("stops sandbox after execution", async () => {
-    await createSandbox("console.log('test')");
+    await createSandbox("tell me hello");
 
     expect(mockSandbox.stop).toHaveBeenCalled();
   });
 
   it("stops sandbox even if script execution fails", async () => {
-    mockSandbox.runCommand
-      .mockResolvedValueOnce({ exitCode: 0 }) // CLI install
-      .mockResolvedValueOnce({ exitCode: 0 }) // SDK install
-      .mockResolvedValueOnce({ exitCode: 1 }); // script fails
+    mockSandbox.runCommand.mockResolvedValueOnce({ exitCode: 1 });
 
-    const result = await createSandbox("echo hello");
+    const result = await createSandbox("tell me hello");
 
     expect(result.sandboxId).toBe("sbx_test123");
     expect(mockSandbox.stop).toHaveBeenCalled();
   });
 
-  it("throws error if Claude Code CLI installation fails", async () => {
-    mockSandbox.runCommand.mockResolvedValueOnce({ exitCode: 1 });
+  it("stops sandbox if installClaudeCode fails", async () => {
+    vi.mocked(installClaudeCode).mockRejectedValue(new Error("Failed to install"));
 
-    await expect(createSandbox("console.log('test')")).rejects.toThrow(
-      "Failed to install Claude Code CLI",
-    );
-    expect(mockSandbox.stop).toHaveBeenCalled();
-  });
-
-  it("throws error if Anthropic SDK installation fails", async () => {
-    mockSandbox.runCommand
-      .mockResolvedValueOnce({ exitCode: 0 }) // CLI install succeeds
-      .mockResolvedValueOnce({ exitCode: 1 }); // SDK install fails
-
-    await expect(createSandbox("console.log('test')")).rejects.toThrow(
-      "Failed to install Anthropic SDK",
-    );
+    await expect(createSandbox("tell me hello")).rejects.toThrow("Failed to install");
     expect(mockSandbox.stop).toHaveBeenCalled();
   });
 });
