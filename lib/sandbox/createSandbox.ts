@@ -21,10 +21,8 @@ export async function createSandbox(prompt: string): Promise<SandboxCreatedRespo
     timeout: ms("10m"),
     runtime: "node22",
   });
-  console.log(`Sandbox created: ${sandbox.sandboxId}`);
 
   try {
-    console.log(`Installing Claude Code CLI...`);
     const installCLI = await sandbox.runCommand({
       cmd: "npm",
       args: ["install", "-g", "@anthropic-ai/claude-code"],
@@ -34,12 +32,9 @@ export async function createSandbox(prompt: string): Promise<SandboxCreatedRespo
     });
 
     if (installCLI.exitCode !== 0) {
-      console.log("Installing Claude Code CLI failed");
       throw new Error("Failed to install Claude Code CLI");
     }
-    console.log(`✓ Claude Code CLI installed`);
 
-    console.log(`Installing Anthropic SDK...`);
     const installSDK = await sandbox.runCommand({
       cmd: "npm",
       args: ["install", "@anthropic-ai/sdk"],
@@ -48,17 +43,12 @@ export async function createSandbox(prompt: string): Promise<SandboxCreatedRespo
     });
 
     if (installSDK.exitCode !== 0) {
-      console.log("Installing Anthropic SDK failed");
       throw new Error("Failed to install Anthropic SDK");
     }
-    console.log(`✓ Anthropic SDK installed`);
 
-    console.log(`Verifying SDK connection...`);
     const verifyScript = `
 import Anthropic from '@anthropic-ai/sdk';
 const client = new Anthropic();
-console.log('SDK imported successfully');
-console.log('SDK is ready to use');
 `;
     await sandbox.writeFiles([
       {
@@ -75,12 +65,9 @@ console.log('SDK is ready to use');
     });
 
     if (verifyRun.exitCode !== 0) {
-      console.log("SDK verification failed");
       throw new Error("Failed to verify Anthropic SDK");
     }
-    console.log(`✓ Anthropic SDK is properly connected`);
 
-    console.log(`Executing prompt...`);
     const script = `claude --permission-mode acceptEdits --model opus '${prompt}'`;
     await sandbox.writeFiles([
       {
@@ -89,7 +76,7 @@ console.log('SDK is ready to use');
       },
     ]);
 
-    const runScript = await sandbox.runCommand({
+    await sandbox.runCommand({
       cmd: "sh",
       args: ["ralph-once.sh"],
       stdout: process.stdout,
@@ -99,7 +86,6 @@ console.log('SDK is ready to use');
       },
     });
 
-    console.log(`✓ Script executed`);
     return {
       sandboxId: sandbox.sandboxId,
       status: sandbox.status,
@@ -108,6 +94,5 @@ console.log('SDK is ready to use');
     };
   } finally {
     await sandbox.stop();
-    console.log(`Sandbox stopped`);
   }
 }
