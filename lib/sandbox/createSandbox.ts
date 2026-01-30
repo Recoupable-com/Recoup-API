@@ -3,6 +3,7 @@ import { Sandbox } from "@vercel/sandbox";
 
 export interface SandboxResult {
   sandboxId: string;
+  output: string;
   exitCode: number;
 }
 
@@ -99,6 +100,7 @@ console.log('SDK is ready to use');
     console.log(`✓ Script executed`);
     return {
       sandboxId: sandbox.sandboxId,
+      output: "",
       exitCode: runScript.exitCode,
     };
   } finally {

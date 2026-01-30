@@ -31,6 +31,7 @@ export async function OPTIONS() {
  * - status: 'success' or 'error'
  * - data: {
  *     sandboxId: string,
+ *     output: string,
  *     exitCode: number
  *   }
  *

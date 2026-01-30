@@ -83,6 +83,7 @@ describe("createSandboxPostHandler", () => {
     });
     vi.mocked(createSandbox).mockResolvedValue({
       sandboxId: "sbx_123",
+      output: "",
       exitCode: 0,
     });
 
@@ -104,6 +105,7 @@ describe("createSandboxPostHandler", () => {
     });
     vi.mocked(createSandbox).mockResolvedValue({
       sandboxId: "sbx_123",
+      output: "",
       exitCode: 1,
     });
 
