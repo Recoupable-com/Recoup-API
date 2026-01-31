@@ -1,9 +1,10 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
-import { authorizeConnector } from "@/lib/composio/connectors";
+import { authorizeConnector, isAllowedArtistConnector } from "@/lib/composio/connectors";
 import { validateAccountIdHeaders } from "@/lib/accounts/validateAccountIdHeaders";
 import { validateAuthorizeConnectorBody } from "@/lib/composio/connectors/validateAuthorizeConnectorBody";
+import { checkAccountArtistAccess } from "@/lib/supabase/account_artist_ids/checkAccountArtistAccess";
 
 /**
  * OPTIONS handler for CORS preflight requests.
@@ -24,8 +25,10 @@ export async function OPTIONS() {
  * The account ID is inferred from the auth header.
  *
  * Request body:
- * - connector: The connector slug, e.g., "googlesheets" (required)
+ * - connector: The connector slug, e.g., "googlesheets" or "tiktok" (required)
  * - callback_url: Optional custom callback URL after OAuth
+ * - entity_type: "user" (default) or "artist"
+ * - entity_id: Required when entity_type is "artist"
  *
  * @returns The redirect URL for OAuth authorization
  */
@@ -46,9 +49,41 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return validated;
     }
 
-    const { connector, callback_url } = validated;
-    const result = await authorizeConnector(accountId, connector, {
+    const { connector, callback_url, entity_type, entity_id } = validated;
+
+    // Determine entity and options based on type
+    let composioEntityId: string;
+    let authConfigs: Record<string, string> = {};
+
+    if (entity_type === "artist") {
+      // Verify connector is allowed for artists
+      if (!isAllowedArtistConnector(connector)) {
+        return NextResponse.json(
+          { error: `Connector '${connector}' is not allowed for artist connections` },
+          { status: 400, headers },
+        );
+      }
+
+      // Verify user has access to this artist
+      const hasAccess = await checkAccountArtistAccess(accountId, entity_id!);
+      if (!hasAccess) {
+        return NextResponse.json({ error: "Access denied to this artist" }, { status: 403, headers });
+      }
+
+      composioEntityId = entity_id!;
+
+      // Build auth configs for toolkits that need custom OAuth
+      if (connector === "tiktok" && process.env.COMPOSIO_TIKTOK_AUTH_CONFIG_ID) {
+        authConfigs.tiktok = process.env.COMPOSIO_TIKTOK_AUTH_CONFIG_ID;
+      }
+    } else {
+      composioEntityId = accountId;
+    }
+
+    const result = await authorizeConnector(composioEntityId, connector, {
       customCallbackUrl: callback_url,
+      entityType: entity_type,
+      authConfigs: Object.keys(authConfigs).length > 0 ? authConfigs : undefined,
     });
 
     return NextResponse.json(
@@ -62,8 +97,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { status: 200, headers },
     );
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to authorize connector";
+    console.error("Connector authorize error:", error);
+    const message = error instanceof Error ? error.message : "Failed to authorize connector";
     return NextResponse.json({ error: message }, { status: 500, headers });
   }
 }
