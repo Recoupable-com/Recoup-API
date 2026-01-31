@@ -47,7 +47,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const { connector, callback_url } = validated;
-    const result = await authorizeConnector(accountId, connector, callback_url);
+    const result = await authorizeConnector(accountId, connector, {
+      customCallbackUrl: callback_url,
+    });
 
     return NextResponse.json(
       {

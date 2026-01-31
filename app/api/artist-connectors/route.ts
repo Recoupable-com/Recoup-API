@@ -3,9 +3,19 @@ import { NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { validateAuthContext } from "@/lib/auth/validateAuthContext";
 import { checkAccountArtistAccess } from "@/lib/supabase/account_artist_ids/checkAccountArtistAccess";
-import { getArtistConnectors } from "@/lib/composio/artistConnectors/getArtistConnectors";
 import { validateDisconnectArtistConnectorBody } from "@/lib/composio/artistConnectors/validateDisconnectArtistConnectorBody";
-import { disconnectArtistConnector } from "@/lib/composio/artistConnectors/disconnectArtistConnector";
+import {
+  getConnectors,
+  disconnectConnector,
+  ALLOWED_ARTIST_CONNECTORS,
+} from "@/lib/composio/connectors";
+
+/**
+ * Display names for artist connectors.
+ */
+const CONNECTOR_DISPLAY_NAMES: Record<string, string> = {
+  tiktok: "TikTok",
+};
 
 /**
  * OPTIONS handler for CORS preflight requests.
@@ -61,8 +71,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Access denied to this artist" }, { status: 403, headers });
     }
 
-    // Get connectors with status
-    const connectors = await getArtistConnectors(artistId);
+    // Get connectors with status using unified function
+    const connectors = await getConnectors(artistId, {
+      allowedToolkits: ALLOWED_ARTIST_CONNECTORS,
+      displayNames: CONNECTOR_DISPLAY_NAMES,
+    });
 
     return NextResponse.json(
       {
@@ -82,7 +95,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 /**
  * DELETE /api/artist-connectors
  *
- * Disconnect an artist's connector from Composio and remove the connection record.
+ * Disconnect an artist's connector from Composio.
  *
  * Body:
  *   - artist_id (required): The artist ID
@@ -123,8 +136,10 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Disconnect from Composio (ownership verified inside via artistId entity)
-    await disconnectArtistConnector(artist_id, connected_account_id);
+    // Disconnect using unified function with ownership verification
+    await disconnectConnector(connected_account_id, {
+      verifyOwnershipFor: artist_id,
+    });
 
     return NextResponse.json({ success: true }, { status: 200, headers });
   } catch (error) {

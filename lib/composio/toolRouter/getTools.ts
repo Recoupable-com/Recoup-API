@@ -1,6 +1,5 @@
 import { createToolRouterSession } from "./createSession";
-import { getComposioClient } from "../client";
-import { ALLOWED_ARTIST_CONNECTORS } from "../artistConnectors/ALLOWED_ARTIST_CONNECTORS";
+import { getConnectors, ALLOWED_ARTIST_CONNECTORS } from "../connectors";
 import type { Tool, ToolSet } from "ai";
 
 /**
@@ -49,24 +48,16 @@ function isValidTool(tool: unknown): tool is Tool {
 async function getArtistConnectionsFromComposio(
   artistId: string
 ): Promise<Record<string, string>> {
-  const composio = await getComposioClient();
-
-  // Create session with artistId as entity
-  // Spread to create mutable array (ALLOWED_ARTIST_CONNECTORS is readonly)
-  const session = await composio.create(artistId, {
-    toolkits: [...ALLOWED_ARTIST_CONNECTORS],
+  // Use unified getConnectors with artist filter
+  const connectors = await getConnectors(artistId, {
+    allowedToolkits: ALLOWED_ARTIST_CONNECTORS,
   });
 
-  // Get toolkits and extract connected account IDs
-  const toolkits = await session.toolkits();
+  // Build connections map from connected connectors
   const connections: Record<string, string> = {};
-
-  for (const toolkit of toolkits.items) {
-    const connectedAccountId = toolkit.connection?.connectedAccount?.id;
-    // Cast to readonly string[] for .includes() type compatibility
-    const allowedConnectors = ALLOWED_ARTIST_CONNECTORS as readonly string[];
-    if (connectedAccountId && allowedConnectors.includes(toolkit.slug)) {
-      connections[toolkit.slug] = connectedAccountId;
+  for (const connector of connectors) {
+    if (connector.connectedAccountId) {
+      connections[connector.slug] = connector.connectedAccountId;
     }
   }
 

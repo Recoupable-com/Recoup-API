@@ -4,8 +4,10 @@ import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { validateAuthContext } from "@/lib/auth/validateAuthContext";
 import { checkAccountArtistAccess } from "@/lib/supabase/account_artist_ids/checkAccountArtistAccess";
 import { validateAuthorizeArtistConnectorBody } from "@/lib/composio/artistConnectors/validateAuthorizeArtistConnectorBody";
-import { authorizeArtistConnector } from "@/lib/composio/artistConnectors/authorizeArtistConnector";
-import { isAllowedArtistConnector } from "@/lib/composio/artistConnectors/ALLOWED_ARTIST_CONNECTORS";
+import {
+  authorizeConnector,
+  isAllowedArtistConnector,
+} from "@/lib/composio/connectors";
 
 /**
  * OPTIONS handler for CORS preflight requests.
@@ -71,8 +73,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Generate OAuth URL - uses artistId as Composio entity
-    const result = await authorizeArtistConnector(artist_id, connector);
+    // Build auth configs for toolkits that need custom OAuth
+    const authConfigs: Record<string, string> = {};
+    if (connector === "tiktok" && process.env.COMPOSIO_TIKTOK_AUTH_CONFIG_ID) {
+      authConfigs.tiktok = process.env.COMPOSIO_TIKTOK_AUTH_CONFIG_ID;
+    }
+
+    // Generate OAuth URL using unified authorizeConnector with artist options
+    const result = await authorizeConnector(artist_id, connector, {
+      entityType: "artist",
+      authConfigs,
+    });
 
     return NextResponse.json(
       {
@@ -85,6 +96,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { status: 200, headers },
     );
   } catch (error) {
+    console.error("Artist connector authorize error:", error);
     const message =
       error instanceof Error ? error.message : "Failed to authorize artist connector";
     return NextResponse.json({ error: message }, { status: 500, headers });
