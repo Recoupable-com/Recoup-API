@@ -140,8 +140,80 @@ export async function selectTableName({
 - **SRP (Single Responsibility Principle)**: One exported function per file. Each file should do one thing well.
 - **DRY (Don't Repeat Yourself)**: Extract shared logic into reusable utilities.
 - **KISS (Keep It Simple)**: Prefer simple solutions over clever ones.
+- **TDD (Test-Driven Development)**: API changes should include unit tests.
 - All API routes should have JSDoc comments
 - Run `pnpm lint` before committing
+
+## API Route Patterns
+
+Follow the `/api/pulses` pattern for all API routes:
+
+### Thin Route Files
+Route files should be minimal - just call handler functions:
+
+```typescript
+// app/api/example/route.ts
+export async function GET(request: NextRequest) {
+  return getExampleHandler(request);
+}
+
+export async function POST(request: NextRequest) {
+  return createExampleHandler(request);
+}
+```
+
+### Handler Functions
+Handlers live in `lib/` and orchestrate validation + business logic:
+
+```typescript
+// lib/example/getExampleHandler.ts
+export async function getExampleHandler(request: NextRequest) {
+  const validated = await validateGetExampleRequest(request);
+  if (validated instanceof NextResponse) return validated;
+  
+  // Business logic here
+  const result = await getExample(validated.params);
+  return NextResponse.json({ success: true, data: result });
+}
+```
+
+### Combined Request Validators
+Create `validateXxxRequest` functions that handle auth + input validation + access checks:
+
+```typescript
+// lib/example/validateGetExampleRequest.ts
+export async function validateGetExampleRequest(request: NextRequest) {
+  // 1. Auth validation
+  const authResult = await validateAccountIdHeaders(request);
+  if (authResult instanceof NextResponse) return authResult;
+
+  // 2. Input validation (Zod)
+  const validated = validateGetExampleQuery(searchParams);
+  if (validated instanceof NextResponse) return validated;
+
+  // 3. Access checks (if needed)
+  const hasAccess = await checkAccess(authResult.accountId, validated.resourceId);
+  if (!hasAccess) return NextResponse.json({ error: "Access denied" }, { status: 403 });
+
+  return { ...validated, accountId: authResult.accountId };
+}
+```
+
+### DRY: Avoid Duplicate Libraries
+When adding features for different entity types (e.g., user vs artist):
+- **DON'T** create separate files like `getUserThing.ts` and `getArtistThing.ts`
+- **DO** create one unified function with options: `getThing(entityId, { entityType: "artist" })`
+- **DON'T** create separate API routes like `/api/user-things` and `/api/artist-things`
+- **DO** create one unified endpoint with parameters: `/api/things?entity_type=artist&entity_id=xxx`
+
+### File Naming
+- Name files after the **primary function** they export, not constants
+- Example: `isAllowedConnector.ts` not `ALLOWED_CONNECTORS.ts`
+
+### Testing
+- All API changes should include unit tests
+- Test validators with mocked dependencies
+- Cover: auth failures, validation errors, access denied, success cases
 
 ## Authentication
 
