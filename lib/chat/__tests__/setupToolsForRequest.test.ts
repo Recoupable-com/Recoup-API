@@ -81,7 +81,7 @@ describe("setupToolsForRequest", () => {
   });
 
   describe("Composio tools integration", () => {
-    it("calls getComposioTools with accountId and roomId", async () => {
+    it("calls getComposioTools with accountId, artistId, and roomId", async () => {
       const body: ChatRequestBody = {
         accountId: "account-123",
         orgId: null,
@@ -92,7 +92,23 @@ describe("setupToolsForRequest", () => {
 
       await setupToolsForRequest(body);
 
-      expect(mockGetComposioTools).toHaveBeenCalledWith("account-123", "room-456");
+      // getComposioTools signature: (userId, artistId?, roomId?)
+      expect(mockGetComposioTools).toHaveBeenCalledWith("account-123", undefined, "room-456");
+    });
+
+    it("calls getComposioTools with artistId when provided", async () => {
+      const body: ChatRequestBody = {
+        accountId: "account-123",
+        orgId: null,
+        authToken: "test-token-123",
+        roomId: "room-456",
+        artistId: "artist-789",
+        messages: [{ id: "1", role: "user", content: "Post to TikTok" }],
+      };
+
+      await setupToolsForRequest(body);
+
+      expect(mockGetComposioTools).toHaveBeenCalledWith("account-123", "artist-789", "room-456");
     });
 
     it("includes Composio tools in result", async () => {
