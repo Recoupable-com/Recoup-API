@@ -12,7 +12,7 @@ export const sandboxBodySchema = z.object({
 export type SandboxBody = z.infer<typeof sandboxBodySchema> & AuthContext;
 
 /**
- * Validates auth and request body for POST /api/sandbox.
+ * Validates auth and request body for POST /api/sandboxes.
  *
  * @param request - The NextRequest object
  * @returns A NextResponse with an error if validation fails, or the validated body with auth context.
