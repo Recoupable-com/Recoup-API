@@ -28,11 +28,40 @@ describe("createSandbox", () => {
     vi.clearAllMocks();
   });
 
-  it("creates sandbox with correct configuration", async () => {
+  it("creates sandbox with default configuration when no params provided", async () => {
     await createSandbox();
 
     expect(Sandbox.create).toHaveBeenCalledWith({
       resources: { vcpus: 4 },
+      timeout: 600000,
+      runtime: "node22",
+    });
+  });
+
+  it("creates sandbox from snapshot when source is provided", async () => {
+    await createSandbox({ source: { type: "snapshot", snapshotId: "snap_abc123" } });
+
+    expect(Sandbox.create).toHaveBeenCalledWith({
+      source: { type: "snapshot", snapshotId: "snap_abc123" },
+      timeout: 600000,
+    });
+  });
+
+  it("allows overriding default timeout", async () => {
+    await createSandbox({ timeout: 300000 });
+
+    expect(Sandbox.create).toHaveBeenCalledWith({
+      resources: { vcpus: 4 },
+      timeout: 300000,
+      runtime: "node22",
+    });
+  });
+
+  it("allows overriding default resources", async () => {
+    await createSandbox({ resources: { vcpus: 2 } });
+
+    expect(Sandbox.create).toHaveBeenCalledWith({
+      resources: { vcpus: 2 },
       timeout: 600000,
       runtime: "node22",
     });

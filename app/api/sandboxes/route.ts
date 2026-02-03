@@ -19,7 +19,7 @@ export async function OPTIONS() {
 /**
  * POST /api/sandboxes
  *
- * Creates a new ephemeral sandbox environment.
+ * Creates a new ephemeral sandbox environment and executes a command.
  * Sandboxes are isolated Linux microVMs that can be used to evaluate
  * account-generated code, run AI agent output safely, or execute reproducible tasks.
  * The sandbox will automatically stop after the timeout period.
@@ -27,11 +27,13 @@ export async function OPTIONS() {
  * Authentication: x-api-key header or Authorization Bearer token required.
  *
  * Request body:
- * - prompt: string (required, min length 1) - The prompt to send to Claude Code
+ * - command: string (required) - The command to execute in the sandbox
+ * - args: string[] (optional) - Arguments to pass to the command
+ * - cwd: string (optional) - Working directory for command execution
  *
  * Response (200):
  * - status: "success"
- * - sandboxes: [{ sandboxId, sandboxStatus, timeout, createdAt }]
+ * - sandboxes: [{ sandboxId, sandboxStatus, timeout, createdAt, runId }]
  *
  * Error (400/401):
  * - status: "error"
