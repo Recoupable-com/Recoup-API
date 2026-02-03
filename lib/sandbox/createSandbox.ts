@@ -29,7 +29,7 @@ export async function createSandbox(
 
   const sandbox = snapshotId
     ? await Sandbox.create({
-        snapshotId,
+        source: { type: "snapshot", snapshotId },
         timeout: ms("10m"),
       })
     : await Sandbox.create({
