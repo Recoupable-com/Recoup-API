@@ -27,10 +27,12 @@ export async function createSandboxPostHandler(request: NextRequest): Promise<Ne
   try {
     // Get account's snapshot if available
     const accountSnapshot = await selectAccountSnapshot(validated.accountId);
-    const snapshotId = accountSnapshot?.snapshot_id ?? null;
+    const snapshotId = accountSnapshot?.snapshot_id;
 
     // Create sandbox (from snapshot if valid, otherwise fresh)
-    const result = await createSandbox({ snapshotId });
+    const result = await createSandbox(
+      snapshotId ? { source: { type: "snapshot", snapshotId } } : {},
+    );
 
     await insertAccountSandbox({
       account_id: validated.accountId,

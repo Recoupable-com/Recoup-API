@@ -137,10 +137,10 @@ describe("createSandboxPostHandler", () => {
     const request = createMockRequest();
     await createSandboxPostHandler(request);
 
-    expect(createSandbox).toHaveBeenCalledWith({ snapshotId: "snap_xyz" });
+    expect(createSandbox).toHaveBeenCalledWith({ source: { type: "snapshot", snapshotId: "snap_xyz" } });
   });
 
-  it("calls createSandbox with null snapshotId when account has no snapshot", async () => {
+  it("calls createSandbox with empty params when account has no snapshot", async () => {
     vi.mocked(validateSandboxBody).mockResolvedValue({
       accountId: "acc_123",
       orgId: null,
@@ -170,7 +170,7 @@ describe("createSandboxPostHandler", () => {
     const request = createMockRequest();
     await createSandboxPostHandler(request);
 
-    expect(createSandbox).toHaveBeenCalledWith({ snapshotId: null });
+    expect(createSandbox).toHaveBeenCalledWith({});
   });
 
   it("calls insertAccountSandbox with correct account_id and sandbox_id", async () => {
