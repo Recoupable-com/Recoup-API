@@ -28,19 +28,20 @@ const DEFAULT_RUNTIME = "node22";
 export async function createSandbox(params: CreateSandboxParams = {}): Promise<SandboxCreatedResponse> {
   const hasSnapshotSource = params.source && "type" in params.source && params.source.type === "snapshot";
 
-  const sandbox = hasSnapshotSource
-    ? await Sandbox.create({
-        ...params,
-        timeout: params.timeout ?? DEFAULT_TIMEOUT,
-      })
-    : await Sandbox.create({
-        resources: "resources" in params && params.resources ? params.resources : { vcpus: DEFAULT_VCPUS },
-        timeout: params.timeout ?? DEFAULT_TIMEOUT,
-        runtime: "runtime" in params && params.runtime ? params.runtime : DEFAULT_RUNTIME,
-        ports: params.ports,
-        source: params.source,
-        signal: params.signal,
-      });
+  // Pass params directly to SDK - it handles all the type variants
+  const sandbox = await Sandbox.create(
+    hasSnapshotSource
+      ? {
+          ...params,
+          timeout: params.timeout ?? DEFAULT_TIMEOUT,
+        }
+      : {
+          resources: { vcpus: DEFAULT_VCPUS },
+          timeout: params.timeout ?? DEFAULT_TIMEOUT,
+          runtime: DEFAULT_RUNTIME,
+          ...params,
+        },
+  );
 
   return {
     sandboxId: sandbox.sandboxId,
