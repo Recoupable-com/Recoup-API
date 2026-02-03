@@ -6,7 +6,9 @@ import { safeParseJson } from "@/lib/networking/safeParseJson";
 import { z } from "zod";
 
 export const sandboxBodySchema = z.object({
-  prompt: z.string({ message: "prompt is required" }).min(1, "prompt cannot be empty"),
+  command: z.string({ message: "command is required" }).min(1, "command cannot be empty"),
+  args: z.array(z.string()).optional(),
+  cwd: z.string().optional(),
 });
 
 export type SandboxBody = z.infer<typeof sandboxBodySchema> & AuthContext;

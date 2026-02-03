@@ -41,13 +41,13 @@ describe("validateSandboxBody", () => {
     expect((result as NextResponse).status).toBe(401);
   });
 
-  it("returns validated body with auth context when prompt is provided", async () => {
+  it("returns validated body with auth context when command is provided", async () => {
     vi.mocked(validateAuthContext).mockResolvedValue({
       accountId: "acc_123",
       orgId: "org_456",
       authToken: "token",
     });
-    vi.mocked(safeParseJson).mockResolvedValue({ prompt: "tell me hello" });
+    vi.mocked(safeParseJson).mockResolvedValue({ command: "ls" });
 
     const request = createMockRequest();
     const result = await validateSandboxBody(request);
@@ -56,11 +56,36 @@ describe("validateSandboxBody", () => {
       accountId: "acc_123",
       orgId: "org_456",
       authToken: "token",
-      prompt: "tell me hello",
+      command: "ls",
     });
   });
 
-  it("returns error response when prompt is missing", async () => {
+  it("returns validated body with optional args and cwd", async () => {
+    vi.mocked(validateAuthContext).mockResolvedValue({
+      accountId: "acc_123",
+      orgId: "org_456",
+      authToken: "token",
+    });
+    vi.mocked(safeParseJson).mockResolvedValue({
+      command: "ls",
+      args: ["-la", "/home"],
+      cwd: "/tmp",
+    });
+
+    const request = createMockRequest();
+    const result = await validateSandboxBody(request);
+
+    expect(result).toEqual({
+      accountId: "acc_123",
+      orgId: "org_456",
+      authToken: "token",
+      command: "ls",
+      args: ["-la", "/home"],
+      cwd: "/tmp",
+    });
+  });
+
+  it("returns error response when command is missing", async () => {
     vi.mocked(validateAuthContext).mockResolvedValue({
       accountId: "acc_123",
       orgId: null,
@@ -75,13 +100,13 @@ describe("validateSandboxBody", () => {
     expect((result as NextResponse).status).toBe(400);
   });
 
-  it("returns error response when prompt is empty string", async () => {
+  it("returns error response when command is empty string", async () => {
     vi.mocked(validateAuthContext).mockResolvedValue({
       accountId: "acc_123",
       orgId: null,
       authToken: "token",
     });
-    vi.mocked(safeParseJson).mockResolvedValue({ prompt: "" });
+    vi.mocked(safeParseJson).mockResolvedValue({ command: "" });
 
     const request = createMockRequest();
     const result = await validateSandboxBody(request);
