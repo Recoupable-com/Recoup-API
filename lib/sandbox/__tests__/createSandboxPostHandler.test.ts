@@ -298,7 +298,7 @@ describe("createSandboxPostHandler", () => {
     });
   });
 
-  it("returns 400 with error status when triggerRunSandboxCommand throws", async () => {
+  it("returns 200 without runId when triggerRunSandboxCommand throws", async () => {
     vi.mocked(validateSandboxBody).mockResolvedValue({
       accountId: "acc_123",
       orgId: null,
@@ -326,11 +326,20 @@ describe("createSandboxPostHandler", () => {
     const request = createMockRequest();
     const response = await createSandboxPostHandler(request);
 
-    expect(response.status).toBe(400);
+    // Sandbox was created successfully, so return 200 even if trigger fails
+    expect(response.status).toBe(200);
     const json = await response.json();
     expect(json).toEqual({
-      status: "error",
-      error: "Task trigger failed",
+      status: "success",
+      sandboxes: [
+        {
+          sandboxId: "sbx_123",
+          sandboxStatus: "running",
+          timeout: 600000,
+          createdAt: "2024-01-01T00:00:00.000Z",
+          // Note: runId is not included when trigger fails
+        },
+      ],
     });
   });
 });

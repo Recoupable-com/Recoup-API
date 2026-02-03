@@ -40,13 +40,20 @@ export async function createSandboxPostHandler(request: NextRequest): Promise<Ne
     });
 
     // Trigger the command execution task
-    const handle = await triggerRunSandboxCommand({
-      command: validated.command,
-      args: validated.args,
-      cwd: validated.cwd,
-      sandboxId: result.sandboxId,
-      accountId: validated.accountId,
-    });
+    let runId: string | undefined;
+    try {
+      const handle = await triggerRunSandboxCommand({
+        command: validated.command,
+        args: validated.args,
+        cwd: validated.cwd,
+        sandboxId: result.sandboxId,
+        accountId: validated.accountId,
+      });
+      runId = handle.id;
+    } catch (triggerError) {
+      console.error("Failed to trigger run-sandbox-command task:", triggerError);
+      // Continue without runId - sandbox was still created
+    }
 
     return NextResponse.json(
       {
@@ -54,7 +61,7 @@ export async function createSandboxPostHandler(request: NextRequest): Promise<Ne
         sandboxes: [
           {
             ...result,
-            runId: handle.id,
+            ...(runId && { runId }),
           },
         ],
       },
