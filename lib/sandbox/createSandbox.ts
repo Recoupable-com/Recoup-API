@@ -8,20 +8,35 @@ export interface SandboxCreatedResponse {
   createdAt: string;
 }
 
+interface CreateSandboxOptions {
+  snapshotId?: string | null;
+}
+
 /**
  * Creates a Vercel Sandbox and returns its info.
  *
  * The sandbox is left running so that commands can be executed via the runSandboxCommand task.
+ * If a snapshotId is provided, the sandbox will be created from that snapshot.
  *
+ * @param options - Optional configuration including snapshotId
  * @returns The sandbox creation response
  * @throws Error if sandbox creation fails
  */
-export async function createSandbox(): Promise<SandboxCreatedResponse> {
-  const sandbox = await Sandbox.create({
-    resources: { vcpus: 4 },
-    timeout: ms("10m"),
-    runtime: "node22",
-  });
+export async function createSandbox(
+  options: CreateSandboxOptions = {},
+): Promise<SandboxCreatedResponse> {
+  const { snapshotId } = options;
+
+  const sandbox = snapshotId
+    ? await Sandbox.create({
+        snapshotId,
+        timeout: ms("10m"),
+      })
+    : await Sandbox.create({
+        resources: { vcpus: 4 },
+        timeout: ms("10m"),
+        runtime: "node22",
+      });
 
   return {
     sandboxId: sandbox.sandboxId,

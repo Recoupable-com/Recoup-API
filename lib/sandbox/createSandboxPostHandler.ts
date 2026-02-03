@@ -5,16 +5,18 @@ import { createSandbox } from "@/lib/sandbox/createSandbox";
 import { validateSandboxBody } from "@/lib/sandbox/validateSandboxBody";
 import { insertAccountSandbox } from "@/lib/supabase/account_sandboxes/insertAccountSandbox";
 import { triggerRunSandboxCommand } from "@/lib/trigger/triggerRunSandboxCommand";
+import { selectAccountSnapshot } from "@/lib/supabase/account_snapshots/selectAccountSnapshot";
 
 /**
  * Handler for POST /api/sandboxes.
  *
- * Creates a Vercel Sandbox and triggers the run-sandbox-command task to execute the prompt.
+ * Creates a Vercel Sandbox (from account's snapshot if available, otherwise fresh)
+ * and triggers the run-sandbox-command task to execute the command.
  * Requires authentication via x-api-key header or Authorization Bearer token.
  * Saves sandbox info to the account_sandboxes table.
  *
  * @param request - The request object
- * @returns A NextResponse with sandbox creation result or error
+ * @returns A NextResponse with sandbox creation result including runId
  */
 export async function createSandboxPostHandler(request: NextRequest): Promise<NextResponse> {
   const validated = await validateSandboxBody(request);
@@ -23,20 +25,37 @@ export async function createSandboxPostHandler(request: NextRequest): Promise<Ne
   }
 
   try {
-    const result = await createSandbox();
+    // Get account's snapshot if available
+    const accountSnapshot = await selectAccountSnapshot(validated.accountId);
+    const snapshotId = accountSnapshot?.snapshot_id ?? null;
+
+    // Create sandbox (from snapshot if valid, otherwise fresh)
+    const result = await createSandbox({ snapshotId });
 
     await insertAccountSandbox({
       account_id: validated.accountId,
       sandbox_id: result.sandboxId,
     });
 
-    await triggerRunSandboxCommand({
-      prompt: validated.prompt,
+    // Trigger the command execution task
+    const handle = await triggerRunSandboxCommand({
+      command: validated.command,
+      args: validated.args,
+      cwd: validated.cwd,
       sandboxId: result.sandboxId,
+      accountId: validated.accountId,
     });
 
     return NextResponse.json(
-      { status: "success", sandboxes: [result] },
+      {
+        status: "success",
+        sandboxes: [
+          {
+            ...result,
+            runId: handle.id,
+          },
+        ],
+      },
       { status: 200, headers: getCorsHeaders() },
     );
   } catch (error) {
