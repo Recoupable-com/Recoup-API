@@ -1,9 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
-import { validateAuthContext } from "@/lib/auth/validateAuthContext";
 import { validateUpdateChatBody } from "./validateUpdateChatBody";
-import selectRoom from "@/lib/supabase/rooms/selectRoom";
 import { updateRoom } from "@/lib/supabase/rooms/updateRoom";
 import { buildGetChatsParams } from "./buildGetChatsParams";
 
@@ -19,25 +17,9 @@ export async function updateChatHandler(request: NextRequest): Promise<NextRespo
     return validated;
   }
 
-  const { chatId, topic } = validated;
-
-  const authResult = await validateAuthContext(request);
-  if (authResult instanceof NextResponse) {
-    return authResult;
-  }
-
-  const { accountId, orgId } = authResult;
+  const { chatId, topic, room, accountId, orgId } = validated;
 
   try {
-    // Verify room exists
-    const room = await selectRoom(chatId);
-    if (!room) {
-      return NextResponse.json(
-        { status: "error", error: "Chat room not found" },
-        { status: 404, headers: getCorsHeaders() },
-      );
-    }
-
     // Get the list of account_ids this user has access to
     const { params } = await buildGetChatsParams({
       account_id: accountId,

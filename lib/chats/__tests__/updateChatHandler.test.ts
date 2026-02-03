@@ -10,14 +10,6 @@ vi.mock("@/lib/chats/validateUpdateChatBody", () => ({
   validateUpdateChatBody: vi.fn(),
 }));
 
-vi.mock("@/lib/auth/validateAuthContext", () => ({
-  validateAuthContext: vi.fn(),
-}));
-
-vi.mock("@/lib/supabase/rooms/selectRoom", () => ({
-  default: vi.fn(),
-}));
-
 vi.mock("@/lib/supabase/rooms/updateRoom", () => ({
   updateRoom: vi.fn(),
 }));
@@ -27,8 +19,6 @@ vi.mock("@/lib/chats/buildGetChatsParams", () => ({
 }));
 
 import { validateUpdateChatBody } from "@/lib/chats/validateUpdateChatBody";
-import { validateAuthContext } from "@/lib/auth/validateAuthContext";
-import selectRoom from "@/lib/supabase/rooms/selectRoom";
 import { updateRoom } from "@/lib/supabase/rooms/updateRoom";
 import { buildGetChatsParams } from "@/lib/chats/buildGetChatsParams";
 
@@ -50,24 +40,20 @@ describe("updateChatHandler", () => {
       const accountId = "123e4567-e89b-12d3-a456-426614174000";
       const chatId = "123e4567-e89b-12d3-a456-426614174001";
       const newTopic = "My Updated Chat";
+      const room = {
+        id: chatId,
+        account_id: accountId,
+        artist_id: null,
+        topic: "Old Topic",
+        updated_at: "2024-01-01T00:00:00Z",
+      };
 
       vi.mocked(validateUpdateChatBody).mockResolvedValue({
         chatId,
         topic: newTopic,
-      });
-
-      vi.mocked(validateAuthContext).mockResolvedValue({
+        room,
         accountId,
-        orgId: null, // Personal key
-        authToken: "test-key",
-      });
-
-      vi.mocked(selectRoom).mockResolvedValue({
-        id: chatId,
-        account_id: accountId, // User owns this chat
-        artist_id: null,
-        topic: "Old Topic",
-        updated_at: "2024-01-01T00:00:00Z",
+        orgId: null,
       });
 
       vi.mocked(buildGetChatsParams).mockResolvedValue({
@@ -99,7 +85,7 @@ describe("updateChatHandler", () => {
         },
       });
 
-      // Verify buildGetChatsParams was called WITHOUT target_account_id
+      // Verify buildGetChatsParams was called with correct params
       expect(buildGetChatsParams).toHaveBeenCalledWith({
         account_id: accountId,
         org_id: null,
@@ -111,24 +97,20 @@ describe("updateChatHandler", () => {
       const memberAccountId = "123e4567-e89b-12d3-a456-426614174003";
       const chatId = "123e4567-e89b-12d3-a456-426614174004";
       const newTopic = "Org Chat Updated";
-
-      vi.mocked(validateUpdateChatBody).mockResolvedValue({
-        chatId,
-        topic: newTopic,
-      });
-
-      vi.mocked(validateAuthContext).mockResolvedValue({
-        accountId: orgId,
-        orgId: orgId,
-        authToken: "org-key",
-      });
-
-      vi.mocked(selectRoom).mockResolvedValue({
+      const room = {
         id: chatId,
         account_id: memberAccountId,
         artist_id: null,
         topic: "Old Topic",
         updated_at: "2024-01-01T00:00:00Z",
+      };
+
+      vi.mocked(validateUpdateChatBody).mockResolvedValue({
+        chatId,
+        topic: newTopic,
+        room,
+        accountId: orgId,
+        orgId,
       });
 
       vi.mocked(buildGetChatsParams).mockResolvedValue({
@@ -152,7 +134,7 @@ describe("updateChatHandler", () => {
   });
 
   describe("validation errors", () => {
-    it("returns 400 when validation fails", async () => {
+    it("returns error response from validation", async () => {
       vi.mocked(validateUpdateChatBody).mockResolvedValue(
         NextResponse.json(
           { status: "error", error: "chatId must be a valid UUID" },
@@ -167,16 +149,9 @@ describe("updateChatHandler", () => {
       const body = await response.json();
       expect(body.status).toBe("error");
     });
-  });
 
-  describe("authentication errors", () => {
-    it("returns 401 when no auth provided", async () => {
-      vi.mocked(validateUpdateChatBody).mockResolvedValue({
-        chatId: "123e4567-e89b-12d3-a456-426614174000",
-        topic: "Valid Topic",
-      });
-
-      vi.mocked(validateAuthContext).mockResolvedValue(
+    it("returns 401 from validation when auth fails", async () => {
+      vi.mocked(validateUpdateChatBody).mockResolvedValue(
         NextResponse.json(
           { status: "error", error: "Unauthorized" },
           { status: 401 },
@@ -188,29 +163,19 @@ describe("updateChatHandler", () => {
 
       expect(response.status).toBe(401);
     });
-  });
 
-  describe("not found errors", () => {
-    it("returns 404 when chat does not exist", async () => {
-      vi.mocked(validateUpdateChatBody).mockResolvedValue({
-        chatId: "123e4567-e89b-12d3-a456-426614174000",
-        topic: "Valid Topic",
-      });
-
-      vi.mocked(validateAuthContext).mockResolvedValue({
-        accountId: "123e4567-e89b-12d3-a456-426614174008",
-        orgId: null,
-        authToken: "key",
-      });
-
-      vi.mocked(selectRoom).mockResolvedValue(null);
+    it("returns 404 from validation when chat not found", async () => {
+      vi.mocked(validateUpdateChatBody).mockResolvedValue(
+        NextResponse.json(
+          { status: "error", error: "Chat room not found" },
+          { status: 404 },
+        ),
+      );
 
       const request = mockRequest();
       const response = await updateChatHandler(request);
 
       expect(response.status).toBe(404);
-      const body = await response.json();
-      expect(body.error).toContain("not found");
     });
   });
 
@@ -219,28 +184,24 @@ describe("updateChatHandler", () => {
       const userAccountId = "123e4567-e89b-12d3-a456-426614174005";
       const otherAccountId = "123e4567-e89b-12d3-a456-426614174006";
       const chatId = "123e4567-e89b-12d3-a456-426614174007";
+      const room = {
+        id: chatId,
+        account_id: otherAccountId,
+        artist_id: null,
+        topic: "Old Topic",
+        updated_at: "2024-01-01T00:00:00Z",
+      };
 
       vi.mocked(validateUpdateChatBody).mockResolvedValue({
         chatId,
         topic: "Valid Topic",
-      });
-
-      vi.mocked(validateAuthContext).mockResolvedValue({
+        room,
         accountId: userAccountId,
         orgId: null,
-        authToken: "key",
-      });
-
-      vi.mocked(selectRoom).mockResolvedValue({
-        id: chatId,
-        account_id: otherAccountId, // Different user owns this
-        artist_id: null,
-        topic: "Old Topic",
-        updated_at: "2024-01-01T00:00:00Z",
       });
 
       vi.mocked(buildGetChatsParams).mockResolvedValue({
-        params: { account_ids: [userAccountId] }, // Only has access to own account
+        params: { account_ids: [userAccountId] },
         error: null,
       });
 
@@ -250,6 +211,42 @@ describe("updateChatHandler", () => {
       expect(response.status).toBe(403);
       const body = await response.json();
       expect(body.error).toContain("Access denied");
+    });
+  });
+
+  describe("update errors", () => {
+    it("returns 500 when updateRoom fails", async () => {
+      const accountId = "123e4567-e89b-12d3-a456-426614174000";
+      const chatId = "123e4567-e89b-12d3-a456-426614174001";
+      const room = {
+        id: chatId,
+        account_id: accountId,
+        artist_id: null,
+        topic: "Old Topic",
+        updated_at: "2024-01-01T00:00:00Z",
+      };
+
+      vi.mocked(validateUpdateChatBody).mockResolvedValue({
+        chatId,
+        topic: "New Topic",
+        room,
+        accountId,
+        orgId: null,
+      });
+
+      vi.mocked(buildGetChatsParams).mockResolvedValue({
+        params: { account_ids: [accountId] },
+        error: null,
+      });
+
+      vi.mocked(updateRoom).mockResolvedValue(null);
+
+      const request = mockRequest();
+      const response = await updateChatHandler(request);
+
+      expect(response.status).toBe(500);
+      const body = await response.json();
+      expect(body.error).toContain("Failed to update");
     });
   });
 });
