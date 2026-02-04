@@ -4,6 +4,7 @@ import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { validateAuthContext } from "@/lib/auth/validateAuthContext";
 import type { SelectAccountSandboxesParams } from "@/lib/supabase/account_sandboxes/selectAccountSandboxes";
 import { buildGetSandboxesParams } from "./buildGetSandboxesParams";
+import { canAccessAccount } from "@/lib/organizations/canAccessAccount";
 import { z } from "zod";
 
 const getSandboxesQuerySchema = z.object({
@@ -54,7 +55,23 @@ export async function validateGetSandboxesRequest(
 
   const { accountId, orgId } = authResult;
 
-  // Build params using buildGetSandboxesParams for consistent auth/access handling
+  // Check access when account_id filter is provided
+  if (targetAccountId) {
+    const hasAccess = await canAccessAccount({ orgId, targetAccountId });
+    if (!hasAccess) {
+      return NextResponse.json(
+        {
+          status: "error",
+          error: orgId
+            ? "account_id is not a member of this organization"
+            : "Personal API keys cannot filter by account_id",
+        },
+        { status: 403, headers: getCorsHeaders() },
+      );
+    }
+  }
+
+  // Build params using buildGetSandboxesParams
   const buildResult = await buildGetSandboxesParams({
     account_id: accountId,
     org_id: orgId,

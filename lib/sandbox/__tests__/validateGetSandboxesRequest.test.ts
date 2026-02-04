@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { validateGetSandboxesRequest } from "../validateGetSandboxesRequest";
 import { validateAuthContext } from "@/lib/auth/validateAuthContext";
 import { buildGetSandboxesParams } from "../buildGetSandboxesParams";
+import { canAccessAccount } from "@/lib/organizations/canAccessAccount";
 
 vi.mock("@/lib/auth/validateAuthContext", () => ({
   validateAuthContext: vi.fn(),
@@ -12,6 +13,10 @@ vi.mock("@/lib/auth/validateAuthContext", () => ({
 
 vi.mock("../buildGetSandboxesParams", () => ({
   buildGetSandboxesParams: vi.fn(),
+}));
+
+vi.mock("@/lib/organizations/canAccessAccount", () => ({
+  canAccessAccount: vi.fn(),
 }));
 
 vi.mock("@/lib/networking/getCorsHeaders", () => ({
@@ -76,32 +81,6 @@ describe("validateGetSandboxesRequest", () => {
       });
     });
 
-    it("accepts valid account_id parameter (UUID format)", async () => {
-      vi.mocked(validateAuthContext).mockResolvedValue({
-        accountId: "org-123",
-        orgId: "org-123",
-        authToken: "token",
-      });
-      vi.mocked(buildGetSandboxesParams).mockResolvedValue({
-        params: { accountIds: ["550e8400-e29b-41d4-a716-446655440000"], sandboxId: undefined },
-        error: null,
-      });
-
-      const request = createMockRequest({ account_id: "550e8400-e29b-41d4-a716-446655440000" });
-      const result = await validateGetSandboxesRequest(request);
-
-      expect(buildGetSandboxesParams).toHaveBeenCalledWith({
-        account_id: "org-123",
-        org_id: "org-123",
-        target_account_id: "550e8400-e29b-41d4-a716-446655440000",
-        sandbox_id: undefined,
-      });
-      expect(result).toEqual({
-        accountIds: ["550e8400-e29b-41d4-a716-446655440000"],
-        sandboxId: undefined,
-      });
-    });
-
     it("rejects invalid account_id format (not UUID)", async () => {
       vi.mocked(validateAuthContext).mockResolvedValue({
         accountId: "acc_123",
@@ -118,48 +97,45 @@ describe("validateGetSandboxesRequest", () => {
       const json = await response.json();
       expect(json.status).toBe("error");
     });
+  });
 
-    it("accepts both sandbox_id and account_id parameters", async () => {
+  describe("authorization with canAccessAccount", () => {
+    it("calls canAccessAccount when account_id is provided", async () => {
       vi.mocked(validateAuthContext).mockResolvedValue({
         accountId: "org-123",
         orgId: "org-123",
         authToken: "token",
       });
+      vi.mocked(canAccessAccount).mockResolvedValue(true);
       vi.mocked(buildGetSandboxesParams).mockResolvedValue({
-        params: { accountIds: ["550e8400-e29b-41d4-a716-446655440000"], sandboxId: "sbx_abc123" },
+        params: { accountIds: ["550e8400-e29b-41d4-a716-446655440000"], sandboxId: undefined },
         error: null,
       });
 
-      const request = createMockRequest({
-        sandbox_id: "sbx_abc123",
-        account_id: "550e8400-e29b-41d4-a716-446655440000",
-      });
+      const request = createMockRequest({ account_id: "550e8400-e29b-41d4-a716-446655440000" });
       await validateGetSandboxesRequest(request);
 
-      expect(buildGetSandboxesParams).toHaveBeenCalledWith({
-        account_id: "org-123",
-        org_id: "org-123",
-        target_account_id: "550e8400-e29b-41d4-a716-446655440000",
-        sandbox_id: "sbx_abc123",
+      expect(canAccessAccount).toHaveBeenCalledWith({
+        orgId: "org-123",
+        targetAccountId: "550e8400-e29b-41d4-a716-446655440000",
       });
     });
-  });
 
-  describe("authorization", () => {
     it("returns 403 when personal key tries to use account_id", async () => {
       vi.mocked(validateAuthContext).mockResolvedValue({
         accountId: "acc_123",
         orgId: null,
         authToken: "token",
       });
-      vi.mocked(buildGetSandboxesParams).mockResolvedValue({
-        params: null,
-        error: "Personal API keys cannot filter by account_id",
-      });
+      vi.mocked(canAccessAccount).mockResolvedValue(false);
 
       const request = createMockRequest({ account_id: "550e8400-e29b-41d4-a716-446655440000" });
       const result = await validateGetSandboxesRequest(request);
 
+      expect(canAccessAccount).toHaveBeenCalledWith({
+        orgId: null,
+        targetAccountId: "550e8400-e29b-41d4-a716-446655440000",
+      });
       expect(result).toBeInstanceOf(NextResponse);
       const response = result as NextResponse;
       expect(response.status).toBe(403);
@@ -174,20 +150,68 @@ describe("validateGetSandboxesRequest", () => {
         orgId: "org-123",
         authToken: "token",
       });
-      vi.mocked(buildGetSandboxesParams).mockResolvedValue({
-        params: null,
-        error: "account_id is not a member of this organization",
-      });
+      vi.mocked(canAccessAccount).mockResolvedValue(false);
 
       const request = createMockRequest({ account_id: "550e8400-e29b-41d4-a716-446655440000" });
       const result = await validateGetSandboxesRequest(request);
 
+      expect(canAccessAccount).toHaveBeenCalledWith({
+        orgId: "org-123",
+        targetAccountId: "550e8400-e29b-41d4-a716-446655440000",
+      });
       expect(result).toBeInstanceOf(NextResponse);
       const response = result as NextResponse;
       expect(response.status).toBe(403);
       const json = await response.json();
       expect(json.status).toBe("error");
       expect(json.error).toBe("account_id is not a member of this organization");
+    });
+
+    it("does not call canAccessAccount when no account_id provided", async () => {
+      vi.mocked(validateAuthContext).mockResolvedValue({
+        accountId: "acc_123",
+        orgId: null,
+        authToken: "token",
+      });
+      vi.mocked(buildGetSandboxesParams).mockResolvedValue({
+        params: { accountIds: ["acc_123"], sandboxId: undefined },
+        error: null,
+      });
+
+      const request = createMockRequest();
+      await validateGetSandboxesRequest(request);
+
+      expect(canAccessAccount).not.toHaveBeenCalled();
+    });
+
+    it("passes target_account_id to buildGetSandboxesParams when access is granted", async () => {
+      vi.mocked(validateAuthContext).mockResolvedValue({
+        accountId: "org-123",
+        orgId: "org-123",
+        authToken: "token",
+      });
+      vi.mocked(canAccessAccount).mockResolvedValue(true);
+      vi.mocked(buildGetSandboxesParams).mockResolvedValue({
+        params: { accountIds: ["550e8400-e29b-41d4-a716-446655440000"], sandboxId: "sbx_abc123" },
+        error: null,
+      });
+
+      const request = createMockRequest({
+        sandbox_id: "sbx_abc123",
+        account_id: "550e8400-e29b-41d4-a716-446655440000",
+      });
+      const result = await validateGetSandboxesRequest(request);
+
+      expect(buildGetSandboxesParams).toHaveBeenCalledWith({
+        account_id: "org-123",
+        org_id: "org-123",
+        target_account_id: "550e8400-e29b-41d4-a716-446655440000",
+        sandbox_id: "sbx_abc123",
+      });
+      expect(result).toEqual({
+        accountIds: ["550e8400-e29b-41d4-a716-446655440000"],
+        sandboxId: "sbx_abc123",
+      });
     });
   });
 
