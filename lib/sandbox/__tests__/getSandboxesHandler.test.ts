@@ -6,6 +6,7 @@ import { getSandboxesHandler } from "../getSandboxesHandler";
 import { validateGetSandboxesRequest } from "../validateGetSandboxesRequest";
 import { selectAccountSandboxes } from "@/lib/supabase/account_sandboxes/selectAccountSandboxes";
 import { getSandboxStatus } from "../getSandboxStatus";
+import { selectAccountSnapshots } from "@/lib/supabase/account_snapshots/selectAccountSnapshots";
 
 vi.mock("../validateGetSandboxesRequest", () => ({
   validateGetSandboxesRequest: vi.fn(),
@@ -17,6 +18,10 @@ vi.mock("@/lib/supabase/account_sandboxes/selectAccountSandboxes", () => ({
 
 vi.mock("../getSandboxStatus", () => ({
   getSandboxStatus: vi.fn(),
+}));
+
+vi.mock("@/lib/supabase/account_snapshots/selectAccountSnapshots", () => ({
+  selectAccountSnapshots: vi.fn(),
 }));
 
 /**
@@ -34,6 +39,8 @@ function createMockRequest(): NextRequest {
 describe("getSandboxesHandler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default mock for selectAccountSnapshots - no snapshot exists
+    vi.mocked(selectAccountSnapshots).mockResolvedValue([]);
   });
 
   it("returns error response when validation fails", async () => {
@@ -61,6 +68,8 @@ describe("getSandboxesHandler", () => {
     expect(json).toEqual({
       status: "success",
       sandboxes: [],
+      snapshot_id: null,
+      github_repo: null,
     });
   });
 
@@ -98,6 +107,8 @@ describe("getSandboxesHandler", () => {
           createdAt: "2024-01-01T00:00:00.000Z",
         },
       ],
+      snapshot_id: null,
+      github_repo: null,
     });
   });
 
@@ -237,5 +248,100 @@ describe("getSandboxesHandler", () => {
     const maxStartIndex = Math.max(...startIndices);
     const minEndIndex = Math.min(...endIndices);
     expect(maxStartIndex).toBeLessThan(minEndIndex);
+  });
+
+  describe("snapshot_id and github_repo fields", () => {
+    it("returns snapshot_id and github_repo when account has a snapshot", async () => {
+      vi.mocked(validateGetSandboxesRequest).mockResolvedValue({
+        accountIds: ["acc_123"],
+      });
+      vi.mocked(selectAccountSandboxes).mockResolvedValue([]);
+      vi.mocked(selectAccountSnapshots).mockResolvedValue([
+        {
+          account_id: "acc_123",
+          snapshot_id: "snap_abc123",
+          github_repo: "https://github.com/user/repo",
+          created_at: "2024-01-01T00:00:00.000Z",
+          expires_at: "2024-01-08T00:00:00.000Z",
+        },
+      ]);
+
+      const request = createMockRequest();
+      const response = await getSandboxesHandler(request);
+
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json.snapshot_id).toBe("snap_abc123");
+      expect(json.github_repo).toBe("https://github.com/user/repo");
+    });
+
+    it("returns null for snapshot_id and github_repo when account has no snapshot", async () => {
+      vi.mocked(validateGetSandboxesRequest).mockResolvedValue({
+        accountIds: ["acc_123"],
+      });
+      vi.mocked(selectAccountSandboxes).mockResolvedValue([]);
+      vi.mocked(selectAccountSnapshots).mockResolvedValue([]);
+
+      const request = createMockRequest();
+      const response = await getSandboxesHandler(request);
+
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json.snapshot_id).toBeNull();
+      expect(json.github_repo).toBeNull();
+    });
+
+    it("returns null github_repo when snapshot exists but has no github_repo", async () => {
+      vi.mocked(validateGetSandboxesRequest).mockResolvedValue({
+        accountIds: ["acc_123"],
+      });
+      vi.mocked(selectAccountSandboxes).mockResolvedValue([]);
+      vi.mocked(selectAccountSnapshots).mockResolvedValue([
+        {
+          account_id: "acc_123",
+          snapshot_id: "snap_abc123",
+          github_repo: null,
+          created_at: "2024-01-01T00:00:00.000Z",
+          expires_at: "2024-01-08T00:00:00.000Z",
+        },
+      ]);
+
+      const request = createMockRequest();
+      const response = await getSandboxesHandler(request);
+
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json.snapshot_id).toBe("snap_abc123");
+      expect(json.github_repo).toBeNull();
+    });
+
+    it("does not return snapshot info for org keys (no accountIds)", async () => {
+      vi.mocked(validateGetSandboxesRequest).mockResolvedValue({
+        orgId: "org_123",
+      });
+      vi.mocked(selectAccountSandboxes).mockResolvedValue([]);
+
+      const request = createMockRequest();
+      const response = await getSandboxesHandler(request);
+
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json.snapshot_id).toBeNull();
+      expect(json.github_repo).toBeNull();
+      expect(selectAccountSnapshots).not.toHaveBeenCalled();
+    });
+
+    it("calls selectAccountSnapshots with the account ID", async () => {
+      vi.mocked(validateGetSandboxesRequest).mockResolvedValue({
+        accountIds: ["acc_123"],
+      });
+      vi.mocked(selectAccountSandboxes).mockResolvedValue([]);
+      vi.mocked(selectAccountSnapshots).mockResolvedValue([]);
+
+      const request = createMockRequest();
+      await getSandboxesHandler(request);
+
+      expect(selectAccountSnapshots).toHaveBeenCalledWith("acc_123");
+    });
   });
 });

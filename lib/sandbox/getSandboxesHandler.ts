@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { validateGetSandboxesRequest } from "./validateGetSandboxesRequest";
 import { selectAccountSandboxes } from "@/lib/supabase/account_sandboxes/selectAccountSandboxes";
+import { selectAccountSnapshots } from "@/lib/supabase/account_snapshots/selectAccountSnapshots";
 import { getSandboxStatus } from "./getSandboxStatus";
 import type { SandboxCreatedResponse } from "./createSandbox";
 
@@ -16,7 +17,7 @@ import type { SandboxCreatedResponse } from "./createSandbox";
  * - sandbox_id: Filter to a specific sandbox (must belong to account/org)
  *
  * @param request - The request object.
- * @returns A NextResponse with array of sandbox statuses.
+ * @returns A NextResponse with array of sandbox statuses, plus snapshot_id and github_repo.
  */
 export async function getSandboxesHandler(request: NextRequest): Promise<NextResponse> {
   const validated = await validateGetSandboxesRequest(request);
@@ -37,10 +38,25 @@ export async function getSandboxesHandler(request: NextRequest): Promise<NextRes
     (status): status is SandboxCreatedResponse => status !== null,
   );
 
+  // Get snapshot info for personal keys (single account)
+  let snapshotId: string | null = null;
+  let githubRepo: string | null = null;
+
+  if (validated.accountIds && validated.accountIds.length === 1) {
+    const accountId = validated.accountIds[0];
+    const snapshots = await selectAccountSnapshots(accountId);
+    if (snapshots.length > 0) {
+      snapshotId = snapshots[0].snapshot_id;
+      githubRepo = snapshots[0].github_repo ?? null;
+    }
+  }
+
   return NextResponse.json(
     {
       status: "success",
       sandboxes,
+      snapshot_id: snapshotId,
+      github_repo: githubRepo,
     },
     {
       status: 200,
