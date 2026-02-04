@@ -315,20 +315,29 @@ describe("getSandboxesHandler", () => {
       expect(json.github_repo).toBeNull();
     });
 
-    it("does not return snapshot info for org keys (no accountIds)", async () => {
+    it("returns snapshot info for org keys using orgId as accountId", async () => {
       vi.mocked(validateGetSandboxesRequest).mockResolvedValue({
         orgId: "org_123",
       });
       vi.mocked(selectAccountSandboxes).mockResolvedValue([]);
+      vi.mocked(selectAccountSnapshots).mockResolvedValue([
+        {
+          account_id: "org_123",
+          snapshot_id: "snap_org_abc",
+          github_repo: "https://github.com/org/repo",
+          created_at: "2024-01-01T00:00:00.000Z",
+          expires_at: "2024-01-08T00:00:00.000Z",
+        },
+      ]);
 
       const request = createMockRequest();
       const response = await getSandboxesHandler(request);
 
       expect(response.status).toBe(200);
       const json = await response.json();
-      expect(json.snapshot_id).toBeNull();
-      expect(json.github_repo).toBeNull();
-      expect(selectAccountSnapshots).not.toHaveBeenCalled();
+      expect(json.snapshot_id).toBe("snap_org_abc");
+      expect(json.github_repo).toBe("https://github.com/org/repo");
+      expect(selectAccountSnapshots).toHaveBeenCalledWith("org_123");
     });
 
     it("calls selectAccountSnapshots with the account ID", async () => {

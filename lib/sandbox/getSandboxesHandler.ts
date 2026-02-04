@@ -38,13 +38,15 @@ export async function getSandboxesHandler(request: NextRequest): Promise<NextRes
     (status): status is SandboxCreatedResponse => status !== null,
   );
 
-  // Get snapshot info for personal keys (single account)
+  // Get snapshot info - use accountId for personal keys, orgId for org keys
   let snapshotId: string | null = null;
   let githubRepo: string | null = null;
 
-  if (validated.accountIds && validated.accountIds.length === 1) {
-    const accountId = validated.accountIds[0];
-    const snapshots = await selectAccountSnapshots(accountId);
+  const snapshotAccountId =
+    validated.accountIds?.length === 1 ? validated.accountIds[0] : validated.orgId;
+
+  if (snapshotAccountId) {
+    const snapshots = await selectAccountSnapshots(snapshotAccountId);
     if (snapshots.length > 0) {
       snapshotId = snapshots[0].snapshot_id;
       githubRepo = snapshots[0].github_repo ?? null;
