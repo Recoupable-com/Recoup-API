@@ -305,18 +305,21 @@ export type Database = {
           account_id: string
           created_at: string | null
           expires_at: string
+          github_repo: string | null
           snapshot_id: string
         }
         Insert: {
           account_id: string
           created_at?: string | null
           expires_at: string
+          github_repo?: string | null
           snapshot_id: string
         }
         Update: {
           account_id?: string
           created_at?: string | null
           expires_at?: string
+          github_repo?: string | null
           snapshot_id?: string
         }
         Relationships: [
