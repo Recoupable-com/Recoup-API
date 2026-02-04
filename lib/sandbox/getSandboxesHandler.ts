@@ -39,8 +39,8 @@ export async function getSandboxesHandler(request: NextRequest): Promise<NextRes
   );
 
   // Get snapshot info - use accountId for personal keys, orgId for org keys
-  let snapshotId: string | null = null;
-  let githubRepo: string | null = null;
+  let snapshot_id: string | null = null;
+  let github_repo: string | null = null;
 
   const snapshotAccountId =
     validated.accountIds?.length === 1 ? validated.accountIds[0] : validated.orgId;
@@ -48,8 +48,8 @@ export async function getSandboxesHandler(request: NextRequest): Promise<NextRes
   if (snapshotAccountId) {
     const snapshots = await selectAccountSnapshots(snapshotAccountId);
     if (snapshots.length > 0) {
-      snapshotId = snapshots[0].snapshot_id;
-      githubRepo = snapshots[0].github_repo ?? null;
+      snapshot_id = snapshots[0].snapshot_id;
+      github_repo = snapshots[0].github_repo ?? null;
     }
   }
 
@@ -57,8 +57,8 @@ export async function getSandboxesHandler(request: NextRequest): Promise<NextRes
     {
       status: "success",
       sandboxes,
-      snapshot_id: snapshotId,
-      github_repo: githubRepo,
+      snapshot_id,
+      github_repo,
     },
     {
       status: 200,
