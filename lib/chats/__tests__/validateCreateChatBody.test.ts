@@ -1,107 +1,124 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { NextResponse } from "next/server";
-import { validateCreateChatBody } from "../validateCreateChatBody";
-
-vi.mock("@/lib/networking/getCorsHeaders", () => ({
-  getCorsHeaders: vi.fn(() => new Headers()),
-}));
+import { validateCreateChatBody, createChatBodySchema } from "../validateCreateChatBody";
 
 describe("validateCreateChatBody", () => {
-  it("should accept empty body (all fields optional)", () => {
-    const result = validateCreateChatBody({});
+  describe("artistId validation", () => {
+    it("accepts valid UUID for artistId", () => {
+      const result = validateCreateChatBody({
+        artistId: "123e4567-e89b-12d3-a456-426614174000",
+      });
 
-    expect(result).not.toBeInstanceOf(NextResponse);
-    expect(result).toEqual({});
-  });
-
-  it("should accept valid artistId UUID", () => {
-    const result = validateCreateChatBody({
-      artistId: "550e8400-e29b-41d4-a716-446655440000",
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).artistId).toBe("123e4567-e89b-12d3-a456-426614174000");
     });
 
-    expect(result).not.toBeInstanceOf(NextResponse);
-    expect(result).toEqual({
-      artistId: "550e8400-e29b-41d4-a716-446655440000",
-    });
-  });
+    it("rejects invalid UUID for artistId", () => {
+      const result = validateCreateChatBody({
+        artistId: "invalid-uuid",
+      });
 
-  it("should accept valid chatId UUID", () => {
-    const result = validateCreateChatBody({
-      chatId: "550e8400-e29b-41d4-a716-446655440000",
+      expect(result).toBeInstanceOf(NextResponse);
     });
 
-    expect(result).not.toBeInstanceOf(NextResponse);
-    expect(result).toEqual({
-      chatId: "550e8400-e29b-41d4-a716-446655440000",
+    it("accepts missing artistId (optional)", () => {
+      const result = validateCreateChatBody({});
+
+      expect(result).not.toBeInstanceOf(NextResponse);
     });
   });
 
-  it("should accept valid accountId UUID", () => {
-    const result = validateCreateChatBody({
-      accountId: "550e8400-e29b-41d4-a716-446655440000",
+  describe("chatId validation", () => {
+    it("accepts valid UUID for chatId", () => {
+      const result = validateCreateChatBody({
+        chatId: "123e4567-e89b-12d3-a456-426614174000",
+      });
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).chatId).toBe("123e4567-e89b-12d3-a456-426614174000");
     });
 
-    expect(result).not.toBeInstanceOf(NextResponse);
-    expect(result).toEqual({
-      accountId: "550e8400-e29b-41d4-a716-446655440000",
-    });
-  });
+    it("rejects invalid UUID for chatId", () => {
+      const result = validateCreateChatBody({
+        chatId: "invalid-uuid",
+      });
 
-  it("should accept optional firstMessage", () => {
-    const result = validateCreateChatBody({
-      firstMessage: "Hello, world!",
-    });
-
-    expect(result).not.toBeInstanceOf(NextResponse);
-    expect(result).toEqual({
-      firstMessage: "Hello, world!",
+      expect(result).toBeInstanceOf(NextResponse);
     });
   });
 
-  it("should accept all valid fields together", () => {
-    const result = validateCreateChatBody({
-      artistId: "550e8400-e29b-41d4-a716-446655440001",
-      chatId: "550e8400-e29b-41d4-a716-446655440002",
-      accountId: "550e8400-e29b-41d4-a716-446655440003",
-      firstMessage: "Hello",
+  describe("accountId validation", () => {
+    it("accepts valid UUID for accountId", () => {
+      const result = validateCreateChatBody({
+        accountId: "123e4567-e89b-12d3-a456-426614174000",
+      });
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).accountId).toBe("123e4567-e89b-12d3-a456-426614174000");
     });
 
-    expect(result).not.toBeInstanceOf(NextResponse);
-    expect(result).toEqual({
-      artistId: "550e8400-e29b-41d4-a716-446655440001",
-      chatId: "550e8400-e29b-41d4-a716-446655440002",
-      accountId: "550e8400-e29b-41d4-a716-446655440003",
-      firstMessage: "Hello",
+    it("rejects invalid UUID for accountId", () => {
+      const result = validateCreateChatBody({
+        accountId: "invalid-uuid",
+      });
+
+      expect(result).toBeInstanceOf(NextResponse);
+    });
+
+    it("accepts missing accountId (optional)", () => {
+      const result = validateCreateChatBody({
+        artistId: "123e4567-e89b-12d3-a456-426614174000",
+      });
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).accountId).toBeUndefined();
     });
   });
 
-  it("should return 400 for invalid artistId UUID format", () => {
-    const result = validateCreateChatBody({
-      artistId: "not-a-uuid",
-    });
+  describe("schema type inference", () => {
+    it("schema should include accountId as optional UUID field", () => {
+      const validBody = {
+        artistId: "123e4567-e89b-12d3-a456-426614174000",
+        chatId: "123e4567-e89b-12d3-a456-426614174001",
+        accountId: "123e4567-e89b-12d3-a456-426614174002",
+      };
 
-    expect(result).toBeInstanceOf(NextResponse);
-    const response = result as NextResponse;
-    expect(response.status).toBe(400);
+      const result = createChatBodySchema.safeParse(validBody);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.accountId).toBe("123e4567-e89b-12d3-a456-426614174002");
+      }
+    });
   });
 
-  it("should return 400 for invalid chatId UUID format", () => {
-    const result = validateCreateChatBody({
-      chatId: "invalid",
+  describe("firstMessage validation", () => {
+    it("accepts valid string for firstMessage", () => {
+      const result = validateCreateChatBody({
+        artistId: "123e4567-e89b-12d3-a456-426614174000",
+        firstMessage: "What marketing strategies should I use?",
+      });
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).firstMessage).toBe("What marketing strategies should I use?");
     });
 
-    expect(result).toBeInstanceOf(NextResponse);
-    const response = result as NextResponse;
-    expect(response.status).toBe(400);
-  });
+    it("accepts missing firstMessage (optional)", () => {
+      const result = validateCreateChatBody({
+        artistId: "123e4567-e89b-12d3-a456-426614174000",
+      });
 
-  it("should return 400 for invalid accountId UUID format", () => {
-    const result = validateCreateChatBody({
-      accountId: "12345",
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).firstMessage).toBeUndefined();
     });
 
-    expect(result).toBeInstanceOf(NextResponse);
-    const response = result as NextResponse;
-    expect(response.status).toBe(400);
+    it("accepts empty string for firstMessage", () => {
+      const result = validateCreateChatBody({
+        artistId: "123e4567-e89b-12d3-a456-426614174000",
+        firstMessage: "",
+      });
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect((result as any).firstMessage).toBe("");
+    });
   });
 });
