@@ -7,7 +7,7 @@ vi.mock("@/lib/networking/getCorsHeaders", () => ({
 }));
 
 describe("validateDisconnectConnectorBody", () => {
-  it("should accept valid user disconnect request", () => {
+  it("should accept valid disconnect request without entity_id", () => {
     const result = validateDisconnectConnectorBody({
       connected_account_id: "ca_12345",
     });
@@ -15,22 +15,19 @@ describe("validateDisconnectConnectorBody", () => {
     expect(result).not.toBeInstanceOf(NextResponse);
     expect(result).toEqual({
       connected_account_id: "ca_12345",
-      entity_type: "user",
     });
   });
 
-  it("should accept valid artist disconnect request", () => {
+  it("should accept valid disconnect request with entity_id", () => {
     const result = validateDisconnectConnectorBody({
       connected_account_id: "ca_12345",
-      entity_type: "artist",
-      entity_id: "artist-123",
+      entity_id: "550e8400-e29b-41d4-a716-446655440000",
     });
 
     expect(result).not.toBeInstanceOf(NextResponse);
     expect(result).toEqual({
       connected_account_id: "ca_12345",
-      entity_type: "artist",
-      entity_id: "artist-123",
+      entity_id: "550e8400-e29b-41d4-a716-446655440000",
     });
   });
 
@@ -52,34 +49,14 @@ describe("validateDisconnectConnectorBody", () => {
     expect(response.status).toBe(400);
   });
 
-  it("should return 400 when entity_type=artist but entity_id is missing", () => {
+  it("should return 400 for invalid entity_id UUID format", () => {
     const result = validateDisconnectConnectorBody({
       connected_account_id: "ca_12345",
-      entity_type: "artist",
+      entity_id: "not-a-uuid",
     });
 
     expect(result).toBeInstanceOf(NextResponse);
     const response = result as NextResponse;
     expect(response.status).toBe(400);
-  });
-
-  it("should return 400 for invalid entity_type", () => {
-    const result = validateDisconnectConnectorBody({
-      connected_account_id: "ca_12345",
-      entity_type: "invalid",
-    });
-
-    expect(result).toBeInstanceOf(NextResponse);
-    const response = result as NextResponse;
-    expect(response.status).toBe(400);
-  });
-
-  it("should default entity_type to user when not provided", () => {
-    const result = validateDisconnectConnectorBody({
-      connected_account_id: "ca_12345",
-    });
-
-    expect(result).not.toBeInstanceOf(NextResponse);
-    expect((result as { entity_type: string }).entity_type).toBe("user");
   });
 });

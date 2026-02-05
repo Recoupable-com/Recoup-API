@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 import { getConnectorsHandler } from "../getConnectorsHandler";
 
+import { validateGetConnectorsRequest } from "../validateGetConnectorsRequest";
+import { getConnectors } from "../getConnectors";
+
 vi.mock("@/lib/networking/getCorsHeaders", () => ({
   getCorsHeaders: vi.fn(() => new Headers()),
 }));
@@ -13,9 +16,6 @@ vi.mock("../validateGetConnectorsRequest", () => ({
 vi.mock("../getConnectors", () => ({
   getConnectors: vi.fn(),
 }));
-
-import { validateGetConnectorsRequest } from "../validateGetConnectorsRequest";
-import { getConnectors } from "../getConnectors";
 
 describe("getConnectorsHandler", () => {
   beforeEach(() => {
@@ -33,9 +33,9 @@ describe("getConnectorsHandler", () => {
     expect(result.status).toBe(401);
   });
 
-  it("should return connectors list for user", async () => {
+  it("should return connectors list for account", async () => {
     vi.mocked(validateGetConnectorsRequest).mockResolvedValue({
-      composioEntityId: "user-123",
+      composioEntityId: "account-123",
     });
 
     vi.mocked(getConnectors).mockResolvedValue([
@@ -53,9 +53,9 @@ describe("getConnectorsHandler", () => {
     expect(body.data.connectors[0].slug).toBe("googlesheets");
   });
 
-  it("should pass allowedToolkits for artist entity type", async () => {
+  it("should pass allowedToolkits when entity_id is provided", async () => {
     vi.mocked(validateGetConnectorsRequest).mockResolvedValue({
-      composioEntityId: "artist-456",
+      composioEntityId: "entity-456",
       allowedToolkits: ["tiktok"],
     });
 
@@ -64,11 +64,11 @@ describe("getConnectorsHandler", () => {
     ]);
 
     const request = new NextRequest(
-      "http://localhost/api/connectors?entity_type=artist&entity_id=artist-456",
+      "http://localhost/api/connectors?entity_id=entity-456",
     );
     await getConnectorsHandler(request);
 
-    expect(getConnectors).toHaveBeenCalledWith("artist-456", {
+    expect(getConnectors).toHaveBeenCalledWith("entity-456", {
       allowedToolkits: ["tiktok"],
       displayNames: {
         tiktok: "TikTok",
@@ -81,7 +81,7 @@ describe("getConnectorsHandler", () => {
 
   it("should return 500 when getConnectors throws", async () => {
     vi.mocked(validateGetConnectorsRequest).mockResolvedValue({
-      composioEntityId: "user-123",
+      composioEntityId: "account-123",
     });
 
     vi.mocked(getConnectors).mockRejectedValue(new Error("Composio API error"));

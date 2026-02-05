@@ -2,9 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 import { disconnectConnectorHandler } from "../disconnectConnectorHandler";
 
-vi.mock("@/lib/networking/getCorsHeaders", () => ({
-  getCorsHeaders: vi.fn(() => new Headers()),
-}));
+import { validateDisconnectConnectorRequest } from "../validateDisconnectConnectorRequest";
+import { disconnectConnector } from "../disconnectConnector";
 
 vi.mock("../validateDisconnectConnectorRequest", () => ({
   validateDisconnectConnectorRequest: vi.fn(),
@@ -14,17 +13,18 @@ vi.mock("../disconnectConnector", () => ({
   disconnectConnector: vi.fn(),
 }));
 
-import { validateDisconnectConnectorRequest } from "../validateDisconnectConnectorRequest";
-import { disconnectConnector } from "../disconnectConnector";
+vi.mock("@/lib/networking/getCorsHeaders", () => ({
+  getCorsHeaders: vi.fn(() => new Headers()),
+}));
 
 describe("disconnectConnectorHandler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("should return validation error when request validation fails", async () => {
+  it("should return validation error if validation fails", async () => {
     vi.mocked(validateDisconnectConnectorRequest).mockResolvedValue(
-      NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+      NextResponse.json({ error: "Invalid request" }, { status: 400 }),
     );
 
     const request = new NextRequest("http://localhost/api/connectors", {
@@ -32,64 +32,57 @@ describe("disconnectConnectorHandler", () => {
     });
     const result = await disconnectConnectorHandler(request);
 
-    expect(result.status).toBe(401);
+    expect(result.status).toBe(400);
   });
 
-  it("should disconnect user connector successfully", async () => {
+  it("should call disconnectConnector without options when no entityId", async () => {
     vi.mocked(validateDisconnectConnectorRequest).mockResolvedValue({
-      connectedAccountId: "ca_12345",
-      entityType: "user",
+      connectedAccountId: "ca_123",
     });
-
-    vi.mocked(disconnectConnector).mockResolvedValue({ success: true });
+    vi.mocked(disconnectConnector).mockResolvedValue(undefined);
 
     const request = new NextRequest("http://localhost/api/connectors", {
       method: "DELETE",
     });
     const result = await disconnectConnectorHandler(request);
-    const body = await result.json();
 
+    expect(disconnectConnector).toHaveBeenCalledWith("ca_123");
     expect(result.status).toBe(200);
+    const body = await result.json();
     expect(body.success).toBe(true);
-    expect(disconnectConnector).toHaveBeenCalledWith("ca_12345");
   });
 
-  it("should disconnect artist connector with ownership verification", async () => {
+  it("should call disconnectConnector with verifyOwnershipFor when entityId provided", async () => {
     vi.mocked(validateDisconnectConnectorRequest).mockResolvedValue({
-      connectedAccountId: "ca_12345",
-      entityType: "artist",
-      entityId: "artist-456",
+      connectedAccountId: "ca_123",
+      entityId: "entity-456",
     });
-
-    vi.mocked(disconnectConnector).mockResolvedValue({ success: true });
-
-    const request = new NextRequest("http://localhost/api/connectors", {
-      method: "DELETE",
-    });
-    await disconnectConnectorHandler(request);
-
-    expect(disconnectConnector).toHaveBeenCalledWith("ca_12345", {
-      verifyOwnershipFor: "artist-456",
-    });
-  });
-
-  it("should return 500 when disconnectConnector throws", async () => {
-    vi.mocked(validateDisconnectConnectorRequest).mockResolvedValue({
-      connectedAccountId: "ca_12345",
-      entityType: "user",
-    });
-
-    vi.mocked(disconnectConnector).mockRejectedValue(
-      new Error("Connection not found"),
-    );
+    vi.mocked(disconnectConnector).mockResolvedValue(undefined);
 
     const request = new NextRequest("http://localhost/api/connectors", {
       method: "DELETE",
     });
     const result = await disconnectConnectorHandler(request);
-    const body = await result.json();
+
+    expect(disconnectConnector).toHaveBeenCalledWith("ca_123", {
+      verifyOwnershipFor: "entity-456",
+    });
+    expect(result.status).toBe(200);
+  });
+
+  it("should return 500 on error", async () => {
+    vi.mocked(validateDisconnectConnectorRequest).mockResolvedValue({
+      connectedAccountId: "ca_123",
+    });
+    vi.mocked(disconnectConnector).mockRejectedValue(new Error("Disconnect failed"));
+
+    const request = new NextRequest("http://localhost/api/connectors", {
+      method: "DELETE",
+    });
+    const result = await disconnectConnectorHandler(request);
 
     expect(result.status).toBe(500);
-    expect(body.error).toBe("Connection not found");
+    const body = await result.json();
+    expect(body.error).toBe("Disconnect failed");
   });
 });

@@ -10,9 +10,7 @@ import { verifyConnectorOwnership } from "./verifyConnectorOwnership";
  * Validated params for disconnecting a connector.
  */
 export interface DisconnectConnectorParams {
-  accountId: string;
   connectedAccountId: string;
-  entityType: "user" | "artist";
   entityId?: string;
 }
 
@@ -21,8 +19,8 @@ export interface DisconnectConnectorParams {
  *
  * Handles:
  * 1. Authentication (x-api-key or Bearer token)
- * 2. Body validation (connected_account_id, entity_type, entity_id)
- * 3. Access verification (artist access or connector ownership)
+ * 2. Body validation (connected_account_id, entity_id)
+ * 3. Access verification (entity access or connector ownership)
  *
  * @param request - The incoming request
  * @returns NextResponse error or validated params
@@ -45,31 +43,28 @@ export async function validateDisconnectConnectorRequest(
   if (validated instanceof NextResponse) {
     return validated;
   }
-  const { connected_account_id, entity_type, entity_id } = validated;
+  const { connected_account_id, entity_id } = validated;
 
   // 3. Verify access
-  if (entity_type === "artist") {
-    const hasAccess = await checkAccountArtistAccess(accountId, entity_id!);
+  if (entity_id) {
+    // Disconnecting for another entity - verify access to that entity
+    const hasAccess = await checkAccountArtistAccess(accountId, entity_id);
     if (!hasAccess) {
-      return NextResponse.json(
-        { error: "Access denied to this artist" },
-        { status: 403, headers },
-      );
+      return NextResponse.json({ error: "Access denied to this entity" }, { status: 403, headers });
     }
   } else {
+    // Disconnecting user's own connection - verify ownership
     const isOwner = await verifyConnectorOwnership(accountId, connected_account_id);
     if (!isOwner) {
       return NextResponse.json(
-        { error: "Connected account not found or does not belong to this user" },
+        { error: "Connected account not found or access denied" },
         { status: 403, headers },
       );
     }
   }
 
   return {
-    accountId,
     connectedAccountId: connected_account_id,
-    entityType: entity_type,
     entityId: entity_id,
   };
 }

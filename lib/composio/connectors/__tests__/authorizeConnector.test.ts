@@ -1,104 +1,94 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { authorizeConnector } from "../authorizeConnector";
 
+import { getComposioClient } from "../../client";
+import { getCallbackUrl } from "../../getCallbackUrl";
+
 vi.mock("../../client", () => ({
   getComposioClient: vi.fn(),
 }));
 
 vi.mock("../../getCallbackUrl", () => ({
-  getCallbackUrl: vi.fn(),
+  getCallbackUrl: vi.fn(() => "https://app.example.com/settings/connectors?connected=true"),
 }));
-
-import { getComposioClient } from "../../client";
-import { getCallbackUrl } from "../../getCallbackUrl";
 
 describe("authorizeConnector", () => {
   const mockAuthorize = vi.fn();
-  const mockSession = { authorize: mockAuthorize };
-  const mockComposio = { create: vi.fn(() => mockSession) };
+  const mockCreate = vi.fn();
+  const mockClient = {
+    create: mockCreate,
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getComposioClient).mockResolvedValue(mockComposio);
-    vi.mocked(getCallbackUrl).mockReturnValue("https://example.com/callback");
-    mockAuthorize.mockResolvedValue({
-      redirectUrl: "https://oauth.example.com/authorize",
-    });
+    mockCreate.mockResolvedValue({ authorize: mockAuthorize });
+    mockAuthorize.mockResolvedValue({ redirectUrl: "https://oauth.example.com/auth" });
+    vi.mocked(getComposioClient).mockResolvedValue(mockClient as never);
   });
 
-  it("should authorize user connector with default options", async () => {
-    const result = await authorizeConnector("user-123", "googlesheets");
+  it("should generate OAuth URL for connector", async () => {
+    const result = await authorizeConnector("account-123", "googlesheets");
 
-    expect(getComposioClient).toHaveBeenCalled();
-    expect(getCallbackUrl).toHaveBeenCalledWith({ destination: "connectors" });
-    expect(mockComposio.create).toHaveBeenCalledWith("user-123", {
-      manageConnections: { callbackUrl: "https://example.com/callback" },
+    expect(mockCreate).toHaveBeenCalledWith("account-123", {
+      manageConnections: {
+        callbackUrl: "https://app.example.com/settings/connectors?connected=true",
+      },
     });
     expect(mockAuthorize).toHaveBeenCalledWith("googlesheets");
     expect(result).toEqual({
       connector: "googlesheets",
-      redirectUrl: "https://oauth.example.com/authorize",
+      redirectUrl: "https://oauth.example.com/auth",
     });
   });
 
-  it("should use custom callback URL when provided", async () => {
-    await authorizeConnector("user-123", "googlesheets", {
-      customCallbackUrl: "https://custom.example.com/callback",
-    });
+  it("should use connectors destination when not entity connection", async () => {
+    await authorizeConnector("account-123", "googlesheets", { isEntityConnection: false });
 
-    expect(getCallbackUrl).not.toHaveBeenCalled();
-    expect(mockComposio.create).toHaveBeenCalledWith("user-123", {
-      manageConnections: { callbackUrl: "https://custom.example.com/callback" },
-    });
+    expect(getCallbackUrl).toHaveBeenCalledWith({ destination: "connectors" });
   });
 
-  it("should build artist callback URL for artist entity type", async () => {
-    vi.mocked(getCallbackUrl).mockReturnValue(
-      "https://example.com/chat?artist_connected=artist-456&toolkit=tiktok",
-    );
-
-    await authorizeConnector("artist-456", "tiktok", {
-      entityType: "artist",
-    });
+  it("should use entity-connectors destination when entity connection", async () => {
+    await authorizeConnector("entity-456", "tiktok", { isEntityConnection: true });
 
     expect(getCallbackUrl).toHaveBeenCalledWith({
-      destination: "artist-connectors",
-      artistId: "artist-456",
+      destination: "entity-connectors",
+      entityId: "entity-456",
       toolkit: "tiktok",
     });
   });
 
-  it("should pass auth configs when provided", async () => {
-    await authorizeConnector("user-123", "tiktok", {
-      authConfigs: { tiktok: "ac_12345" },
-    });
+  it("should use custom callback URL when provided", async () => {
+    const customUrl = "https://custom.example.com/callback";
+    await authorizeConnector("account-123", "googlesheets", { customCallbackUrl: customUrl });
 
-    expect(mockComposio.create).toHaveBeenCalledWith("user-123", {
-      authConfigs: { tiktok: "ac_12345" },
-      manageConnections: { callbackUrl: "https://example.com/callback" },
+    expect(mockCreate).toHaveBeenCalledWith("account-123", {
+      manageConnections: {
+        callbackUrl: customUrl,
+      },
+    });
+    // getCallbackUrl should not be called when custom URL is provided
+    expect(getCallbackUrl).not.toHaveBeenCalled();
+  });
+
+  it("should include auth configs when provided", async () => {
+    const authConfigs = { tiktok: "ac_12345" };
+    await authorizeConnector("entity-123", "tiktok", { authConfigs });
+
+    expect(mockCreate).toHaveBeenCalledWith("entity-123", {
+      authConfigs,
+      manageConnections: {
+        callbackUrl: "https://app.example.com/settings/connectors?connected=true",
+      },
     });
   });
 
-  it("should not pass empty auth configs", async () => {
-    await authorizeConnector("user-123", "googlesheets", {
-      authConfigs: {},
-    });
+  it("should not include authConfigs if empty object", async () => {
+    await authorizeConnector("account-123", "googlesheets", { authConfigs: {} });
 
-    expect(mockComposio.create).toHaveBeenCalledWith("user-123", {
-      manageConnections: { callbackUrl: "https://example.com/callback" },
-    });
-  });
-
-  it("should use toolkit option for callback URL when provided", async () => {
-    await authorizeConnector("artist-456", "tiktok", {
-      entityType: "artist",
-      toolkit: "custom-toolkit",
-    });
-
-    expect(getCallbackUrl).toHaveBeenCalledWith({
-      destination: "artist-connectors",
-      artistId: "artist-456",
-      toolkit: "custom-toolkit",
+    expect(mockCreate).toHaveBeenCalledWith("account-123", {
+      manageConnections: {
+        callbackUrl: "https://app.example.com/settings/connectors?connected=true",
+      },
     });
   });
 });

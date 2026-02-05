@@ -12,12 +12,10 @@ import { getConnectors } from "./getConnectors";
  */
 export async function verifyConnectorOwnership(
   accountId: string,
-  connectedAccountId: string
+  connectedAccountId: string,
 ): Promise<boolean> {
   const connectors = await getConnectors(accountId);
 
   // Check if any of the user's connectors have this connected account ID
-  return connectors.some(
-    (connector) => connector.connectedAccountId === connectedAccountId
-  );
+  return connectors.some(connector => connector.connectedAccountId === connectedAccountId);
 }

@@ -18,14 +18,12 @@ const CONNECTOR_DISPLAY_NAMES: Record<string, string> = {
  * Handler for GET /api/connectors.
  *
  * Lists all available connectors and their connection status.
- * Supports both user and artist entities via entity_type query parameter.
+ * Use entity_id query param to get connectors for a specific entity.
  *
  * @param request - The incoming request
  * @returns List of connectors with connection status
  */
-export async function getConnectorsHandler(
-  request: NextRequest,
-): Promise<NextResponse> {
+export async function getConnectorsHandler(request: NextRequest): Promise<NextResponse> {
   const headers = getCorsHeaders();
 
   try {
@@ -51,8 +49,7 @@ export async function getConnectorsHandler(
       { status: 200, headers },
     );
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to fetch connectors";
+    const message = error instanceof Error ? error.message : "Failed to fetch connectors";
     return NextResponse.json({ error: message }, { status: 500, headers });
   }
 }

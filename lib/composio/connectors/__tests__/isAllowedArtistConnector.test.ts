@@ -1,8 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  isAllowedArtistConnector,
-  ALLOWED_ARTIST_CONNECTORS,
-} from "../isAllowedArtistConnector";
+import { isAllowedArtistConnector, ALLOWED_ARTIST_CONNECTORS } from "../isAllowedArtistConnector";
 
 describe("isAllowedArtistConnector", () => {
   it("should return true for 'tiktok'", () => {

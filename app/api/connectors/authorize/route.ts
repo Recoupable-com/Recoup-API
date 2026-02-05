@@ -26,6 +26,7 @@ export async function OPTIONS() {
  * - entity_type: "user" (default) or "artist"
  * - entity_id: Required when entity_type is "artist"
  *
+ * @param request
  * @returns The redirect URL for OAuth authorization
  */
 export async function POST(request: NextRequest) {

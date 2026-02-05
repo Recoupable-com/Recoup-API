@@ -8,14 +8,12 @@ import { authorizeConnector } from "./authorizeConnector";
  * Handler for POST /api/connectors/authorize.
  *
  * Generates an OAuth authorization URL for a specific connector.
- * Supports both user and artist connectors via entity_type parameter.
+ * Supports connecting for the authenticated user or another entity (via entity_id).
  *
  * @param request - The incoming request
  * @returns The redirect URL for OAuth authorization
  */
-export async function authorizeConnectorHandler(
-  request: NextRequest,
-): Promise<NextResponse> {
+export async function authorizeConnectorHandler(request: NextRequest): Promise<NextResponse> {
   const headers = getCorsHeaders();
 
   try {
@@ -25,13 +23,13 @@ export async function authorizeConnectorHandler(
       return validated;
     }
 
-    const { composioEntityId, connector, callbackUrl, entityType, authConfigs } = validated;
+    const { composioEntityId, connector, callbackUrl, authConfigs, isEntityConnection } = validated;
 
     // Execute authorization
     const result = await authorizeConnector(composioEntityId, connector, {
       customCallbackUrl: callbackUrl,
-      entityType,
       authConfigs,
+      isEntityConnection,
     });
 
     return NextResponse.json(
@@ -46,8 +44,7 @@ export async function authorizeConnectorHandler(
     );
   } catch (error) {
     console.error("Connector authorize error:", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to authorize connector";
+    const message = error instanceof Error ? error.message : "Failed to authorize connector";
     return NextResponse.json({ error: message }, { status: 500, headers });
   }
 }

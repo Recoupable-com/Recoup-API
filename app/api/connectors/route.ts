@@ -25,6 +25,7 @@ export async function OPTIONS() {
  *
  * Authentication: x-api-key OR Authorization Bearer token required.
  *
+ * @param request
  * @returns List of connectors with connection status
  */
 export async function GET(request: NextRequest) {
@@ -37,11 +38,13 @@ export async function GET(request: NextRequest) {
  * Disconnect a connected account from Composio.
  *
  * Body:
- *   - connected_account_id (required): The connected account ID to disconnect
- *   - entity_type (optional): "user" (default) or "artist"
- *   - entity_id (required when entity_type=artist): The artist ID
+ * - connected_account_id (required): The connected account ID to disconnect
+ * - entity_type (optional): "user" (default) or "artist"
+ * - entity_id (required when entity_type=artist): The artist ID
  *
  * Authentication: x-api-key OR Authorization Bearer token required.
+ *
+ * @param request
  */
 export async function DELETE(request: NextRequest) {
   return disconnectConnectorHandler(request);

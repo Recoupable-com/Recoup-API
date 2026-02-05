@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createToolRouterSession } from "../createToolRouterSession";
 
+import { getComposioClient } from "../../client";
+import { getCallbackUrl } from "../../getCallbackUrl";
+
 vi.mock("../../client", () => ({
   getComposioClient: vi.fn(),
 }));
@@ -8,9 +11,6 @@ vi.mock("../../client", () => ({
 vi.mock("../../getCallbackUrl", () => ({
   getCallbackUrl: vi.fn(),
 }));
-
-import { getComposioClient } from "../../client";
-import { getCallbackUrl } from "../../getCallbackUrl";
 
 describe("createToolRouterSession", () => {
   const mockSession = { tools: vi.fn() };
@@ -23,10 +23,10 @@ describe("createToolRouterSession", () => {
   });
 
   it("should create session with enabled toolkits", async () => {
-    await createToolRouterSession("user-123");
+    await createToolRouterSession("account-123");
 
     expect(getComposioClient).toHaveBeenCalled();
-    expect(mockComposio.create).toHaveBeenCalledWith("user-123", {
+    expect(mockComposio.create).toHaveBeenCalledWith("account-123", {
       toolkits: ["googlesheets", "googledrive", "googledocs", "tiktok"],
       manageConnections: {
         callbackUrl: "https://example.com/chat?connected=true",
@@ -36,7 +36,7 @@ describe("createToolRouterSession", () => {
   });
 
   it("should include roomId in callback URL", async () => {
-    await createToolRouterSession("user-123", "room-456");
+    await createToolRouterSession("account-123", "room-456");
 
     expect(getCallbackUrl).toHaveBeenCalledWith({
       destination: "chat",
@@ -49,9 +49,9 @@ describe("createToolRouterSession", () => {
       tiktok: "tiktok-account-789",
     };
 
-    await createToolRouterSession("user-123", undefined, artistConnections);
+    await createToolRouterSession("account-123", undefined, artistConnections);
 
-    expect(mockComposio.create).toHaveBeenCalledWith("user-123", {
+    expect(mockComposio.create).toHaveBeenCalledWith("account-123", {
       toolkits: ["googlesheets", "googledrive", "googledocs", "tiktok"],
       manageConnections: {
         callbackUrl: "https://example.com/chat?connected=true",
@@ -61,13 +61,13 @@ describe("createToolRouterSession", () => {
   });
 
   it("should return session object", async () => {
-    const result = await createToolRouterSession("user-123");
+    const result = await createToolRouterSession("account-123");
 
     expect(result).toBe(mockSession);
   });
 
   it("should handle undefined roomId", async () => {
-    await createToolRouterSession("user-123", undefined);
+    await createToolRouterSession("account-123", undefined);
 
     expect(getCallbackUrl).toHaveBeenCalledWith({
       destination: "chat",

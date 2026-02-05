@@ -14,33 +14,28 @@ export interface AuthorizeResult {
  */
 export interface AuthorizeConnectorOptions {
   /**
-   * Entity type determines how the callback URL is built.
-   * - "user": Redirects to /settings/connectors
-   * - "artist": Redirects to /chat with artist_connected param
-   */
-  entityType?: "user" | "artist";
-  /**
-   * For artist entities, the toolkit being connected (for callback URL).
-   */
-  toolkit?: string;
-  /**
    * Custom auth configs for toolkits that require user-provided OAuth credentials.
    * e.g., { tiktok: "ac_xxxxx" }
    */
   authConfigs?: Record<string, string>;
   /**
-   * Custom callback URL (overrides default based on entityType).
+   * Custom callback URL (overrides default).
    */
   customCallbackUrl?: string;
+  /**
+   * If true, this is an entity connection (not the user's own).
+   * Used to determine callback URL destination.
+   */
+  isEntityConnection?: boolean;
 }
 
 /**
  * Generate an OAuth authorization URL for a connector.
  *
- * Works for both user-level and artist-level connections.
- * The entityId can be either a userId or artistId - Composio treats them the same.
+ * The entityId is an account ID - either the user's own account or
+ * another account (like an artist) they have access to.
  *
- * @param entityId - The entity ID (userId or artistId)
+ * @param entityId - The account ID to store the connection under
  * @param connector - The connector slug (e.g., "googlesheets", "tiktok")
  * @param options - Authorization options
  * @returns The redirect URL for OAuth
@@ -50,20 +45,22 @@ export async function authorizeConnector(
   connector: string,
   options: AuthorizeConnectorOptions = {},
 ): Promise<AuthorizeResult> {
-  const { entityType = "user", toolkit, authConfigs, customCallbackUrl } = options;
+  const { authConfigs, customCallbackUrl, isEntityConnection } = options;
   const composio = await getComposioClient();
 
-  // Build callback URL based on entity type
+  // Determine callback URL
   let callbackUrl: string;
   if (customCallbackUrl) {
     callbackUrl = customCallbackUrl;
-  } else if (entityType === "artist") {
+  } else if (isEntityConnection) {
+    // Entity connection: redirect to chat with entity info
     callbackUrl = getCallbackUrl({
-      destination: "artist-connectors",
-      artistId: entityId,
-      toolkit: toolkit || connector,
+      destination: "entity-connectors",
+      entityId,
+      toolkit: connector,
     });
   } else {
+    // User's own connection: redirect to settings
     callbackUrl = getCallbackUrl({ destination: "connectors" });
   }
 

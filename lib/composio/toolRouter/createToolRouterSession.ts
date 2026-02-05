@@ -17,7 +17,7 @@ const ENABLED_TOOLKITS = ["googlesheets", "googledrive", "googledocs", "tiktok"]
 export async function createToolRouterSession(
   userId: string,
   roomId?: string,
-  artistConnections?: Record<string, string>
+  artistConnections?: Record<string, string>,
 ) {
   const composio = await getComposioClient();
 

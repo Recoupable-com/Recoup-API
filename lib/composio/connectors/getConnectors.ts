@@ -29,10 +29,9 @@ export interface GetConnectorsOptions {
 /**
  * Get connectors and their connection status for an entity.
  *
- * Works for both user-level and artist-level connections.
- * The entityId can be either a userId or artistId - Composio treats them the same.
+ * Works for any account ID. Composio uses the entityId to scope connections.
  *
- * @param entityId - The entity ID (userId or artistId)
+ * @param entityId - The account ID to get connectors for
  * @param options - Options for filtering and display
  * @returns List of connectors with connection status
  */
@@ -52,7 +51,7 @@ export async function getConnectors(
   const toolkits = await session.toolkits();
 
   // Build connector list
-  const connectors = toolkits.items.map((toolkit) => ({
+  const connectors = toolkits.items.map(toolkit => ({
     slug: toolkit.slug,
     name: displayNames[toolkit.slug] || toolkit.name,
     isConnected: toolkit.connection?.isActive ?? false,
@@ -61,7 +60,7 @@ export async function getConnectors(
 
   // If filtering, ensure we return all allowed toolkits (even if not in Composio response)
   if (allowedToolkits) {
-    const existingSlugs = new Set(connectors.map((c) => c.slug));
+    const existingSlugs = new Set(connectors.map(c => c.slug));
     for (const slug of allowedToolkits) {
       if (!existingSlugs.has(slug)) {
         connectors.push({
@@ -73,9 +72,7 @@ export async function getConnectors(
       }
     }
     // Filter to only allowed and maintain order
-    return allowedToolkits.map(
-      (slug) => connectors.find((c) => c.slug === slug)!,
-    );
+    return allowedToolkits.map(slug => connectors.find(c => c.slug === slug)!);
   }
 
   return connectors;

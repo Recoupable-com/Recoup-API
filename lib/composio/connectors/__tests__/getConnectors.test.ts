@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getConnectors } from "../getConnectors";
 
+import { getComposioClient } from "../../client";
+
 vi.mock("../../client", () => ({
   getComposioClient: vi.fn(),
 }));
-
-import { getComposioClient } from "../../client";
 
 describe("getConnectors", () => {
   const mockToolkits = vi.fn();
@@ -33,10 +33,10 @@ describe("getConnectors", () => {
       ],
     });
 
-    const result = await getConnectors("user-123");
+    const result = await getConnectors("account-123");
 
     expect(getComposioClient).toHaveBeenCalled();
-    expect(mockComposio.create).toHaveBeenCalledWith("user-123", undefined);
+    expect(mockComposio.create).toHaveBeenCalledWith("account-123", undefined);
     expect(result).toEqual([
       {
         slug: "googlesheets",
@@ -84,7 +84,7 @@ describe("getConnectors", () => {
       ],
     });
 
-    const result = await getConnectors("user-123", {
+    const result = await getConnectors("account-123", {
       displayNames: { tiktok: "TikTok" },
     });
 
@@ -116,7 +116,7 @@ describe("getConnectors", () => {
       ],
     });
 
-    const result = await getConnectors("user-123", {
+    const result = await getConnectors("account-123", {
       allowedToolkits: ["tiktok", "instagram"],
     });
 
@@ -135,7 +135,7 @@ describe("getConnectors", () => {
       ],
     });
 
-    const result = await getConnectors("user-123");
+    const result = await getConnectors("account-123");
 
     expect(result[0].isConnected).toBe(false);
   });

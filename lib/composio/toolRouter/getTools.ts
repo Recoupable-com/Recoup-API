@@ -60,7 +60,7 @@ function isValidTool(tool: unknown): tool is Tool {
 export async function getComposioTools(
   userId: string,
   artistId?: string,
-  roomId?: string
+  roomId?: string,
 ): Promise<ToolSet> {
   // Skip Composio if API key is not configured
   if (!process.env.COMPOSIO_API_KEY) {

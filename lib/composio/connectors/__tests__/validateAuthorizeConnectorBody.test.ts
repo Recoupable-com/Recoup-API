@@ -7,7 +7,7 @@ vi.mock("@/lib/networking/getCorsHeaders", () => ({
 }));
 
 describe("validateAuthorizeConnectorBody", () => {
-  it("should accept valid user connector request", () => {
+  it("should accept valid connector request without entity_id", () => {
     const result = validateAuthorizeConnectorBody({
       connector: "googlesheets",
     });
@@ -15,22 +15,19 @@ describe("validateAuthorizeConnectorBody", () => {
     expect(result).not.toBeInstanceOf(NextResponse);
     expect(result).toEqual({
       connector: "googlesheets",
-      entity_type: "user",
     });
   });
 
-  it("should accept valid artist connector request with tiktok", () => {
+  it("should accept valid connector request with entity_id for allowed connector", () => {
     const result = validateAuthorizeConnectorBody({
       connector: "tiktok",
-      entity_type: "artist",
-      entity_id: "artist-123",
+      entity_id: "550e8400-e29b-41d4-a716-446655440000",
     });
 
     expect(result).not.toBeInstanceOf(NextResponse);
     expect(result).toEqual({
       connector: "tiktok",
-      entity_type: "artist",
-      entity_id: "artist-123",
+      entity_id: "550e8400-e29b-41d4-a716-446655440000",
     });
   });
 
@@ -43,7 +40,6 @@ describe("validateAuthorizeConnectorBody", () => {
     expect(result).not.toBeInstanceOf(NextResponse);
     expect(result).toEqual({
       connector: "googlesheets",
-      entity_type: "user",
       callback_url: "https://example.com/callback",
     });
   });
@@ -64,22 +60,10 @@ describe("validateAuthorizeConnectorBody", () => {
     expect(response.status).toBe(400);
   });
 
-  it("should return 400 when entity_type=artist but entity_id is missing", () => {
-    const result = validateAuthorizeConnectorBody({
-      connector: "tiktok",
-      entity_type: "artist",
-    });
-
-    expect(result).toBeInstanceOf(NextResponse);
-    const response = result as NextResponse;
-    expect(response.status).toBe(400);
-  });
-
-  it("should return 400 when entity_type=artist but connector is not allowed", () => {
+  it("should return 400 when entity_id is provided but connector is not allowed", () => {
     const result = validateAuthorizeConnectorBody({
       connector: "googlesheets",
-      entity_type: "artist",
-      entity_id: "artist-123",
+      entity_id: "550e8400-e29b-41d4-a716-446655440000",
     });
 
     expect(result).toBeInstanceOf(NextResponse);
@@ -98,10 +82,10 @@ describe("validateAuthorizeConnectorBody", () => {
     expect(response.status).toBe(400);
   });
 
-  it("should return 400 for invalid entity_type", () => {
+  it("should return 400 for invalid entity_id UUID format", () => {
     const result = validateAuthorizeConnectorBody({
-      connector: "googlesheets",
-      entity_type: "invalid",
+      connector: "tiktok",
+      entity_id: "not-a-uuid",
     });
 
     expect(result).toBeInstanceOf(NextResponse);

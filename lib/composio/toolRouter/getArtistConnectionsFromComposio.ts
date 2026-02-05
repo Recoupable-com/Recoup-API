@@ -10,7 +10,7 @@ import { getConnectors, ALLOWED_ARTIST_CONNECTORS } from "../connectors";
  * @returns Map of toolkit slug to connected account ID
  */
 export async function getArtistConnectionsFromComposio(
-  artistId: string
+  artistId: string,
 ): Promise<Record<string, string>> {
   // Use unified getConnectors with artist filter
   const connectors = await getConnectors(artistId, {

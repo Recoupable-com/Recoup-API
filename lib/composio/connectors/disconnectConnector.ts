@@ -31,9 +31,7 @@ export async function disconnectConnector(
   // If ownership verification is requested, check before deleting
   if (verifyOwnershipFor) {
     const connectors = await getConnectors(verifyOwnershipFor);
-    const hasConnection = connectors.some(
-      (c) => c.connectedAccountId === connectedAccountId,
-    );
+    const hasConnection = connectors.some(c => c.connectedAccountId === connectedAccountId);
     if (!hasConnection) {
       throw new Error("Connection not found for this entity");
     }
@@ -54,9 +52,7 @@ export async function disconnectConnector(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(
-      `Failed to disconnect (${response.status}): ${errorText}`,
-    );
+    throw new Error(`Failed to disconnect (${response.status}): ${errorText}`);
   }
 
   return { success: true };

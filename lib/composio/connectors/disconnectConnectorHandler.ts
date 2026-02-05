@@ -8,14 +8,12 @@ import { disconnectConnector } from "./disconnectConnector";
  * Handler for DELETE /api/connectors.
  *
  * Disconnects a connected account from Composio.
- * Supports both user and artist entities via entity_type body parameter.
+ * Supports disconnecting for the authenticated user or another entity (via entity_id).
  *
  * @param request - The incoming request
  * @returns Success status
  */
-export async function disconnectConnectorHandler(
-  request: NextRequest,
-): Promise<NextResponse> {
+export async function disconnectConnectorHandler(request: NextRequest): Promise<NextResponse> {
   const headers = getCorsHeaders();
 
   try {
@@ -25,21 +23,22 @@ export async function disconnectConnectorHandler(
       return validated;
     }
 
-    const { connectedAccountId, entityType, entityId } = validated;
+    const { connectedAccountId, entityId } = validated;
 
     // Disconnect from Composio
-    if (entityType === "artist") {
+    if (entityId) {
+      // Disconnecting for another entity - verify ownership
       await disconnectConnector(connectedAccountId, {
-        verifyOwnershipFor: entityId!,
+        verifyOwnershipFor: entityId,
       });
     } else {
+      // User's own connection - already verified in validation
       await disconnectConnector(connectedAccountId);
     }
 
     return NextResponse.json({ success: true }, { status: 200, headers });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to disconnect connector";
+    const message = error instanceof Error ? error.message : "Failed to disconnect connector";
     return NextResponse.json({ error: message }, { status: 500, headers });
   }
 }

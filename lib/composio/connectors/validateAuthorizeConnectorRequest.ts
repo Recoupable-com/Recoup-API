@@ -12,8 +12,8 @@ export interface AuthorizeConnectorParams {
   composioEntityId: string;
   connector: string;
   callbackUrl?: string;
-  entityType: "user" | "artist";
   authConfigs?: Record<string, string>;
+  isEntityConnection?: boolean;
 }
 
 /**
@@ -21,8 +21,8 @@ export interface AuthorizeConnectorParams {
  *
  * Handles:
  * 1. Authentication (x-api-key or Bearer token)
- * 2. Body validation (connector, entity_type, entity_id, allowed connector check)
- * 3. Access verification (for artist entities)
+ * 2. Body validation (connector, entity_id, allowed connector check)
+ * 3. Access verification (when entity_id is provided)
  *
  * @param request - The incoming request
  * @returns NextResponse error or validated params
@@ -39,22 +39,19 @@ export async function validateAuthorizeConnectorRequest(
   }
   const { accountId } = authResult;
 
-  // 2. Validate body (includes allowed connector check for artists)
+  // 2. Validate body (includes allowed connector check when entity_id is provided)
   const body = await request.json();
   const validated = validateAuthorizeConnectorBody(body);
   if (validated instanceof NextResponse) {
     return validated;
   }
-  const { connector, callback_url, entity_type, entity_id } = validated;
+  const { connector, callback_url, entity_id } = validated;
 
-  // 3. Verify access and build params
-  if (entity_type === "artist") {
-    const hasAccess = await checkAccountArtistAccess(accountId, entity_id!);
+  // 3. If entity_id is provided, verify access and use that entity
+  if (entity_id) {
+    const hasAccess = await checkAccountArtistAccess(accountId, entity_id);
     if (!hasAccess) {
-      return NextResponse.json(
-        { error: "Access denied to this artist" },
-        { status: 403, headers },
-      );
+      return NextResponse.json({ error: "Access denied to this entity" }, { status: 403, headers });
     }
 
     // Build auth configs for custom OAuth
@@ -64,18 +61,19 @@ export async function validateAuthorizeConnectorRequest(
     }
 
     return {
-      composioEntityId: entity_id!,
+      composioEntityId: entity_id,
       connector,
       callbackUrl: callback_url,
-      entityType: entity_type,
       authConfigs: Object.keys(authConfigs).length > 0 ? authConfigs : undefined,
+      isEntityConnection: true,
     };
   }
 
+  // No entity_id: use the authenticated user's account
   return {
     composioEntityId: accountId,
     connector,
     callbackUrl: callback_url,
-    entityType: entity_type,
+    isEntityConnection: false,
   };
 }

@@ -11,57 +11,32 @@ describe("getCallbackUrl", () => {
   });
 
   describe("connectors destination", () => {
-    it("should return settings/connectors URL with connected param", () => {
-      const result = getCallbackUrl({ destination: "connectors" });
-
-      expect(result).toBe(
-        "https://chat.recoupable.com/settings/connectors?connected=true",
-      );
+    it("should return settings/connectors URL", () => {
+      const url = getCallbackUrl({ destination: "connectors" });
+      expect(url).toBe("https://chat.recoupable.com/settings/connectors?connected=true");
     });
   });
 
-  describe("artist-connectors destination", () => {
-    it("should return chat URL with artist_connected and toolkit params", () => {
-      const result = getCallbackUrl({
-        destination: "artist-connectors",
-        artistId: "artist-123",
+  describe("entity-connectors destination", () => {
+    it("should return chat URL with entity and toolkit params", () => {
+      const url = getCallbackUrl({
+        destination: "entity-connectors",
+        entityId: "entity-123",
         toolkit: "tiktok",
       });
-
-      expect(result).toBe(
-        "https://chat.recoupable.com/chat?artist_connected=artist-123&toolkit=tiktok",
-      );
-    });
-
-    it("should handle missing artistId and toolkit gracefully", () => {
-      const result = getCallbackUrl({
-        destination: "artist-connectors",
-      });
-
-      expect(result).toBe(
-        "https://chat.recoupable.com/chat?artist_connected=undefined&toolkit=undefined",
-      );
+      expect(url).toBe("https://chat.recoupable.com/chat?artist_connected=entity-123&toolkit=tiktok");
     });
   });
 
   describe("chat destination", () => {
-    it("should return chat URL with roomId", () => {
-      const result = getCallbackUrl({
-        destination: "chat",
-        roomId: "room-456",
-      });
-
-      expect(result).toBe(
-        "https://chat.recoupable.com/chat/room-456?connected=true",
-      );
+    it("should return chat URL without roomId", () => {
+      const url = getCallbackUrl({ destination: "chat" });
+      expect(url).toBe("https://chat.recoupable.com/chat?connected=true");
     });
 
-    it("should return base chat URL without roomId", () => {
-      const result = getCallbackUrl({
-        destination: "chat",
-      });
-
-      expect(result).toBe("https://chat.recoupable.com/chat?connected=true");
+    it("should return chat URL with roomId", () => {
+      const url = getCallbackUrl({ destination: "chat", roomId: "room-123" });
+      expect(url).toBe("https://chat.recoupable.com/chat/room-123?connected=true");
     });
   });
 });

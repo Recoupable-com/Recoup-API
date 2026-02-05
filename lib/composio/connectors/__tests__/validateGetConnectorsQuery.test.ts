@@ -7,69 +7,34 @@ vi.mock("@/lib/networking/getCorsHeaders", () => ({
 }));
 
 describe("validateGetConnectorsQuery", () => {
-  it("should return default user entity_type when no params provided", () => {
+  it("should return empty object when no params provided", () => {
     const searchParams = new URLSearchParams();
     const result = validateGetConnectorsQuery(searchParams);
 
     expect(result).not.toBeInstanceOf(NextResponse);
-    expect(result).toEqual({
-      entity_type: "user",
-    });
+    expect(result).toEqual({});
   });
 
-  it("should accept entity_type=user", () => {
-    const searchParams = new URLSearchParams({ entity_type: "user" });
-    const result = validateGetConnectorsQuery(searchParams);
-
-    expect(result).not.toBeInstanceOf(NextResponse);
-    expect(result).toEqual({
-      entity_type: "user",
-    });
-  });
-
-  it("should accept entity_type=artist with entity_id", () => {
+  it("should accept valid entity_id UUID", () => {
     const searchParams = new URLSearchParams({
-      entity_type: "artist",
-      entity_id: "artist-123",
+      entity_id: "550e8400-e29b-41d4-a716-446655440000",
     });
     const result = validateGetConnectorsQuery(searchParams);
 
     expect(result).not.toBeInstanceOf(NextResponse);
     expect(result).toEqual({
-      entity_type: "artist",
-      entity_id: "artist-123",
+      entity_id: "550e8400-e29b-41d4-a716-446655440000",
     });
   });
 
-  it("should return 400 when entity_type=artist but entity_id is missing", () => {
-    const searchParams = new URLSearchParams({ entity_type: "artist" });
+  it("should return 400 for invalid entity_id UUID format", () => {
+    const searchParams = new URLSearchParams({
+      entity_id: "not-a-uuid",
+    });
     const result = validateGetConnectorsQuery(searchParams);
 
     expect(result).toBeInstanceOf(NextResponse);
     const response = result as NextResponse;
     expect(response.status).toBe(400);
-  });
-
-  it("should return 400 for invalid entity_type", () => {
-    const searchParams = new URLSearchParams({ entity_type: "invalid" });
-    const result = validateGetConnectorsQuery(searchParams);
-
-    expect(result).toBeInstanceOf(NextResponse);
-    const response = result as NextResponse;
-    expect(response.status).toBe(400);
-  });
-
-  it("should ignore entity_id when entity_type is user", () => {
-    const searchParams = new URLSearchParams({
-      entity_type: "user",
-      entity_id: "some-id",
-    });
-    const result = validateGetConnectorsQuery(searchParams);
-
-    expect(result).not.toBeInstanceOf(NextResponse);
-    expect(result).toEqual({
-      entity_type: "user",
-      entity_id: "some-id",
-    });
   });
 });

@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getComposioTools } from "../getTools";
 
+import { createToolRouterSession } from "../createToolRouterSession";
+import { getArtistConnectionsFromComposio } from "../getArtistConnectionsFromComposio";
+
 // Mock dependencies
 vi.mock("../createToolRouterSession", () => ({
   createToolRouterSession: vi.fn(),
@@ -9,9 +12,6 @@ vi.mock("../createToolRouterSession", () => ({
 vi.mock("../getArtistConnectionsFromComposio", () => ({
   getArtistConnectionsFromComposio: vi.fn(),
 }));
-
-import { createToolRouterSession } from "../createToolRouterSession";
-import { getArtistConnectionsFromComposio } from "../getArtistConnectionsFromComposio";
 
 // Mock valid tool structure
 const createMockTool = () => ({
@@ -35,7 +35,7 @@ describe("getComposioTools", () => {
   it("should return empty object when COMPOSIO_API_KEY is not set", async () => {
     delete process.env.COMPOSIO_API_KEY;
 
-    const result = await getComposioTools("user-123");
+    const result = await getComposioTools("account-123");
 
     expect(result).toEqual({});
     expect(createToolRouterSession).not.toHaveBeenCalled();
@@ -49,14 +49,10 @@ describe("getComposioTools", () => {
     };
     vi.mocked(createToolRouterSession).mockResolvedValue(mockSession);
 
-    await getComposioTools("user-123");
+    await getComposioTools("account-123");
 
     expect(getArtistConnectionsFromComposio).not.toHaveBeenCalled();
-    expect(createToolRouterSession).toHaveBeenCalledWith(
-      "user-123",
-      undefined,
-      undefined,
-    );
+    expect(createToolRouterSession).toHaveBeenCalledWith("account-123", undefined, undefined);
   });
 
   it("should fetch and pass artist connections when artistId is provided", async () => {
@@ -70,14 +66,10 @@ describe("getComposioTools", () => {
     };
     vi.mocked(createToolRouterSession).mockResolvedValue(mockSession);
 
-    await getComposioTools("user-123", "artist-456", "room-789");
+    await getComposioTools("account-123", "artist-456", "room-789");
 
     expect(getArtistConnectionsFromComposio).toHaveBeenCalledWith("artist-456");
-    expect(createToolRouterSession).toHaveBeenCalledWith(
-      "user-123",
-      "room-789",
-      mockConnections,
-    );
+    expect(createToolRouterSession).toHaveBeenCalledWith("account-123", "room-789", mockConnections);
   });
 
   it("should pass undefined when artist has no connections", async () => {
@@ -90,16 +82,10 @@ describe("getComposioTools", () => {
     };
     vi.mocked(createToolRouterSession).mockResolvedValue(mockSession);
 
-    await getComposioTools("user-123", "artist-no-connections");
+    await getComposioTools("account-123", "artist-no-connections");
 
-    expect(getArtistConnectionsFromComposio).toHaveBeenCalledWith(
-      "artist-no-connections",
-    );
-    expect(createToolRouterSession).toHaveBeenCalledWith(
-      "user-123",
-      undefined,
-      undefined,
-    );
+    expect(getArtistConnectionsFromComposio).toHaveBeenCalledWith("artist-no-connections");
+    expect(createToolRouterSession).toHaveBeenCalledWith("account-123", undefined, undefined);
   });
 
   it("should filter tools to only ALLOWED_TOOLS", async () => {
@@ -112,7 +98,7 @@ describe("getComposioTools", () => {
     };
     vi.mocked(createToolRouterSession).mockResolvedValue(mockSession);
 
-    const result = await getComposioTools("user-123");
+    const result = await getComposioTools("account-123");
 
     expect(result).toHaveProperty("COMPOSIO_MANAGE_CONNECTIONS");
     expect(result).toHaveProperty("COMPOSIO_SEARCH_TOOLS");
@@ -120,13 +106,11 @@ describe("getComposioTools", () => {
   });
 
   it("should return empty object when session creation throws", async () => {
-    vi.mocked(createToolRouterSession).mockRejectedValue(
-      new Error("Bundler incompatibility"),
-    );
+    vi.mocked(createToolRouterSession).mockRejectedValue(new Error("Bundler incompatibility"));
 
     const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    const result = await getComposioTools("user-123");
+    const result = await getComposioTools("account-123");
 
     expect(result).toEqual({});
     expect(consoleSpy).toHaveBeenCalledWith(
@@ -146,7 +130,7 @@ describe("getComposioTools", () => {
     };
     vi.mocked(createToolRouterSession).mockResolvedValue(mockSession);
 
-    const result = await getComposioTools("user-123");
+    const result = await getComposioTools("account-123");
 
     expect(result).toHaveProperty("COMPOSIO_MANAGE_CONNECTIONS");
     expect(result).not.toHaveProperty("COMPOSIO_SEARCH_TOOLS");

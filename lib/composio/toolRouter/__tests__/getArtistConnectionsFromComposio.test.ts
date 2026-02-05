@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getArtistConnectionsFromComposio } from "../getArtistConnectionsFromComposio";
 
+import { getConnectors } from "../../connectors";
+
 // Mock dependencies
 vi.mock("../../connectors", () => ({
   getConnectors: vi.fn(),
   ALLOWED_ARTIST_CONNECTORS: ["tiktok"],
 }));
-
-import { getConnectors } from "../../connectors";
 
 describe("getArtistConnectionsFromComposio", () => {
   beforeEach(() => {
@@ -15,9 +15,7 @@ describe("getArtistConnectionsFromComposio", () => {
   });
 
   it("should return empty object when no connectors are connected", async () => {
-    vi.mocked(getConnectors).mockResolvedValue([
-      { slug: "tiktok", connectedAccountId: null },
-    ]);
+    vi.mocked(getConnectors).mockResolvedValue([{ slug: "tiktok", connectedAccountId: null }]);
 
     const result = await getArtistConnectionsFromComposio("artist-123");
 

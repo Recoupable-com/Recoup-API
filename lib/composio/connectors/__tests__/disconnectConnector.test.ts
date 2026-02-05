@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { disconnectConnector } from "../disconnectConnector";
 
+import { getConnectors } from "../getConnectors";
+
 vi.mock("../../getComposioApiKey", () => ({
   getComposioApiKey: vi.fn(() => "test-api-key"),
 }));
@@ -8,8 +10,6 @@ vi.mock("../../getComposioApiKey", () => ({
 vi.mock("../getConnectors", () => ({
   getConnectors: vi.fn(),
 }));
-
-import { getConnectors } from "../getConnectors";
 
 describe("disconnectConnector", () => {
   beforeEach(() => {

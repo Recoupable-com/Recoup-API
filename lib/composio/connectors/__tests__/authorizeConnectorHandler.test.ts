@@ -2,9 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeConnectorHandler } from "../authorizeConnectorHandler";
 
-vi.mock("@/lib/networking/getCorsHeaders", () => ({
-  getCorsHeaders: vi.fn(() => new Headers()),
-}));
+import { validateAuthorizeConnectorRequest } from "../validateAuthorizeConnectorRequest";
+import { authorizeConnector } from "../authorizeConnector";
 
 vi.mock("../validateAuthorizeConnectorRequest", () => ({
   validateAuthorizeConnectorRequest: vi.fn(),
@@ -14,17 +13,18 @@ vi.mock("../authorizeConnector", () => ({
   authorizeConnector: vi.fn(),
 }));
 
-import { validateAuthorizeConnectorRequest } from "../validateAuthorizeConnectorRequest";
-import { authorizeConnector } from "../authorizeConnector";
+vi.mock("@/lib/networking/getCorsHeaders", () => ({
+  getCorsHeaders: vi.fn(() => new Headers()),
+}));
 
 describe("authorizeConnectorHandler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("should return validation error when request validation fails", async () => {
+  it("should return validation error if validation fails", async () => {
     vi.mocked(validateAuthorizeConnectorRequest).mockResolvedValue(
-      NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+      NextResponse.json({ error: "Invalid request" }, { status: 400 }),
     );
 
     const request = new NextRequest("http://localhost/api/connectors/authorize", {
@@ -32,45 +32,46 @@ describe("authorizeConnectorHandler", () => {
     });
     const result = await authorizeConnectorHandler(request);
 
-    expect(result.status).toBe(401);
+    expect(result.status).toBe(400);
   });
 
-  it("should return redirect URL on successful authorization", async () => {
+  it("should call authorizeConnector with validated params for account connection", async () => {
     vi.mocked(validateAuthorizeConnectorRequest).mockResolvedValue({
-      composioEntityId: "user-123",
+      composioEntityId: "account-123",
       connector: "googlesheets",
-      entityType: "user",
+      isEntityConnection: false,
     });
-
     vi.mocked(authorizeConnector).mockResolvedValue({
       connector: "googlesheets",
-      redirectUrl: "https://oauth.example.com/authorize",
+      redirectUrl: "https://oauth.example.com/auth",
     });
 
     const request = new NextRequest("http://localhost/api/connectors/authorize", {
       method: "POST",
     });
     const result = await authorizeConnectorHandler(request);
-    const body = await result.json();
 
+    expect(authorizeConnector).toHaveBeenCalledWith("account-123", "googlesheets", {
+      customCallbackUrl: undefined,
+      authConfigs: undefined,
+      isEntityConnection: false,
+    });
     expect(result.status).toBe(200);
+    const body = await result.json();
     expect(body.success).toBe(true);
-    expect(body.data.connector).toBe("googlesheets");
-    expect(body.data.redirectUrl).toBe("https://oauth.example.com/authorize");
+    expect(body.data.redirectUrl).toBe("https://oauth.example.com/auth");
   });
 
-  it("should pass correct options for artist entity type", async () => {
+  it("should call authorizeConnector with isEntityConnection true for entity connection", async () => {
     vi.mocked(validateAuthorizeConnectorRequest).mockResolvedValue({
-      composioEntityId: "artist-456",
+      composioEntityId: "entity-456",
       connector: "tiktok",
-      callbackUrl: "https://example.com/callback",
-      entityType: "artist",
       authConfigs: { tiktok: "ac_123" },
+      isEntityConnection: true,
     });
-
     vi.mocked(authorizeConnector).mockResolvedValue({
       connector: "tiktok",
-      redirectUrl: "https://oauth.tiktok.com/authorize",
+      redirectUrl: "https://oauth.example.com/auth",
     });
 
     const request = new NextRequest("http://localhost/api/connectors/authorize", {
@@ -78,31 +79,52 @@ describe("authorizeConnectorHandler", () => {
     });
     await authorizeConnectorHandler(request);
 
-    expect(authorizeConnector).toHaveBeenCalledWith("artist-456", "tiktok", {
-      customCallbackUrl: "https://example.com/callback",
-      entityType: "artist",
+    expect(authorizeConnector).toHaveBeenCalledWith("entity-456", "tiktok", {
+      customCallbackUrl: undefined,
       authConfigs: { tiktok: "ac_123" },
+      isEntityConnection: true,
     });
   });
 
-  it("should return 500 when authorizeConnector throws", async () => {
+  it("should pass through custom callbackUrl", async () => {
     vi.mocked(validateAuthorizeConnectorRequest).mockResolvedValue({
-      composioEntityId: "user-123",
+      composioEntityId: "account-123",
       connector: "googlesheets",
-      entityType: "user",
+      callbackUrl: "https://custom.example.com/callback",
+      isEntityConnection: false,
+    });
+    vi.mocked(authorizeConnector).mockResolvedValue({
+      connector: "googlesheets",
+      redirectUrl: "https://oauth.example.com/auth",
     });
 
-    vi.mocked(authorizeConnector).mockRejectedValue(
-      new Error("Composio API error"),
-    );
+    const request = new NextRequest("http://localhost/api/connectors/authorize", {
+      method: "POST",
+    });
+    await authorizeConnectorHandler(request);
+
+    expect(authorizeConnector).toHaveBeenCalledWith("account-123", "googlesheets", {
+      customCallbackUrl: "https://custom.example.com/callback",
+      authConfigs: undefined,
+      isEntityConnection: false,
+    });
+  });
+
+  it("should return 500 on error", async () => {
+    vi.mocked(validateAuthorizeConnectorRequest).mockResolvedValue({
+      composioEntityId: "account-123",
+      connector: "googlesheets",
+      isEntityConnection: false,
+    });
+    vi.mocked(authorizeConnector).mockRejectedValue(new Error("OAuth failed"));
 
     const request = new NextRequest("http://localhost/api/connectors/authorize", {
       method: "POST",
     });
     const result = await authorizeConnectorHandler(request);
-    const body = await result.json();
 
     expect(result.status).toBe(500);
-    expect(body.error).toBe("Composio API error");
+    const body = await result.json();
+    expect(body.error).toBe("OAuth failed");
   });
 });
