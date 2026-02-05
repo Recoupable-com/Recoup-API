@@ -4,6 +4,7 @@ import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { validateSnapshotPatchBody } from "@/lib/sandbox/validateSnapshotPatchBody";
 import { upsertAccountSnapshot } from "@/lib/supabase/account_snapshots/upsertAccountSnapshot";
 import { updateAccountSnapshot } from "@/lib/supabase/account_snapshots/updateAccountSnapshot";
+import { selectAccountSnapshots } from "@/lib/supabase/account_snapshots/selectAccountSnapshots";
 
 /**
  * Handler for PATCH /api/sandboxes/snapshot.
@@ -23,10 +24,8 @@ export async function updateSnapshotPatchHandler(request: NextRequest): Promise<
   }
 
   if (!validated.snapshotId && !validated.githubRepo) {
-    return NextResponse.json(
-      { success: true },
-      { status: 200, headers: getCorsHeaders() },
-    );
+    const rows = await selectAccountSnapshots(validated.accountId);
+    return NextResponse.json(rows[0] ?? null, { status: 200, headers: getCorsHeaders() });
   }
 
   try {
