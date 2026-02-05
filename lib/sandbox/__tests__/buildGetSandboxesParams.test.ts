@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { buildGetSandboxesParams } from "../buildGetSandboxesParams";
 
+import { canAccessAccount } from "@/lib/organizations/canAccessAccount";
 import { getAccountOrganizations } from "@/lib/supabase/account_organization_ids/getAccountOrganizations";
+
+vi.mock("@/lib/organizations/canAccessAccount", () => ({
+  canAccessAccount: vi.fn(),
+}));
 
 vi.mock("@/lib/supabase/account_organization_ids/getAccountOrganizations", () => ({
   getAccountOrganizations: vi.fn(),
@@ -26,6 +31,21 @@ describe("buildGetSandboxesParams", () => {
       expect(result).toEqual({
         params: { accountIds: ["account-123"], sandboxId: undefined },
         error: null,
+      });
+    });
+
+    it("returns error when personal key tries to filter by account_id", async () => {
+      vi.mocked(canAccessAccount).mockResolvedValue(false);
+
+      const result = await buildGetSandboxesParams({
+        account_id: "account-123",
+        org_id: null,
+        target_account_id: "other-account",
+      });
+
+      expect(result).toEqual({
+        params: null,
+        error: "Personal API keys cannot filter by account_id",
       });
     });
 
@@ -63,7 +83,9 @@ describe("buildGetSandboxesParams", () => {
       });
     });
 
-    it("returns target_account_id when provided (access validated by caller)", async () => {
+    it("allows filtering by account_id if member of org", async () => {
+      vi.mocked(canAccessAccount).mockResolvedValue(true);
+
       const result = await buildGetSandboxesParams({
         account_id: "account-123",
         org_id: "org-123",
@@ -74,8 +96,25 @@ describe("buildGetSandboxesParams", () => {
         params: { accountIds: ["member-account"], sandboxId: undefined },
         error: null,
       });
-      // Should not fetch org members when target_account_id is provided
-      expect(getAccountOrganizations).not.toHaveBeenCalled();
+      expect(canAccessAccount).toHaveBeenCalledWith({
+        orgId: "org-123",
+        targetAccountId: "member-account",
+      });
+    });
+
+    it("returns error when account_id is not member of org", async () => {
+      vi.mocked(canAccessAccount).mockResolvedValue(false);
+
+      const result = await buildGetSandboxesParams({
+        account_id: "account-123",
+        org_id: "org-123",
+        target_account_id: "non-member-account",
+      });
+
+      expect(result).toEqual({
+        params: null,
+        error: "account_id is not a member of this organization",
+      });
     });
 
     it("includes sandbox_id filter for org key", async () => {
@@ -109,7 +148,9 @@ describe("buildGetSandboxesParams", () => {
       });
     });
 
-    it("includes both target_account_id and sandbox_id when provided", async () => {
+    it("includes both target_account_id and sandbox_id when access granted", async () => {
+      vi.mocked(canAccessAccount).mockResolvedValue(true);
+
       const result = await buildGetSandboxesParams({
         account_id: "account-123",
         org_id: "org-123",
@@ -141,7 +182,9 @@ describe("buildGetSandboxesParams", () => {
       expect(getAccountOrganizations).not.toHaveBeenCalled();
     });
 
-    it("returns target_account_id when provided (access validated by caller)", async () => {
+    it("allows filtering by any account_id", async () => {
+      vi.mocked(canAccessAccount).mockResolvedValue(true);
+
       const result = await buildGetSandboxesParams({
         account_id: "admin-account",
         org_id: recoupOrgId,

@@ -4,7 +4,6 @@ import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { validateAuthContext } from "@/lib/auth/validateAuthContext";
 import type { SelectAccountSandboxesParams } from "@/lib/supabase/account_sandboxes/selectAccountSandboxes";
 import { buildGetSandboxesParams } from "./buildGetSandboxesParams";
-import { canAccessAccount } from "@/lib/organizations/canAccessAccount";
 import { z } from "zod";
 
 const getSandboxesQuerySchema = z.object({
@@ -18,7 +17,7 @@ const getSandboxesQuerySchema = z.object({
  *
  * Query parameters:
  * - sandbox_id: Filter to a specific sandbox (must belong to account/org)
- * - account_id: Filter to a specific account (org API keys only)
+ * - account_id: Filter to a specific account (validated against org membership)
  *
  * @param request - The NextRequest object
  * @returns A NextResponse with an error if validation fails, or SelectAccountSandboxesParams
@@ -55,39 +54,23 @@ export async function validateGetSandboxesRequest(
 
   const { accountId, orgId } = authResult;
 
-  // Check access when account_id filter is provided
-  if (targetAccountId) {
-    const hasAccess = await canAccessAccount({ orgId, targetAccountId });
-    if (!hasAccess) {
-      return NextResponse.json(
-        {
-          status: "error",
-          error: orgId
-            ? "account_id is not a member of this organization"
-            : "Personal API keys cannot filter by account_id",
-        },
-        { status: 403, headers: getCorsHeaders() },
-      );
-    }
-  }
-
-  // Build params using buildGetSandboxesParams
-  const buildResult = await buildGetSandboxesParams({
+  // Use shared function to build params
+  const { params, error } = await buildGetSandboxesParams({
     account_id: accountId,
     org_id: orgId,
     target_account_id: targetAccountId,
     sandbox_id: sandboxId,
   });
 
-  if (buildResult.error) {
+  if (error) {
     return NextResponse.json(
       {
         status: "error",
-        error: buildResult.error,
+        error,
       },
       { status: 403, headers: getCorsHeaders() },
     );
   }
 
-  return buildResult.params;
+  return params;
 }
