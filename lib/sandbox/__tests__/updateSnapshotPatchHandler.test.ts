@@ -127,6 +127,36 @@ describe("updateSnapshotPatchHandler", () => {
     );
   });
 
+  it("calls upsertAccountSnapshot without snapshot_id when not provided", async () => {
+    vi.mocked(validateSnapshotPatchBody).mockResolvedValue({
+      accountId: "acc_123",
+      orgId: null,
+      authToken: "token",
+      githubRepo: "https://github.com/org/repo",
+    });
+    vi.mocked(upsertAccountSnapshot).mockResolvedValue({
+      data: {
+        account_id: "acc_123",
+        snapshot_id: "snap_existing",
+        expires_at: "2025-01-01T00:00:00.000Z",
+        created_at: "2024-01-01T00:00:00.000Z",
+      },
+      error: null,
+    });
+
+    const request = createMockRequest();
+    await updateSnapshotPatchHandler(request);
+
+    const call = vi.mocked(upsertAccountSnapshot).mock.calls[0][0];
+    expect(call).not.toHaveProperty("snapshot_id");
+    expect(call).toEqual(
+      expect.objectContaining({
+        account_id: "acc_123",
+        github_repo: "https://github.com/org/repo",
+      }),
+    );
+  });
+
   it("returns 400 when upsertAccountSnapshot returns error", async () => {
     vi.mocked(validateSnapshotPatchBody).mockResolvedValue({
       accountId: "acc_123",

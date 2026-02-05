@@ -59,16 +59,23 @@ describe("validateSnapshotPatchBody", () => {
     });
   });
 
-  it("returns error response when snapshotId is missing", async () => {
-    vi.mocked(safeParseJson).mockResolvedValue({});
+  it("returns validated body when only github_repo is provided", async () => {
+    vi.mocked(safeParseJson).mockResolvedValue({
+      github_repo: "https://github.com/org/repo",
+    });
+    vi.mocked(validateAuthContext).mockResolvedValue({
+      accountId: "acc_123",
+      orgId: "org_456",
+      authToken: "token",
+    });
 
     const request = createMockRequest();
     const result = await validateSnapshotPatchBody(request);
 
-    expect(result).toBeInstanceOf(NextResponse);
-    expect((result as NextResponse).status).toBe(400);
-    const json = await (result as NextResponse).json();
-    expect(json.error).toContain("snapshotId");
+    expect(result).toEqual({
+      accountId: "acc_123",
+      githubRepo: "https://github.com/org/repo",
+    });
   });
 
   it("returns error response when snapshotId is empty string", async () => {
