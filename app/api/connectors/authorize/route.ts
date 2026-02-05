@@ -23,8 +23,7 @@ export async function OPTIONS() {
  * Request body:
  * - connector: The connector slug, e.g., "googlesheets" or "tiktok" (required)
  * - callback_url: Optional custom callback URL after OAuth
- * - entity_type: "user" (default) or "artist"
- * - entity_id: Required when entity_type is "artist"
+ * - entity_id: Optional entity ID (e.g., artist ID) for entity-specific connections
  *
  * @param request
  * @returns The redirect URL for OAuth authorization

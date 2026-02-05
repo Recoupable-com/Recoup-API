@@ -20,8 +20,7 @@ export async function OPTIONS() {
  * List all available connectors and their connection status.
  *
  * Query params:
- *   - entity_type (optional): "user" (default) or "artist"
- *   - entity_id (required when entity_type=artist): The artist ID
+ *   - entity_id (optional): Entity ID for entity-specific connections (e.g., artist ID)
  *
  * Authentication: x-api-key OR Authorization Bearer token required.
  *
@@ -39,8 +38,7 @@ export async function GET(request: NextRequest) {
  *
  * Body:
  * - connected_account_id (required): The connected account ID to disconnect
- * - entity_type (optional): "user" (default) or "artist"
- * - entity_id (required when entity_type=artist): The artist ID
+ * - entity_id (optional): Entity ID for ownership verification (e.g., artist ID)
  *
  * Authentication: x-api-key OR Authorization Bearer token required.
  *
