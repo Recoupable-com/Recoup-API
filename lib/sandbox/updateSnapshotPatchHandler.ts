@@ -20,6 +20,13 @@ export async function updateSnapshotPatchHandler(request: NextRequest): Promise<
     return validated;
   }
 
+  if (!validated.snapshotId && !validated.githubRepo) {
+    return NextResponse.json(
+      { success: true },
+      { status: 200, headers: getCorsHeaders() },
+    );
+  }
+
   try {
     const result = await upsertAccountSnapshot({
       account_id: validated.accountId,

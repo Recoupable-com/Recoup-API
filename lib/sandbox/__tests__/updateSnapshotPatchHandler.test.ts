@@ -159,6 +159,22 @@ describe("updateSnapshotPatchHandler", () => {
     );
   });
 
+  it("skips upsert and returns 200 when no fields to update", async () => {
+    vi.mocked(validateSnapshotPatchBody).mockResolvedValue({
+      accountId: "acc_123",
+      orgId: null,
+      authToken: "token",
+    });
+
+    const request = createMockRequest();
+    const response = await updateSnapshotPatchHandler(request);
+
+    expect(upsertAccountSnapshot).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json).toEqual({ success: true });
+  });
+
   it("returns 400 when upsertAccountSnapshot returns error", async () => {
     vi.mocked(validateSnapshotPatchBody).mockResolvedValue({
       accountId: "acc_123",
