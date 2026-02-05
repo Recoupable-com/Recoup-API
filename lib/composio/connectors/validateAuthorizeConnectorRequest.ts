@@ -13,7 +13,6 @@ export interface AuthorizeConnectorParams {
   connector: string;
   callbackUrl?: string;
   authConfigs?: Record<string, string>;
-  isEntityConnection?: boolean;
 }
 
 /**
@@ -65,7 +64,6 @@ export async function validateAuthorizeConnectorRequest(
       connector,
       callbackUrl: callback_url,
       authConfigs: Object.keys(authConfigs).length > 0 ? authConfigs : undefined,
-      isEntityConnection: true,
     };
   }
 
@@ -74,6 +72,5 @@ export async function validateAuthorizeConnectorRequest(
     composioEntityId: accountId,
     connector,
     callbackUrl: callback_url,
-    isEntityConnection: false,
   };
 }

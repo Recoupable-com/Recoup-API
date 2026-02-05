@@ -3,22 +3,22 @@ import { getFrontendBaseUrl } from "./getFrontendBaseUrl";
 /**
  * Build OAuth callback URL based on environment and destination.
  *
- * Why: Composio redirects back after OAuth. We need different
- * destinations depending on context (chat for entity connections,
- * settings page for account connections).
+ * Why: Composio redirects users back after OAuth. We need different
+ * destinations depending on context (chat room vs settings page).
  */
 
-type CallbackDestination = "chat" | "connectors" | "entity-connectors";
+type CallbackDestination = "chat" | "connectors";
 
-type CallbackOptions =
-  | { destination: "chat"; roomId?: string }
-  | { destination: "connectors" }
-  | { destination: "entity-connectors"; entityId: string; toolkit: string };
+interface CallbackOptions {
+  destination: CallbackDestination;
+  roomId?: string;
+}
 
 /**
  * Build callback URL for OAuth redirects.
  *
- * @param options - Callback configuration
+ * @param options.destination - Where to redirect: "chat" or "connectors"
+ * @param options.roomId - For chat destination, the room ID to return to
  * @returns Full callback URL with success indicator
  */
 export function getCallbackUrl(options: CallbackOptions): string {
@@ -26,10 +26,6 @@ export function getCallbackUrl(options: CallbackOptions): string {
 
   if (options.destination === "connectors") {
     return `${baseUrl}/settings/connectors?connected=true`;
-  }
-
-  if (options.destination === "entity-connectors") {
-    return `${baseUrl}/chat?artist_connected=${options.entityId}&toolkit=${options.toolkit}`;
   }
 
   // Chat destination

@@ -39,7 +39,6 @@ describe("authorizeConnectorHandler", () => {
     vi.mocked(validateAuthorizeConnectorRequest).mockResolvedValue({
       composioEntityId: "account-123",
       connector: "googlesheets",
-      isEntityConnection: false,
     });
     vi.mocked(authorizeConnector).mockResolvedValue({
       connector: "googlesheets",
@@ -54,7 +53,6 @@ describe("authorizeConnectorHandler", () => {
     expect(authorizeConnector).toHaveBeenCalledWith("account-123", "googlesheets", {
       customCallbackUrl: undefined,
       authConfigs: undefined,
-      isEntityConnection: false,
     });
     expect(result.status).toBe(200);
     const body = await result.json();
@@ -62,12 +60,11 @@ describe("authorizeConnectorHandler", () => {
     expect(body.data.redirectUrl).toBe("https://oauth.example.com/auth");
   });
 
-  it("should call authorizeConnector with isEntityConnection true for entity connection", async () => {
+  it("should call authorizeConnector with authConfigs for entity connection", async () => {
     vi.mocked(validateAuthorizeConnectorRequest).mockResolvedValue({
       composioEntityId: "entity-456",
       connector: "tiktok",
       authConfigs: { tiktok: "ac_123" },
-      isEntityConnection: true,
     });
     vi.mocked(authorizeConnector).mockResolvedValue({
       connector: "tiktok",
@@ -82,7 +79,6 @@ describe("authorizeConnectorHandler", () => {
     expect(authorizeConnector).toHaveBeenCalledWith("entity-456", "tiktok", {
       customCallbackUrl: undefined,
       authConfigs: { tiktok: "ac_123" },
-      isEntityConnection: true,
     });
   });
 
@@ -91,7 +87,6 @@ describe("authorizeConnectorHandler", () => {
       composioEntityId: "account-123",
       connector: "googlesheets",
       callbackUrl: "https://custom.example.com/callback",
-      isEntityConnection: false,
     });
     vi.mocked(authorizeConnector).mockResolvedValue({
       connector: "googlesheets",
@@ -106,7 +101,6 @@ describe("authorizeConnectorHandler", () => {
     expect(authorizeConnector).toHaveBeenCalledWith("account-123", "googlesheets", {
       customCallbackUrl: "https://custom.example.com/callback",
       authConfigs: undefined,
-      isEntityConnection: false,
     });
   });
 
@@ -114,7 +108,6 @@ describe("authorizeConnectorHandler", () => {
     vi.mocked(validateAuthorizeConnectorRequest).mockResolvedValue({
       composioEntityId: "account-123",
       connector: "googlesheets",
-      isEntityConnection: false,
     });
     vi.mocked(authorizeConnector).mockRejectedValue(new Error("OAuth failed"));
 

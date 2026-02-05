@@ -23,13 +23,12 @@ export async function authorizeConnectorHandler(request: NextRequest): Promise<N
       return validated;
     }
 
-    const { composioEntityId, connector, callbackUrl, authConfigs, isEntityConnection } = validated;
+    const { composioEntityId, connector, callbackUrl, authConfigs } = validated;
 
     // Execute authorization
     const result = await authorizeConnector(composioEntityId, connector, {
       customCallbackUrl: callbackUrl,
       authConfigs,
-      isEntityConnection,
     });
 
     return NextResponse.json(

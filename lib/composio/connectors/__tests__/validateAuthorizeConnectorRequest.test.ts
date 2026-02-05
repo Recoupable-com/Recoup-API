@@ -38,7 +38,7 @@ describe("validateAuthorizeConnectorRequest", () => {
     expect(response.status).toBe(401);
   });
 
-  it("should return accountId as composioEntityId with isEntityConnection=false when no entity_id", async () => {
+  it("should return accountId as composioEntityId when no entity_id", async () => {
     const mockAccountId = "account-123";
     vi.mocked(validateAuthContext).mockResolvedValue({
       accountId: mockAccountId,
@@ -57,11 +57,10 @@ describe("validateAuthorizeConnectorRequest", () => {
       composioEntityId: mockAccountId,
       connector: "googlesheets",
       callbackUrl: undefined,
-      isEntityConnection: false,
     });
   });
 
-  it("should return entity_id as composioEntityId with isEntityConnection=true when entity_id provided", async () => {
+  it("should return entity_id as composioEntityId when entity_id provided", async () => {
     const mockAccountId = "account-123";
     const mockEntityId = "550e8400-e29b-41d4-a716-446655440000";
     vi.mocked(validateAuthContext).mockResolvedValue({
@@ -84,7 +83,6 @@ describe("validateAuthorizeConnectorRequest", () => {
       connector: "tiktok",
       callbackUrl: undefined,
       authConfigs: undefined,
-      isEntityConnection: true,
     });
   });
 

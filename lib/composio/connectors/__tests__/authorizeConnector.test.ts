@@ -41,20 +41,10 @@ describe("authorizeConnector", () => {
     });
   });
 
-  it("should use connectors destination when not entity connection", async () => {
-    await authorizeConnector("account-123", "googlesheets", { isEntityConnection: false });
+  it("should use connectors destination by default", async () => {
+    await authorizeConnector("account-123", "googlesheets");
 
     expect(getCallbackUrl).toHaveBeenCalledWith({ destination: "connectors" });
-  });
-
-  it("should use entity-connectors destination when entity connection", async () => {
-    await authorizeConnector("entity-456", "tiktok", { isEntityConnection: true });
-
-    expect(getCallbackUrl).toHaveBeenCalledWith({
-      destination: "entity-connectors",
-      entityId: "entity-456",
-      toolkit: "tiktok",
-    });
   });
 
   it("should use custom callback URL when provided", async () => {

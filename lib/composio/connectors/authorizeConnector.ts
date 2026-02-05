@@ -22,11 +22,6 @@ export interface AuthorizeConnectorOptions {
    * Custom callback URL (overrides default).
    */
   customCallbackUrl?: string;
-  /**
-   * If true, this is an entity connection (not the account's own).
-   * Used to determine callback URL destination.
-   */
-  isEntityConnection?: boolean;
 }
 
 /**
@@ -45,24 +40,11 @@ export async function authorizeConnector(
   connector: string,
   options: AuthorizeConnectorOptions = {},
 ): Promise<AuthorizeResult> {
-  const { authConfigs, customCallbackUrl, isEntityConnection } = options;
+  const { authConfigs, customCallbackUrl } = options;
   const composio = await getComposioClient();
 
   // Determine callback URL
-  let callbackUrl: string;
-  if (customCallbackUrl) {
-    callbackUrl = customCallbackUrl;
-  } else if (isEntityConnection) {
-    // Entity connection: redirect to chat with entity info
-    callbackUrl = getCallbackUrl({
-      destination: "entity-connectors",
-      entityId,
-      toolkit: connector,
-    });
-  } else {
-    // Account's own connection: redirect to settings
-    callbackUrl = getCallbackUrl({ destination: "connectors" });
-  }
+  const callbackUrl = customCallbackUrl ?? getCallbackUrl({ destination: "connectors" });
 
   // Create session with optional auth configs
   const session = await composio.create(entityId, {
