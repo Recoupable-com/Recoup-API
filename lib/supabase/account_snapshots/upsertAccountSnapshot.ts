@@ -5,6 +5,7 @@ import type { PostgrestError } from "@supabase/supabase-js";
 interface UpsertAccountSnapshotParams {
   accountId: string;
   snapshotId: string;
+  githubRepo?: string;
 }
 
 interface UpsertAccountSnapshotResult {
@@ -25,6 +26,7 @@ interface UpsertAccountSnapshotResult {
 export async function upsertAccountSnapshot({
   accountId,
   snapshotId,
+  githubRepo,
 }: UpsertAccountSnapshotParams): Promise<UpsertAccountSnapshotResult> {
   // Set expiration to 1 year from now
   const expiresAt = new Date();
@@ -37,6 +39,7 @@ export async function upsertAccountSnapshot({
         account_id: accountId,
         snapshot_id: snapshotId,
         expires_at: expiresAt.toISOString(),
+        ...(githubRepo !== undefined && { github_repo: githubRepo }),
       },
       { onConflict: "account_id" },
     )

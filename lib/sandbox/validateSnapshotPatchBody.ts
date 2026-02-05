@@ -8,6 +8,7 @@ import { z } from "zod";
 export const snapshotPatchBodySchema = z.object({
   snapshotId: z.string({ message: "snapshotId is required" }).min(1, "snapshotId cannot be empty"),
   account_id: z.string().uuid("account_id must be a valid UUID").optional(),
+  github_repo: z.string().url("github_repo must be a valid URL").optional(),
 });
 
 export type SnapshotPatchBody = {
@@ -15,6 +16,8 @@ export type SnapshotPatchBody = {
   accountId: string;
   /** The snapshot ID to set */
   snapshotId: string;
+  /** The GitHub repository URL to associate with the sandbox */
+  githubRepo?: string;
 };
 
 /**
@@ -46,7 +49,7 @@ export async function validateSnapshotPatchBody(
     );
   }
 
-  const { snapshotId, account_id: targetAccountId } = result.data;
+  const { snapshotId, account_id: targetAccountId, github_repo: githubRepo } = result.data;
 
   const authResult = await validateAuthContext(request, {
     accountId: targetAccountId,
@@ -59,5 +62,6 @@ export async function validateSnapshotPatchBody(
   return {
     accountId: authResult.accountId,
     snapshotId,
+    ...(githubRepo && { githubRepo }),
   };
 }

@@ -24,6 +24,7 @@ export async function updateSnapshotPatchHandler(request: NextRequest): Promise<
     const result = await upsertAccountSnapshot({
       accountId: validated.accountId,
       snapshotId: validated.snapshotId,
+      githubRepo: validated.githubRepo,
     });
 
     if (result.error || !result.data) {

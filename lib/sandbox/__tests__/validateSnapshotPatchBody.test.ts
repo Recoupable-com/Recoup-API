@@ -122,6 +122,27 @@ describe("validateSnapshotPatchBody", () => {
     expect((result as NextResponse).status).toBe(403);
   });
 
+  it("returns validated body with github_repo when provided", async () => {
+    vi.mocked(safeParseJson).mockResolvedValue({
+      snapshotId: "snap_abc123",
+      github_repo: "https://github.com/org/repo",
+    });
+    vi.mocked(validateAuthContext).mockResolvedValue({
+      accountId: "acc_123",
+      orgId: "org_456",
+      authToken: "token",
+    });
+
+    const request = createMockRequest();
+    const result = await validateSnapshotPatchBody(request);
+
+    expect(result).toEqual({
+      accountId: "acc_123",
+      snapshotId: "snap_abc123",
+      githubRepo: "https://github.com/org/repo",
+    });
+  });
+
   it("returns error when account_id is not a valid UUID", async () => {
     vi.mocked(safeParseJson).mockResolvedValue({
       snapshotId: "snap_abc123",
