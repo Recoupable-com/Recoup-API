@@ -6,13 +6,15 @@ import { safeParseJson } from "@/lib/networking/safeParseJson";
 import { z } from "zod";
 
 export const sandboxBodySchema = z.object({
-  prompt: z.string({ message: "prompt is required" }).min(1, "prompt cannot be empty"),
+  command: z.string().min(1, "command cannot be empty").optional(),
+  args: z.array(z.string()).optional(),
+  cwd: z.string().optional(),
 });
 
 export type SandboxBody = z.infer<typeof sandboxBodySchema> & AuthContext;
 
 /**
- * Validates auth and request body for POST /api/sandbox.
+ * Validates auth and request body for POST /api/sandboxes.
  *
  * @param request - The NextRequest object
  * @returns A NextResponse with an error if validation fails, or the validated body with auth context.

@@ -2,17 +2,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { createSandbox } from "../createSandbox";
 import { Sandbox } from "@vercel/sandbox";
-import { installClaudeCode } from "../installClaudeCode";
-import { runClaudeCode } from "../runClaudeCode";
 
 const mockSandbox = {
   sandboxId: "sbx_test123",
   status: "running",
   timeout: 600000,
   createdAt: new Date("2024-01-01T00:00:00Z"),
-  runCommand: vi.fn(),
-  writeFiles: vi.fn(),
-  stop: vi.fn(),
 };
 
 vi.mock("@vercel/sandbox", () => ({
@@ -28,26 +23,13 @@ vi.mock("ms", () => ({
   }),
 }));
 
-vi.mock("../installClaudeCode", () => ({
-  installClaudeCode: vi.fn(),
-}));
-
-vi.mock("../runClaudeCode", () => ({
-  runClaudeCode: vi.fn(),
-}));
-
 describe("createSandbox", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(installClaudeCode).mockResolvedValue(undefined);
-    vi.mocked(runClaudeCode).mockResolvedValue(undefined);
-    mockSandbox.runCommand.mockResolvedValue({ exitCode: 0 });
-    mockSandbox.writeFiles.mockResolvedValue(undefined);
-    mockSandbox.stop.mockResolvedValue(undefined);
   });
 
-  it("creates sandbox with correct configuration", async () => {
-    await createSandbox("tell me hello");
+  it("creates sandbox with default configuration when no params provided", async () => {
+    await createSandbox();
 
     expect(Sandbox.create).toHaveBeenCalledWith({
       resources: { vcpus: 4 },
@@ -56,21 +38,37 @@ describe("createSandbox", () => {
     });
   });
 
-  it("calls installClaudeCode", async () => {
-    await createSandbox("tell me hello");
+  it("creates sandbox from snapshot when source is provided", async () => {
+    await createSandbox({ source: { type: "snapshot", snapshotId: "snap_abc123" } });
 
-    expect(installClaudeCode).toHaveBeenCalledWith(mockSandbox);
+    expect(Sandbox.create).toHaveBeenCalledWith({
+      source: { type: "snapshot", snapshotId: "snap_abc123" },
+      timeout: 600000,
+    });
   });
 
-  it("calls runClaudeCode with sandbox and prompt", async () => {
-    const prompt = "tell me hello";
-    await createSandbox(prompt);
+  it("allows overriding default timeout", async () => {
+    await createSandbox({ timeout: 300000 });
 
-    expect(runClaudeCode).toHaveBeenCalledWith(mockSandbox, prompt);
+    expect(Sandbox.create).toHaveBeenCalledWith({
+      resources: { vcpus: 4 },
+      timeout: 300000,
+      runtime: "node22",
+    });
+  });
+
+  it("allows overriding default resources", async () => {
+    await createSandbox({ resources: { vcpus: 2 } });
+
+    expect(Sandbox.create).toHaveBeenCalledWith({
+      resources: { vcpus: 2 },
+      timeout: 600000,
+      runtime: "node22",
+    });
   });
 
   it("returns sandbox created response with sandboxStatus", async () => {
-    const result = await createSandbox("tell me hello");
+    const result = await createSandbox();
 
     expect(result).toEqual({
       sandboxId: "sbx_test123",
@@ -80,23 +78,15 @@ describe("createSandbox", () => {
     });
   });
 
-  it("stops sandbox after execution", async () => {
-    await createSandbox("tell me hello");
+  it("does not stop sandbox after creation", async () => {
+    const mockSandboxWithStop = {
+      ...mockSandbox,
+      stop: vi.fn(),
+    };
+    vi.mocked(Sandbox.create).mockResolvedValue(mockSandboxWithStop as unknown as Sandbox);
 
-    expect(mockSandbox.stop).toHaveBeenCalled();
-  });
+    await createSandbox();
 
-  it("stops sandbox if runClaudeCode fails", async () => {
-    vi.mocked(runClaudeCode).mockRejectedValue(new Error("Failed to run claude code"));
-
-    await expect(createSandbox("tell me hello")).rejects.toThrow("Failed to run claude code");
-    expect(mockSandbox.stop).toHaveBeenCalled();
-  });
-
-  it("stops sandbox if installClaudeCode fails", async () => {
-    vi.mocked(installClaudeCode).mockRejectedValue(new Error("Failed to install"));
-
-    await expect(createSandbox("tell me hello")).rejects.toThrow("Failed to install");
-    expect(mockSandbox.stop).toHaveBeenCalled();
+    expect(mockSandboxWithStop.stop).not.toHaveBeenCalled();
   });
 });
