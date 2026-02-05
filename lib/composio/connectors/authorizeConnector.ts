@@ -10,27 +10,45 @@ export interface AuthorizeResult {
 }
 
 /**
+ * Options for authorizing a connector.
+ */
+export interface AuthorizeConnectorOptions {
+  /**
+   * Custom auth configs for toolkits that require custom OAuth credentials.
+   * e.g., { tiktok: "ac_xxxxx" }
+   */
+  authConfigs?: Record<string, string>;
+  /**
+   * Custom callback URL (overrides default).
+   */
+  customCallbackUrl?: string;
+}
+
+/**
  * Generate an OAuth authorization URL for a connector.
  *
- * Why: Used by the /api/connectors/authorize endpoint to let users
- * connect from the settings page (not in-chat).
+ * The entityId is an account ID - either the caller's own account or
+ * another entity (like an artist) they have access to.
  *
- * @param userId - The user's account ID
- * @param connector - The connector slug (e.g., "googlesheets", "gmail")
- * @param customCallbackUrl - Optional custom callback URL after OAuth
+ * @param entityId - The account ID to store the connection under
+ * @param connector - The connector slug (e.g., "googlesheets", "tiktok")
+ * @param options - Authorization options
  * @returns The redirect URL for OAuth
  */
 export async function authorizeConnector(
-  userId: string,
+  entityId: string,
   connector: string,
-  customCallbackUrl?: string,
+  options: AuthorizeConnectorOptions = {},
 ): Promise<AuthorizeResult> {
+  const { authConfigs, customCallbackUrl } = options;
   const composio = await getComposioClient();
 
-  const callbackUrl =
-    customCallbackUrl || getCallbackUrl({ destination: "connectors" });
+  // Determine callback URL
+  const callbackUrl = customCallbackUrl ?? getCallbackUrl({ destination: "connectors" });
 
-  const session = await composio.create(userId, {
+  // Create session with optional auth configs
+  const session = await composio.create(entityId, {
+    ...(authConfigs && Object.keys(authConfigs).length > 0 && { authConfigs }),
     manageConnections: {
       callbackUrl,
     },

@@ -11,20 +11,69 @@ export interface ConnectorInfo {
 }
 
 /**
- * Get all connectors and their connection status for a user.
+ * Options for getting connectors.
+ */
+export interface GetConnectorsOptions {
+  /**
+   * Filter to only these toolkit slugs.
+   * If not provided, returns all toolkits.
+   */
+  allowedToolkits?: readonly string[];
+  /**
+   * Custom display names for toolkits.
+   * e.g., { tiktok: "TikTok" }
+   */
+  displayNames?: Record<string, string>;
+}
+
+/**
+ * Get connectors and their connection status for an entity.
  *
- * @param userId - The user's account ID
+ * Works for any account ID. Composio uses the entityId to scope connections.
+ *
+ * @param entityId - The account ID to get connectors for
+ * @param options - Options for filtering and display
  * @returns List of connectors with connection status
  */
-export async function getConnectors(userId: string): Promise<ConnectorInfo[]> {
+export async function getConnectors(
+  entityId: string,
+  options: GetConnectorsOptions = {},
+): Promise<ConnectorInfo[]> {
+  const { allowedToolkits, displayNames = {} } = options;
   const composio = await getComposioClient();
-  const session = await composio.create(userId);
+
+  // Create session, optionally filtering to allowed toolkits
+  const sessionOptions = allowedToolkits
+    ? { toolkits: [...allowedToolkits] as string[] }
+    : undefined;
+
+  const session = await composio.create(entityId, sessionOptions);
   const toolkits = await session.toolkits();
 
-  return toolkits.items.map((toolkit) => ({
+  // Build connector list
+  const connectors = toolkits.items.map(toolkit => ({
     slug: toolkit.slug,
-    name: toolkit.name,
+    name: displayNames[toolkit.slug] || toolkit.name,
     isConnected: toolkit.connection?.isActive ?? false,
     connectedAccountId: toolkit.connection?.connectedAccount?.id,
   }));
+
+  // If filtering, ensure we return all allowed toolkits (even if not in Composio response)
+  if (allowedToolkits) {
+    const existingSlugs = new Set(connectors.map(c => c.slug));
+    for (const slug of allowedToolkits) {
+      if (!existingSlugs.has(slug)) {
+        connectors.push({
+          slug,
+          name: displayNames[slug] || slug,
+          isConnected: false,
+          connectedAccountId: undefined,
+        });
+      }
+    }
+    // Filter to only allowed and maintain order
+    return allowedToolkits.map(slug => connectors.find(c => c.slug === slug)!);
+  }
+
+  return connectors;
 }
