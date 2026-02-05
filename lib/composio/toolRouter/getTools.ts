@@ -37,7 +37,7 @@ function isValidTool(tool: unknown): tool is Tool {
 }
 
 /**
- * Get Composio Tool Router tools for a user.
+ * Get Composio Tool Router tools for an account.
  *
  * Returns a filtered subset of meta-tools:
  * - COMPOSIO_MANAGE_CONNECTIONS - OAuth/auth management
@@ -52,13 +52,13 @@ function isValidTool(tool: unknown): tool is Tool {
  * - COMPOSIO_API_KEY is not set
  * - @composio packages fail to load (bundler incompatibility)
  *
- * @param userId - Unique identifier for the user (accountId)
+ * @param accountId - Unique identifier for the account
  * @param artistId - Optional artist ID to use artist-specific Composio connections
  * @param roomId - Optional chat room ID for OAuth redirect
  * @returns ToolSet containing filtered Vercel AI SDK tools
  */
 export async function getComposioTools(
-  userId: string,
+  accountId: string,
   artistId?: string,
   roomId?: string,
 ): Promise<ToolSet> {
@@ -78,7 +78,7 @@ export async function getComposioTools(
       }
     }
 
-    const session = await createToolRouterSession(userId, roomId, artistConnections);
+    const session = await createToolRouterSession(accountId, roomId, artistConnections);
     const allTools = await session.tools();
 
     // Filter to only allowed tools with runtime validation

@@ -69,7 +69,7 @@ export async function validateAuthorizeConnectorRequest(
     };
   }
 
-  // No entity_id: use the authenticated user's account
+  // No entity_id: use the authenticated account
   return {
     composioEntityId: accountId,
     connector,

@@ -14,7 +14,7 @@ export interface AuthorizeResult {
  */
 export interface AuthorizeConnectorOptions {
   /**
-   * Custom auth configs for toolkits that require user-provided OAuth credentials.
+   * Custom auth configs for toolkits that require custom OAuth credentials.
    * e.g., { tiktok: "ac_xxxxx" }
    */
   authConfigs?: Record<string, string>;
@@ -23,7 +23,7 @@ export interface AuthorizeConnectorOptions {
    */
   customCallbackUrl?: string;
   /**
-   * If true, this is an entity connection (not the user's own).
+   * If true, this is an entity connection (not the account's own).
    * Used to determine callback URL destination.
    */
   isEntityConnection?: boolean;
@@ -32,8 +32,8 @@ export interface AuthorizeConnectorOptions {
 /**
  * Generate an OAuth authorization URL for a connector.
  *
- * The entityId is an account ID - either the user's own account or
- * another account (like an artist) they have access to.
+ * The entityId is an account ID - either the caller's own account or
+ * another entity (like an artist) they have access to.
  *
  * @param entityId - The account ID to store the connection under
  * @param connector - The connector slug (e.g., "googlesheets", "tiktok")
@@ -60,7 +60,7 @@ export async function authorizeConnector(
       toolkit: connector,
     });
   } else {
-    // User's own connection: redirect to settings
+    // Account's own connection: redirect to settings
     callbackUrl = getCallbackUrl({ destination: "connectors" });
   }
 

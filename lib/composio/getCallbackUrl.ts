@@ -3,9 +3,9 @@ import { getFrontendBaseUrl } from "./getFrontendBaseUrl";
 /**
  * Build OAuth callback URL based on environment and destination.
  *
- * Why: Composio redirects users back after OAuth. We need different
+ * Why: Composio redirects back after OAuth. We need different
  * destinations depending on context (chat for entity connections,
- * settings page for user connections).
+ * settings page for account connections).
  */
 
 type CallbackDestination = "chat" | "connectors" | "entity-connectors";

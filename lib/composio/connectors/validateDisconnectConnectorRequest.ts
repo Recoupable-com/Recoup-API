@@ -53,7 +53,7 @@ export async function validateDisconnectConnectorRequest(
       return NextResponse.json({ error: "Access denied to this entity" }, { status: 403, headers });
     }
   } else {
-    // Disconnecting user's own connection - verify ownership
+    // Disconnecting account's own connection - verify ownership
     const isOwner = await verifyConnectorOwnership(accountId, connected_account_id);
     if (!isOwner) {
       return NextResponse.json(

@@ -16,7 +16,7 @@ export type DisconnectConnectorBody = z.infer<typeof disconnectConnectorBodySche
  * - Entity disconnect: { connected_account_id: "ca_xxx", entity_id: "account-uuid" }
  *
  * When entity_id is provided, verifies the connection belongs to that entity.
- * When not provided, verifies the connection belongs to the authenticated user.
+ * When not provided, verifies the connection belongs to the authenticated account.
  *
  * @param body - The request body
  * @returns A NextResponse with an error if validation fails, or the validated body if validation passes.

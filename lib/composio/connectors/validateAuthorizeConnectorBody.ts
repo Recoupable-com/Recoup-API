@@ -38,7 +38,7 @@ export type AuthorizeConnectorBody = z.infer<typeof authorizeConnectorBodySchema
  * - Validates connector is allowed for that entity type
  *
  * When entity_id is not provided:
- * - Uses the authenticated user's account ID
+ * - Uses the authenticated account ID
  *
  * @param body - The request body
  * @returns A NextResponse with an error if validation fails, or the validated body if validation passes.

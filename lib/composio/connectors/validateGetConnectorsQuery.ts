@@ -11,7 +11,7 @@ export type GetConnectorsQuery = z.infer<typeof getConnectorsQuerySchema>;
 /**
  * Validates query params for GET /api/connectors.
  *
- * - No params: Returns connectors for the authenticated user
+ * - No params: Returns connectors for the authenticated account
  * - entity_id=uuid: Returns connectors for that entity (after access check)
  *
  * @param searchParams - The URL search params
