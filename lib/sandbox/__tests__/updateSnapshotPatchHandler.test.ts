@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { updateSnapshotPatchHandler } from "../updateSnapshotPatchHandler";
 import { validateSnapshotPatchBody } from "@/lib/sandbox/validateSnapshotPatchBody";
 import { upsertAccountSnapshot } from "@/lib/supabase/account_snapshots/upsertAccountSnapshot";
+import { updateAccountSnapshot } from "@/lib/supabase/account_snapshots/updateAccountSnapshot";
 
 vi.mock("@/lib/sandbox/validateSnapshotPatchBody", () => ({
   validateSnapshotPatchBody: vi.fn(),
@@ -12,6 +13,10 @@ vi.mock("@/lib/sandbox/validateSnapshotPatchBody", () => ({
 
 vi.mock("@/lib/supabase/account_snapshots/upsertAccountSnapshot", () => ({
   upsertAccountSnapshot: vi.fn(),
+}));
+
+vi.mock("@/lib/supabase/account_snapshots/updateAccountSnapshot", () => ({
+  updateAccountSnapshot: vi.fn(),
 }));
 
 /**
@@ -128,35 +133,32 @@ describe("updateSnapshotPatchHandler", () => {
     );
   });
 
-  it("calls upsertAccountSnapshot without snapshot_id when not provided", async () => {
+  it("uses updateAccountSnapshot when only github_repo is provided", async () => {
     vi.mocked(validateSnapshotPatchBody).mockResolvedValue({
       accountId: "acc_123",
       orgId: null,
       authToken: "token",
       githubRepo: "https://github.com/org/repo",
     });
-    vi.mocked(upsertAccountSnapshot).mockResolvedValue({
+    vi.mocked(updateAccountSnapshot).mockResolvedValue({
       data: {
         account_id: "acc_123",
         snapshot_id: "snap_existing",
         expires_at: "2025-01-01T00:00:00.000Z",
         created_at: "2024-01-01T00:00:00.000Z",
+        github_repo: "https://github.com/org/repo",
       },
       error: null,
     });
 
     const request = createMockRequest();
-    await updateSnapshotPatchHandler(request);
+    const response = await updateSnapshotPatchHandler(request);
 
-    const call = vi.mocked(upsertAccountSnapshot).mock.calls[0][0];
-    expect(call).not.toHaveProperty("snapshot_id");
-    expect(call).not.toHaveProperty("expires_at");
-    expect(call).toEqual(
-      expect.objectContaining({
-        account_id: "acc_123",
-        github_repo: "https://github.com/org/repo",
-      }),
-    );
+    expect(upsertAccountSnapshot).not.toHaveBeenCalled();
+    expect(updateAccountSnapshot).toHaveBeenCalledWith("acc_123", {
+      github_repo: "https://github.com/org/repo",
+    });
+    expect(response.status).toBe(200);
   });
 
   it("skips upsert and returns 200 when no fields to update", async () => {

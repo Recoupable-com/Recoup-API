@@ -3,12 +3,14 @@ import { NextResponse } from "next/server";
 import { getCorsHeaders } from "@/lib/networking/getCorsHeaders";
 import { validateSnapshotPatchBody } from "@/lib/sandbox/validateSnapshotPatchBody";
 import { upsertAccountSnapshot } from "@/lib/supabase/account_snapshots/upsertAccountSnapshot";
+import { updateAccountSnapshot } from "@/lib/supabase/account_snapshots/updateAccountSnapshot";
 
 /**
  * Handler for PATCH /api/sandboxes/snapshot.
  *
- * Updates the snapshot ID for an account. This snapshot will be used
- * as the base environment when creating new sandboxes.
+ * Updates the snapshot ID and/or github_repo for an account.
+ * Uses upsert when snapshot_id is provided (may create a new record),
+ * or update when only github_repo is provided (modifies existing record).
  * Requires authentication via x-api-key header or Authorization Bearer token.
  *
  * @param request - The request object
@@ -28,14 +30,16 @@ export async function updateSnapshotPatchHandler(request: NextRequest): Promise<
   }
 
   try {
-    const result = await upsertAccountSnapshot({
-      account_id: validated.accountId,
-      ...(validated.snapshotId && {
-        snapshot_id: validated.snapshotId,
-        expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-      }),
-      ...(validated.githubRepo && { github_repo: validated.githubRepo }),
-    });
+    const result = validated.snapshotId
+      ? await upsertAccountSnapshot({
+          account_id: validated.accountId,
+          snapshot_id: validated.snapshotId,
+          expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+          ...(validated.githubRepo && { github_repo: validated.githubRepo }),
+        })
+      : await updateAccountSnapshot(validated.accountId, {
+          github_repo: validated.githubRepo,
+        });
 
     if (result.error || !result.data) {
       return NextResponse.json(
