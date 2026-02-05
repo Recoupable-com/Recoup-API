@@ -89,10 +89,12 @@ describe("updateSnapshotPatchHandler", () => {
     const request = createMockRequest();
     await updateSnapshotPatchHandler(request);
 
-    expect(upsertAccountSnapshot).toHaveBeenCalledWith({
-      accountId: "acc_456",
-      snapshotId: "snap_xyz",
-    });
+    expect(upsertAccountSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        account_id: "acc_456",
+        snapshot_id: "snap_xyz",
+      }),
+    );
   });
 
   it("forwards githubRepo to upsertAccountSnapshot when provided", async () => {
@@ -116,11 +118,13 @@ describe("updateSnapshotPatchHandler", () => {
     const request = createMockRequest();
     await updateSnapshotPatchHandler(request);
 
-    expect(upsertAccountSnapshot).toHaveBeenCalledWith({
-      accountId: "acc_123",
-      snapshotId: "snap_abc123",
-      githubRepo: "https://github.com/org/repo",
-    });
+    expect(upsertAccountSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        account_id: "acc_123",
+        snapshot_id: "snap_abc123",
+        github_repo: "https://github.com/org/repo",
+      }),
+    );
   });
 
   it("returns 400 when upsertAccountSnapshot returns error", async () => {
